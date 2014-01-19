@@ -5,14 +5,16 @@ from subprocess import call
 import dicom
 import numpy
 from octrees.octrees import Octree
+import os, os.path
 
-sampling = 4
+SAMPLING = 4
 POISSON_DEPTH = 4
 
-mypath = "redfred"
+mypath = "../data/redfred"
 myseries = "1.2.840.113704.1.111.3736.1370522307.4"
-out = r"output/redfredc"
-poissionrec = "PoissonRecon/Bin/Linux/PoissonRecon"
+OUTPUT_DIR = r"../output"
+OUTPUT_FILENAME_BASE = "redfred"
+poissonrec = "../bin/PoissonRecon"
 
 def makepoints(t, zpositions, posX, posY, spacingX, spacingY, level):
     t = t.astype(numpy.int16)
@@ -81,8 +83,14 @@ def points_to_string(points):
         r = r + "%f %f %f %f %f %f\n" % (point[0], point[1], point[2], normal[0], normal[1], normal[2])
     return r
 
-def load(mypath, myseries, levels):
-    dicomfiles = [ dicom.read_file(join(mypath,f)) for f in listdir(mypath) if isfile(join(mypath,f)) ]
+def load(mypath, myseries, levels, sampling):
+    dicomfiles = []
+    for f in listdir(mypath):
+        if isfile(join(mypath,f)):
+            try:
+                dicomfiles.append(dicom.read_file(join(mypath,f)))
+            except:
+                print "%s is not a DICOM file" % f
     mySlices = []
     for d in dicomfiles:
         try:
@@ -128,26 +136,45 @@ def save(points, outfile):
     f.write(points_to_string(points))
     f.close()
 
-def poission(infile, outfile, poisson_depth = 8):
-    call([poissionrec, "--in", infile, "--out", outfile, "--depth", str(poisson_depth)])
+def poisson(infile, outfile, poisson_depth = 8):
+    call([poissonrec, "--in", infile, "--out", outfile, "--depth", str(poisson_depth)])
 
-if __name__ == '__main__':
-    points = load(mypath, myseries, [500, 1200])
-    #Make clean skin point cloud by removing any skin points (density 500) that are near bone/metal points (density 12000)
-    clean_skin = Octree(points[500].bounds)
-    for ignore, point, normal in points[500].near_point((0,0,0), 1000):
+def make_ply(points, filenamebase, poisson_depth = 8):
+    if not os.path.exists(OUTPUT_DIR):
+        os.makedirs(OUTPUT_DIR)
+    plt_filename = os.path.join(OUTPUT_DIR, filenamebase + ".plt") #Maybe this should be a temporary file
+    ply_filename = os.path.join(OUTPUT_DIR, filenamebase + ".ply")
+    save(points, plt_filename)
+    poisson(plt_filename, ply_filename, POISSON_DEPTH)
+
+def copy_point_cloud_excluding(points, excluding_points, distance):
+    clean_skin = Octree(points.bounds)
+    points_list = points.by_distance_from_point((0,0,0)) #Points do not actually need to be ordered, perhaps they can be found more efficiently
+    for ignore, point, normal in points_list:
         try:
-            points[1200].near_point(point, 2).next()
+            excluding_points.near_point(point, distance).next()
         except StopIteration:
             clean_skin.insert(point, normal)
+    return clean_skin
+
+def expand(points, distance):
+    print points.bounds
+    clean_skin = Octree(points.bounds)#expand bounds
+    points_list = points.by_distance_from_point((0,0,0)) #Points do not actually need to be ordered, perhaps they can be found more efficiently
+    for ignore, point, normal in points_list:        
+        try:
+            points.near_point(point, distance).next()
+        except StopIteration:
+            clean_skin.insert(point, normal)
+
+if __name__ == '__main__':
+    points = load(mypath, myseries, [500, 1200], SAMPLING)
+    #Make clean skin point cloud by removing any skin points (density 500) that are near bone/metal points (density 12000)
+    clean_skin = copy_point_cloud_excluding(points[500], points[1200], 2)
+    #expanded_skin = expand(clean_skin, 10)
     
-    skinpointsfile = out + "500.plt"
-    bonepointsfile = out + "1200.plt"
-    cleanskinpointsfile = out + "clean.plt"
-    save(points[500], skinpointsfile)
-    poission(skinpointsfile, out + "skin.ply", POISSON_DEPTH)
-    save(clean_skin, cleanskinpointsfile)
-    poission(cleanskinpointsfile, out + "clean.ply", POISSON_DEPTH)
-    save(points[1200], bonepointsfile)
-    poission(bonepointsfile, out + "bone.ply", POISSON_DEPTH)
+    #Run Poisson reconstruction alogrithem on point clouds
+    make_ply(points[500], OUTPUT_FILENAME_BASE + "skin", poisson_depth = POISSON_DEPTH)
+    make_ply(clean_skin, OUTPUT_FILENAME_BASE + "clean", poisson_depth = POISSON_DEPTH)
+    make_ply(points[1200], OUTPUT_FILENAME_BASE + "bone", poisson_depth = POISSON_DEPTH)
 

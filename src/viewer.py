@@ -13,6 +13,7 @@ from heapq import heappush, heappop
 from itertools import chain
 
 BLOCKSIZE = 100
+INPUTFILE = "../output/redfredclean.ply"
 
 def null():
     pass
@@ -417,8 +418,7 @@ class MainWindow(wx.Frame):
         box = wx.BoxSizer(wx.HORIZONTAL)
         box.Add(self.modePanel, 0.5, wx.EXPAND)
         #box.Add(CubeCanvas(self), 1, wx.EXPAND)
-        f = open("output/redfredcclean.ply")
-        #f = open("output/redfredc501.ply")
+        f = open(INPUTFILE)
         d = parseply.parseply(f)
         f.close()
         tc = MeshCanvas(self, model.makeMesh(d), self.modePanel)
