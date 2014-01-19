@@ -11,12 +11,17 @@ output_dir="data"
 mkdir -p $output_dir
 cd $output_dir
 
-# download redfred if required
-if [ ! -f "$rf_file" ]; then
-    wget $rf_url
+if [ ! -d "redfred" ]; then
+    # download redfred if required
+    if [ ! -f "$rf_file" ]; then
+        echo "Downloading redfred..."
+        wget $rf_url
+    fi
+
+    echo "Decompressing redfred..."
+    tar -xjf $rf_file
+else
+    echo "Nothing to do..."
 fi
 
-echo "Decompressing redfred..."
-
-tar -xjf $rf_file
 
