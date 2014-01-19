@@ -38,6 +38,7 @@ class MeshCanvas(glcanvas.GLCanvas):
         range_y = self.mesh.maxY - self.mesh.minY
         range_z = self.mesh.maxZ - self.mesh.minZ
         self.range_max = (range_x ** 2 + range_y ** 2 + range_z ** 2) ** 0.5
+        self.band = []
 
         glcanvas.GLCanvas.__init__(self, parent, -1)
         self.init = False
@@ -108,14 +109,29 @@ class MeshCanvas(glcanvas.GLCanvas):
             hits = self.hit(self.x, self.y, opengl_lists(self.extra_lists), len(self.spheres))
             if hits:
                 self.sphere_selection =  hits[0][2][0]
-                
             else:
                 self.sphere_selection = None           
                 self.placeSphere()
             self.compile_band()
             self.Refresh(False)
+        if mode == "Select Cut":
+            hits = self.hit(self.x, self.y, opengl_list(self.mainList), self.mainNumNames)
+            if hits:
+                hits = self.hit(self.x, self.y, renderOneBlock(hits[0][2][0], self.vol), BLOCKSIZE)
+                triangle = self.mesh.faces[hits[0][2][0]]
+                self. mesh = self.mesh.cloneSubVol(triangle, self.band)
+            self.Refresh(False)
+
+    def update_band(self):
+        self.band = []
+        if len(self.spheres) > 0:
+            for i, (sphere, nextsphere) in enumerate(zip(self.spheres, self.spheres[1:] + [self.spheres[0]])):
+                self.band = self.band + self.get_path(sphere, nextsphere)
+                
+
 
     def compile_band(self):
+        self.update_band()
         glNewList(self.extra_lists[0], GL_COMPILE)
         if len(self.spheres) > 0:
             for i, (sphere, nextsphere) in enumerate(zip(self.spheres, self.spheres[1:] + [self.spheres[0]])):
@@ -126,8 +142,7 @@ class MeshCanvas(glcanvas.GLCanvas):
                 glutSolidSphere(7, 10, 10)
                 glPopName()
                 glPopMatrix()
-                path = self.get_path(sphere, nextsphere)
-                for (start, end) in zip(path[:-1], path[1:]):
+        for (start, end) in zip(self.band[:-1], self.band[1:]):
                     dx = start[0] - end[0]
                     dy = start[1] - end[1]
                     dz = start[2] - end[2]
@@ -382,6 +397,7 @@ class ModePanel(wx.Panel):
         self.rb_zoom = wx.RadioButton(self, label='Zoom')
         self.rb_select = wx.RadioButton(self, label='Select')
         self.rb_band = wx.RadioButton(self, label='Rubber Band')
+        self.rb_inside = wx.RadioButton(self, label='Select Cut')
 
         #self.rb_rotate.Bind(wx.EVT_RADIOBUTTON, self.SetMode)
         #self.rb_zoom.Bind(wx.EVT_RADIOBUTTON, self.SetMode)
@@ -391,6 +407,7 @@ class ModePanel(wx.Panel):
         box.Add(self.rb_zoom, 0.5, wx.EXPAND)
         box.Add(self.rb_select, 0.5, wx.EXPAND)
         box.Add(self.rb_band, 0.5, wx.EXPAND)
+        box.Add(self.rb_inside, 0.5, wx.EXPAND)
         self.SetAutoLayout(True)
         self.SetSizer(box)
         self.Layout()
@@ -399,7 +416,8 @@ class ModePanel(wx.Panel):
         if self.rb_rotate.GetValue():  return "Rotate"
         if self.rb_zoom.GetValue(): return "Zoom"  
         if self.rb_select.GetValue(): return "Select"  
-        if self.rb_band.GetValue(): return "Rubber Band"
+        if self.rb_band.GetValue(): return "Rubber Band"  
+        if self.rb_inside.GetValue(): return "Select Cut"
 
 class MainWindow(wx.Frame):
     def __init__(self, parent = None, id = -1, title = "PyOpenGL Example 1"):
