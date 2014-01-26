@@ -1,28 +1,30 @@
 
 from __future__ import division
-import model
+
+import mesh
 from math import pi, cos, sin
 
-def make_cylinder(r, h, sampling):
+def make_cylinder(c, r, h, sampling, offset=[0,0,0]):
+    '''
+    Add a cylinder to an existing mesh.
+    '''
 
-    c = model.Mesh()
+    # create end vertices
 
-    #create end vertices
-
-    o = c.add_vertex(0,0,0)
-    o2 = c.add_vertex(0,0,h)
+    o = c.add_vertex(offset[0],offset[1],offset[2])
+    o2 = c.add_vertex(offset[0],offset[1],h+offset[2])
 
     vs = []; vs2 = []
 
-    hs=[x*h/10 for x in range(11)]
+    hs=[x*h/10 + offset[2] for x in range(11)]
 
     for j in range(len(hs)):
         vs.append([])
         for i in range(sampling):
             th = (i+(j%2)*0.5)/sampling*2*pi
-            x = r*sin(th)
-            y = r*cos(th)
-            vs[j].append(c.add_vertex(x,y,hs[j])) #bottom
+            x = r*sin(th) + offset[0]
+            y = r*cos(th) + offset[1]
+            vs[j].append(c.add_vertex(x,y,hs[j])) # bottom
 
     
     for j in range(len(vs)-1):
@@ -32,27 +34,16 @@ def make_cylinder(r, h, sampling):
             c.add_face(v[i],v[i-1],v2[i-1])
             c.add_face(v2[i],v[i],v2[i-1])
             
-
-#        vs2.append(c.add_vertex(x,y,h)) #top
-
-    #create bottom
+    # create bottom
     for i in range(len(vs[0])):
         c.add_face(vs[0][i-1],vs[0][i],o)
 
-    #create top
+    # create top
     for i in range(len(vs[-1])):
         c.add_face(vs[-1][i],vs[-1][i-1],o2)
 
     c.allocate_volumes()
 
-    #    c.add_vertex(x,y,h) #top
-
-     #   th2 = (i+1)/sampling*2*pi
-      #  x2 = r*sin(th2)
-       # y2 = r*cos(th2)
-        #c.add_face()
-    
-    #f=[]
-
     return c
+
 
