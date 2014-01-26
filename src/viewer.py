@@ -8,7 +8,7 @@ from OpenGL.GL import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import *
 import parseply, mesh
-from math import pi, acos
+from math import pi, acos, sin, cos
 from heapq import heappush, heappop
 from itertools import chain
 
@@ -49,6 +49,7 @@ class MeshCanvas(glcanvas.GLCanvas):
         self.scale = 0.5
         self.theta = 0
         self.phi = 0
+        self.tx, self.ty, self.tz = -self.mean_x, -self.mean_y, -self.mean_z
         self.selection = None
         self.sphere_selection = None
         self.spheres = []
@@ -59,8 +60,11 @@ class MeshCanvas(glcanvas.GLCanvas):
         self.Bind(wx.EVT_SIZE, self.OnSize)
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_LEFT_DOWN, self.OnMouseDown)
+        self.Bind(wx.EVT_RIGHT_DOWN, self.OnMouseDown)
         self.Bind(wx.EVT_LEFT_UP, self.OnMouseUp)
+        self.Bind(wx.EVT_RIGHT_UP, self.OnMouseUp)
         self.Bind(wx.EVT_MOTION, self.OnMouseMotion)
+        self.Bind(wx.EVT_MOUSEWHEEL, self.OnMouseWheel)
 
     def OnEraseBackground(self, event):
         pass # Do nothing, to avoid flashing on MSW.
@@ -96,31 +100,40 @@ class MeshCanvas(glcanvas.GLCanvas):
             self.init = True
         self.OnDraw()
 
+    def OnMouseWheel(self, evt):
+        if evt.GetWheelRotation() < 0:
+            self.scale = self.scale * 1.1 # ** (self.y - self.lasty)
+        else:
+            self.scale = self.scale * 0.9 # ** (self.y - self.lasty)
+        self.setSize()
+        self.Refresh(False)
+
     def OnMouseDown(self, evt):
         self.CaptureMouse()
         self.x, self.y = self.lastx, self.lasty = evt.GetPosition()
         mode = self.modePanel.GetMode()
-        if mode == "Select":
-            hits = self.hit(self.x, self.y, opengl_list(self.mainList), self.mainNumNames)
-            if hits:
-                self.mainListSelected(hits[0][2][0])
-            self.Refresh(False)
-        elif mode == "Rubber Band":
-            hits = self.hit(self.x, self.y, opengl_lists(self.extra_lists), len(self.spheres))
-            if hits:
-                self.sphere_selection =  hits[0][2][0]
-            else:
-                self.sphere_selection = None           
-                self.placeSphere()
-            self.compile_band()
-            self.Refresh(False)
-        if mode == "Select Cut":
-            hits = self.hit(self.x, self.y, opengl_list(self.mainList), self.mainNumNames)
-            if hits:
-                hits = self.hit(self.x, self.y, renderOneBlock(hits[0][2][0], self.vol), BLOCKSIZE)
-                triangle = self.mesh.faces[hits[0][2][0]]
-                self.mesh = self.mesh.cloneSubVol(triangle, self.band)
-            self.Refresh(False)
+        if evt.LeftIsDown():
+            if mode == "Select":
+                hits = self.hit(self.x, self.y, opengl_list(self.mainList), self.mainNumNames)
+                if hits:
+                    self.mainListSelected(hits[0][2][0])
+                self.Refresh(False)
+            elif mode == "Rubber Band":
+                hits = self.hit(self.x, self.y, opengl_lists(self.extra_lists), len(self.spheres))
+                if hits:
+                    self.sphere_selection =  hits[0][2][0]
+                else:
+                    self.sphere_selection = None           
+                    self.placeSphere()
+                self.compile_band()
+                self.Refresh(False)
+            if mode == "Select Cut":
+                hits = self.hit(self.x, self.y, opengl_list(self.mainList), self.mainNumNames)
+                if hits:
+                    hits = self.hit(self.x, self.y, renderOneBlock(hits[0][2][0], self.vol), BLOCKSIZE)
+                    triangle = self.mesh.faces[hits[0][2][0]]
+                    self.mesh = self.mesh.cloneSubVol(triangle, self.band)
+                self.Refresh(False)
 
     def update_band(self):
         self.band = []
@@ -192,19 +205,28 @@ class MeshCanvas(glcanvas.GLCanvas):
         self.Refresh(False)
 
     def OnMouseMotion(self, evt):
-        if evt.Dragging() and evt.LeftIsDown():
+        if evt.Dragging():
             self.lastx, self.lasty = self.x, self.y
             self.x, self.y = evt.GetPosition()
+            dx = self.x - self.lastx
+            dy = self.y - self.lasty
             mode = self.modePanel.GetMode()
-            if mode == "Rotate":
-                self.theta += 0.1 * (self.y - self.lasty)
-                self.phi += - 0.1 * (self.x - self.lastx)
-            elif mode == "Zoom":
-                self.scale = self.scale * 1.01 ** (self.y - self.lasty)
-                self.setSize()
-            if mode == "Rubber Band" and self.sphere_selection is not None:
-                self.placeSphere(int(self.sphere_selection))
-                self.compile_band()
+            if evt.LeftIsDown():
+                if mode == "Rotate":
+                    self.theta += 0.1 * (dy)
+                    self.phi += - 0.1 * (dx)
+                elif mode == "Zoom":
+                    self.scale = self.scale * 1.01 ** (dy)
+                    self.setSize()
+                if mode == "Rubber Band" and self.sphere_selection is not None:
+                    self.placeSphere(int(self.sphere_selection))
+                    self.compile_band()
+            elif evt.RightIsDown():
+                if mode == "Rotate":
+                    scale = self.scale * 2.0
+                    self.tx += dx * cos(pi*self.phi/180) * scale
+                    self.ty -= dy * cos(pi*self.theta/180) * scale
+                    self.tz += (dy * sin(pi*self.theta/180) + dx * sin(pi*self.phi/180)) * scale
             self.Refresh(False)
 
 
@@ -275,7 +297,7 @@ class MeshCanvas(glcanvas.GLCanvas):
         glLoadIdentity()
         glRotatef(self.theta, 1.0, 0.0, 0.0)
         glRotatef(self.phi, 0.0, 1.0, 0.0)
-        glTranslatef(-self.mean_x, -self.mean_y, -self.mean_z)
+        glTranslatef(self.tx, self.ty, self.tz)
 
     def get_path(self, s1, s2):
         s2Postion = s2[0], s2[1], s2[2]
