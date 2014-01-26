@@ -7,7 +7,7 @@ from wx import glcanvas
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import *
-import parseply, model
+import parseply, mesh
 from math import pi, acos
 from heapq import heappush, heappop
 from itertools import chain
@@ -119,7 +119,7 @@ class MeshCanvas(glcanvas.GLCanvas):
             if hits:
                 hits = self.hit(self.x, self.y, renderOneBlock(hits[0][2][0], self.vol), BLOCKSIZE)
                 triangle = self.mesh.faces[hits[0][2][0]]
-                self. mesh = self.mesh.cloneSubVol(triangle, self.band)
+                self.mesh = self.mesh.cloneSubVol(triangle, self.band)
             self.Refresh(False)
 
     def update_band(self):
@@ -439,7 +439,7 @@ class MainWindow(wx.Frame):
         f = open(INPUTFILE)
         d = parseply.parseply(f)
         f.close()
-        tc = MeshCanvas(self, model.makeMesh(d), self.modePanel)
+        tc = MeshCanvas(self, mesh.makeMesh(d), self.modePanel)
         box.Add(tc, 1, wx.EXPAND)
 
         self.SetAutoLayout(True)
@@ -470,6 +470,9 @@ class MainWindow(wx.Frame):
 
         # Show
         self.Show(True)
+
+        # Maximise the window
+        self.Maximize()
 
     def OnAbout(self,event):
         message = "Using PyOpenGL in wxPython"
