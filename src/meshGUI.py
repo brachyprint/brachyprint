@@ -29,12 +29,10 @@ def zerocmp(x, y):
     return cmp(x[0], y[0])
 
 class MeshCanvas(glcanvas.GLCanvas):
-    def __init__(self, parent, meshes, modePanel, MeshPanel, base_file, draw_mesh):
+    def __init__(self, parent, meshes, modePanel, MeshPanel, rois):
         self.meshes = meshes
         self.modePanel = modePanel
         self.meshPanel = MeshPanel
-        self.base_file = base_file
-        self.draw_mesh = draw_mesh
         meshes_max_X = max([m.maxX for m in meshes.values()])
         meshes_min_X = max([m.minX for m in meshes.values()])
         meshes_max_Y = max([m.maxY for m in meshes.values()])
@@ -48,6 +46,7 @@ class MeshCanvas(glcanvas.GLCanvas):
         range_y = meshes_max_Y - meshes_min_Y
         range_z = meshes_max_Z - meshes_min_Z
         self.range_max = (range_x ** 2 + range_y ** 2 + range_z ** 2) ** 0.5
+        self.rois = rois
         self.band = []
 
         glcanvas.GLCanvas.__init__(self, parent, -1, attribList=(glcanvas.WX_GL_DOUBLEBUFFER, ))
@@ -60,10 +59,10 @@ class MeshCanvas(glcanvas.GLCanvas):
         self.theta = 0
         self.phi = 0
         self.tx, self.ty, self.tz = -self.mean_x, -self.mean_y, -self.mean_z
-        self.selection = None
-        self.sphere_selection = None
-        self.spheres = []
-        self.extra_lists = []
+        #self.selection = None
+        #self.sphere_selection = None
+        #self.spheres = []
+        #self.extra_lists = []
         self.mainList = {}
         self.mainNumNames = None
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
@@ -123,7 +122,7 @@ class MeshCanvas(glcanvas.GLCanvas):
         self.x, self.y = self.lastx, self.lasty = evt.GetPosition()
         mode = self.modePanel.GetMode()
         if evt.LeftIsDown():
-            if mode == "Rubber Band":
+            if mode[0] == "Edit":
                 hits = self.hit(self.x, self.y, opengl_lists(self.extra_lists), len(self.spheres))
                 if hits:
                     self.sphere_selection =  hits[0][2][0]
@@ -132,14 +131,7 @@ class MeshCanvas(glcanvas.GLCanvas):
                     self.placeSphere()
                 self.compile_band()
                 self.Refresh(False)
-            elif mode == "Select Cut":
-                hits = self.hit(self.x, self.y, opengl_list(self.mainList), self.mainNumNames)
-                if hits:
-                    hits = self.hit(self.x, self.y, renderOneBlock(hits[0][2][0], self.vol), BLOCKSIZE)
-                    triangle = self.mesh.faces[hits[0][2][0]]
-                    self.mesh = self.mesh.cloneSubVol(triangle, self.band)
-                self.Refresh(False)
-            elif mode == "Select Cut":
+            elif mode[0] == "Select":
                 hits = self.hit(self.x, self.y, opengl_list(self.mainList[self.draw_mesh]), self.mainNumNames)
                 if hits:
                     hits = self.hit(self.x, self.y, renderOneBlock(hits[0][2][0], self.meshes[self.draw_mesh]), BLOCKSIZE)
@@ -492,27 +484,25 @@ class renderOneBlock:
 
 class ModePanel(wx.Panel):
            
-    def __init__(self, *args, **kw):
-        super(ModePanel, self).__init__(*args, **kw) 
-        
+    def __init__(self, parent, rois, *args, **kw):
+        super(ModePanel, self).__init__(parent, *args, **kw) 
+        self.rois = rois
         self.InitUI()
         
-    def InitUI(self):   
+    def InitUI(self):
+        box = wx.BoxSizer(wx.VERTICAL)   
         self.rb_rotate = wx.RadioButton(self, label='Rotate',  style=wx.RB_GROUP)
         self.rb_zoom = wx.RadioButton(self, label='Zoom')
-        #self.rb_select = wx.RadioButton(self, label='Select')
-        self.rb_band = wx.RadioButton(self, label='Rubber Band')
-        self.rb_inside = wx.RadioButton(self, label='Select Cut')
-
-        #self.rb_rotate.Bind(wx.EVT_RADIOBUTTON, self.SetMode)
-        #self.rb_zoom.Bind(wx.EVT_RADIOBUTTON, self.SetMode)
-
-        box = wx.BoxSizer(wx.VERTICAL)
+        self.rb_edits = {}
+        self.rb_selects = {}
         box.Add(self.rb_rotate, 0.5, wx.EXPAND)
         box.Add(self.rb_zoom, 0.5, wx.EXPAND)
-        #box.Add(self.rb_select, 0.5, wx.EXPAND)
-        box.Add(self.rb_band, 0.5, wx.EXPAND)
-        box.Add(self.rb_inside, 0.5, wx.EXPAND)
+        for roiname, roi in self.rois.items():
+            self.rb_edits[roiname] = wx.RadioButton(self, label='Edit %s' % roiname)
+            box.Add(self.rb_edits[roiname], 0.5, wx.EXPAND)
+            if roi.has_key("onSelect"):
+                self.rb_selects[roiname] = wx.RadioButton(self, label='Select %s' % roiname)
+                box.Add(self.rb_selects[roiname], 0.5, wx.EXPAND)
         self.SetAutoLayout(True)
         self.SetSizer(box)
         self.Layout()
@@ -520,12 +510,12 @@ class ModePanel(wx.Panel):
     def GetMode(self):
         if self.rb_rotate.GetValue():  return "Rotate"
         if self.rb_zoom.GetValue(): return "Zoom"  
-        #if self.rb_select.GetValue(): return "Select"  
-        if self.rb_band.GetValue(): return "Rubber Band"  
-        if self.rb_inside.GetValue(): return "Select Cut"
+        for roiname, rb in self.rb_edits.items(): 
+            if rb.GetValue(): return "Edit", roiname  
+        for roiname, rb in self.rb_selects.items(): 
+            if rb.GetValue(): return "Select", roiname
 
 class MeshPanel(wx.Panel):
-           
     def __init__(self, parent, meshnames, *args, **kw):
         self.parent = parent
         self.meshnames = meshnames
@@ -552,7 +542,7 @@ class MeshPanel(wx.Panel):
         self.parent.Refresh()
 
 class MainWindow(wx.Frame):
-    def __init__(self, ply_files, parent = None, id = -1, title = "PyOpenGL Example 1", base_filename = "", draw_mesh = ""):
+    def __init__(self, ply_files, parent = None, id = -1, title = "PyOpenGL Example 1", rois = []):
         # Init
         wx.Frame.__init__(
                 self, parent, id, title, size = (400,300),
@@ -563,7 +553,7 @@ class MainWindow(wx.Frame):
         # self.control = wx.TextCtrl(self, -1, style = wx.TE_MULTILINE)
         
         #self.control = ConeCanvas(self)
-        self.modePanel = ModePanel(self)
+        self.modePanel = ModePanel(self, rois)
         self.meshPanel = MeshPanel(self, ply_files.keys())
         
         vbox = wx.BoxSizer(wx.VERTICAL) 
@@ -571,14 +561,13 @@ class MainWindow(wx.Frame):
         vbox.Add(self.meshPanel, 0.5, wx.EXPAND)
         vbox.Add(self.modePanel, 0.5, wx.EXPAND)
         box.Add(vbox, 0.5, wx.EXPAND)
-        self.base_file = base_filename
         self.meshes = {}
         for name, filename in ply_files.items():
             f = open(filename)
             self.meshes[name] = makeMesh(parseply.parseply(f))
             f.close()
             
-        self.meshCanvas = MeshCanvas(self, self.meshes, self.modePanel, self.meshPanel, self.base_file, draw_mesh)
+        self.meshCanvas = MeshCanvas(self, self.meshes, self.modePanel, self.meshPanel, rois)
         box.Add(self.meshCanvas, 1, wx.EXPAND)
         self.SetAutoLayout(True)
         self.SetSizer(box)
