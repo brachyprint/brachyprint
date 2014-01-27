@@ -1,4 +1,5 @@
 import parseply
+import struct
 
 class AStar:
     def __init__(self, s1, s2, mesh):
@@ -28,7 +29,7 @@ class Mesh(object):
         self.maxX, self.minX = None, None
         self.maxY, self.minY = None, None
         self.maxZ, self.minZ = None, None
-        self.volumes = {}
+        #self.volumes = {}
         self.next_vertex_name = 0
         self.next_face_name = 0
         self.next_volume_name = 0
@@ -69,29 +70,71 @@ class Mesh(object):
             f.add_edge(e)
         for v in [v1, v2, v3]:
             v.add_face(f)
-  
-    def allocate_volumes(self):
-        '''Allocate each face to a particular volume.
 
-        '''
-        to_grow = []
-        for face in self.faces:
-            if face.volume is None:
-                face.volume = self.next_volume_name
-                self.face_to_vol[face.name] = face.volume
-                self.next_volume_name += 1
-                self.volumes[face.volume]= [face]
-                to_grow.append(face)
-                while to_grow:
-                    f = to_grow.pop()
-                    for e in f.edges:
-                        for new_face in e.faces:
-                            if new_face.volume is None:
-                                new_face.volume = face.volume
-                                self.face_to_vol[new_face.name] = face.volume
-                                self.volumes[face.volume].append(new_face)
-                                to_grow.append(new_face)
-        
+    def cloneSubVol(self, triangle, avoidEdges):
+        vertex_map = {}
+        faces_copied = []
+        to_grow = [triangle]
+        newMesh = Mesh()
+        i = 0
+        while to_grow:
+            i = i +1
+            f = to_grow.pop()
+            for v in f.vertices:
+                if not vertex_map.has_key(v):
+                    vertex_map[v] = newMesh.add_vertex(v.x, v.y, v.z)
+            newMesh.add_face(*[vertex_map[v] for v in f.vertices])
+            faces_copied.append(f)
+            for e in f.edges:
+                if e not in avoidEdges:
+                    for neighbouring_face in e.faces:
+                        if neighbouring_face not in faces_copied:
+                            to_grow.append(neighbouring_face)
+        #newMesh.allocate_volumes()
+        return newMesh
+
+    def save_ply(self):
+        r = """ply
+format binary_little_endian 1.0
+comment Rough Cut
+element vertex %i
+property float x
+property float y
+property float z
+element face %i
+property list uchar int vertex_indices
+end_header
+""" % (len(self.vertices), len(self.faces))
+        for v in self.vertices:
+            r = r + struct.pack("<f", v.x) + struct.pack("<f", v.y) + struct.pack("<f", v.z)
+        for f in self.faces:
+            r = r + struct.pack("<B", 3)
+            for v in f.vertices:
+                r = r + struct.pack("<i", self.vertices.index(v))
+        return r
+  
+#    def allocate_volumes(self):
+#        '''Allocate each face to a particular volume.
+#
+#        '''
+#        to_grow = []
+#        for face in self.faces:
+#            if face.volume is None:
+#                face.volume = self.next_volume_name
+#                self.face_to_vol[face.name] = face.volume
+#                self.next_volume_name += 1
+#                self.volumes[face.volume]= [face]
+#                to_grow.append(face)
+#                while to_grow:
+#                    f = to_grow.pop()
+#                    for e in f.edges:
+#                        for new_face in e.faces:
+#                            if new_face.volume is None:
+#                                new_face.volume = face.volume
+#                                self.face_to_vol[new_face.name] = face.volume
+#                                self.volumes[face.volume].append(new_face)
+#                                to_grow.append(new_face)
+#        
         
 class Vector(object):
     '''
@@ -272,9 +315,9 @@ class Vertex(Vector):
 
     def adjacent_vertices(self):
         '''
-        Return all adjacent vertices.
+        Return (vertex, edge) for all adjacent vertices.
         '''
-        return [e.v1 for e in self.edges if e.v2 is self] + [e.v2 for e in self.edges if e.v1 is self]
+        return [(e.v1, e) for e in self.edges if e.v2 is self] + [(e.v2, e) for e in self.edges if e.v1 is self]
 
 
 class Face:
@@ -314,7 +357,7 @@ def makeMesh(ply):
         mesh.add_vertex(v['x'], v['y'], v['z'])
     for face in ply["face"]:
         mesh.add_face(*[mesh.vertices[i] for i in face['vertex_indices']])
-    mesh.allocate_volumes()
+    #mesh.allocate_volumes()
     return mesh
 
 

@@ -7,15 +7,8 @@ import numpy
 from octrees.octrees import Octree
 import os, os.path
 from math import sin, cos, pi, asin
-
-SAMPLING = 2
-POISSON_DEPTH = 8
-
-mypath = "../data/redfred"
-myseries = "1.2.840.113704.1.111.3736.1370522307.4"
-OUTPUT_DIR = r"../output"
-OUTPUT_FILENAME_BASE = "redfred"
-poissonrec = "../bin/PoissonRecon"
+import wx
+from settings import *
 
 def makepoints(t, zpositions, posX, posY, spacingX, spacingY, level):
     t = t.astype(numpy.int16)
@@ -138,13 +131,11 @@ def save(points, outfile):
     f.close()
 
 def poisson(infile, outfile, poisson_depth = 8):
-    call([poissonrec, "--in", infile, "--out", outfile, "--depth", str(poisson_depth)])
+    call([POISSON_RECONSTRUCTOR_EXECUTABLE, "--in", infile, "--out", outfile, "--depth", str(poisson_depth)])
 
 def make_ply(points, filenamebase, poisson_depth = 8):
-    if not os.path.exists(OUTPUT_DIR):
-        os.makedirs(OUTPUT_DIR)
-    plt_filename = os.path.join(OUTPUT_DIR, filenamebase + ".plt") #Maybe this should be a temporary file
-    ply_filename = os.path.join(OUTPUT_DIR, filenamebase + ".ply")
+    plt_filename = filenamebase + ".plt" #Maybe this should be a temporary file
+    ply_filename = filenamebase + ".ply"
     save(points, plt_filename)
     poisson(plt_filename, ply_filename, POISSON_DEPTH)
 
@@ -205,16 +196,3 @@ def expand(points, distance):
                 expanded.insert(new_point, normal)
                 hits += 1
     return expanded
-
-if __name__ == '__main__':
-    points = load(mypath, myseries, [500, 1200], SAMPLING)
-    #Make clean skin point cloud by removing any skin points (density 500) that are near bone/metal points (density 12000)
-    clean_skin = copy_point_cloud_excluding(points[500], points[1200], 2)
-    expanded_skin = expand(clean_skin, 10)
-    
-    #Run Poisson reconstruction alogrithem on point clouds
-    make_ply(points[500], OUTPUT_FILENAME_BASE + "skin", poisson_depth = POISSON_DEPTH)
-    make_ply(clean_skin, OUTPUT_FILENAME_BASE + "clean", poisson_depth = POISSON_DEPTH)
-    make_ply(points[1200], OUTPUT_FILENAME_BASE + "bone", poisson_depth = POISSON_DEPTH)
-    make_ply(expanded_skin, OUTPUT_FILENAME_BASE + "expand", poisson_depth = POISSON_DEPTH)
-

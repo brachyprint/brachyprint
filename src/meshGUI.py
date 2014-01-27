@@ -7,8 +7,9 @@ from wx import glcanvas
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import *
-import parseply, model
-from math import pi, acos
+import parseply
+from mesh import makeMesh
+from math import pi, acos, sin, cos
 from heapq import heappush, heappop
 from itertools import chain
 from settings import *
@@ -58,6 +59,7 @@ class MeshCanvas(glcanvas.GLCanvas):
         self.scale = 0.5
         self.theta = 0
         self.phi = 0
+        self.tx, self.ty, self.tz = -self.mean_x, -self.mean_y, -self.mean_z
         self.selection = None
         self.sphere_selection = None
         self.spheres = []
@@ -68,8 +70,11 @@ class MeshCanvas(glcanvas.GLCanvas):
         self.Bind(wx.EVT_SIZE, self.OnSize)
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_LEFT_DOWN, self.OnMouseDown)
+        self.Bind(wx.EVT_RIGHT_DOWN, self.OnMouseDown)
         self.Bind(wx.EVT_LEFT_UP, self.OnMouseUp)
+        self.Bind(wx.EVT_RIGHT_UP, self.OnMouseUp)
         self.Bind(wx.EVT_MOTION, self.OnMouseMotion)
+        self.Bind(wx.EVT_MOUSEWHEEL, self.OnMouseWheel)
 
     def OnEraseBackground(self, event):
         pass # Do nothing, to avoid flashing on MSW.
@@ -105,93 +110,115 @@ class MeshCanvas(glcanvas.GLCanvas):
             self.init = True
         self.OnDraw()
 
+    def OnMouseWheel(self, evt):
+        if evt.GetWheelRotation() < 0:
+            self.scale = self.scale * 1.1 # ** (self.y - self.lasty)
+        else:
+            self.scale = self.scale * 0.9 # ** (self.y - self.lasty)
+        self.setSize()
+        self.Refresh(False)
+
     def OnMouseDown(self, evt):
         self.CaptureMouse()
         self.x, self.y = self.lastx, self.lasty = evt.GetPosition()
         mode = self.modePanel.GetMode()
-        if mode == "Rubber Band":
-            hits = self.hit(self.x, self.y, opengl_lists(self.extra_lists), len(self.spheres))
-            if hits:
-                self.sphere_selection =  hits[0][2][0]
-            else:
-                self.sphere_selection = None           
-                self.placeSphere()
-            self.compile_band()
-            self.Refresh(False)
-        elif mode == "Select Cut":
-            hits = self.hit(self.x, self.y, opengl_list(self.mainList[self.draw_mesh]), self.mainNumNames)
-            if hits:
-                hits = self.hit(self.x, self.y, renderOneBlock(hits[0][2][0], self.meshes[self.draw_mesh]), BLOCKSIZE)
-                triangle = self.meshes[self.draw_mesh].faces[hits[0][2][0]]
-                edges = sum([path.get_edges() for path in self.band], [])
-                avoid_edges = []
-                if edges[-1].v1 in [edges[0].v1, edges[0].v2]:
-                    vertex = edges[-1].v1
-                elif edges[-1].v2 in [edges[0].v1, edges[0].v2]:
-                    vertex = edges[-1].v2
+        if evt.LeftIsDown():
+            if mode == "Rubber Band":
+                hits = self.hit(self.x, self.y, opengl_lists(self.extra_lists), len(self.spheres))
+                if hits:
+                    self.sphere_selection =  hits[0][2][0]
                 else:
-                    for extra_edge in edges[-1].v1.edges:
-                        if extra_edge.v1 == edges[-1].v1 and extra_edge.v2 in [edges[0].v1, edges[0].v2]:
-                                avoid_edges.append(extra_edge)
-                                vertex = extra_edge.v2
-                                break
-                        if extra_edge.v2 == edges[-1].v1 and extra_edge.v1 in [edges[0].v1, edges[0].v2]:
-                                avoid_edges.append(extra_edge)
-                                vertex = extra_edge.v1
-                                break
-                    for extra_edge in edges[-1].v2.edges:
-                        if extra_edge.v1 == edges[-1].v2 and extra_edge.v2 in [edges[0].v1, edges[0].v2]:
-                                avoid_edges.append(extra_edge)
-                                vertex = extra_edge.v2
-                                break
-                        if extra_edge.v2 == edges[-1].v2 and extra_edge.v1 in [edges[0].v1, edges[0].v2]:
-                                avoid_edges.append(extra_edge)
-                                vertex = extra_edge.v1
-                                break
-                for edge in edges:
-                    if edge.v1 == vertex:
-                        vertex = edge.v2
-                        avoid_edges.append(edge)
-                    elif edge.v2 == vertex:
-                        vertex = edge.v1
-                        avoid_edges.append(edge)
+                    self.sphere_selection = None           
+                    self.placeSphere()
+                self.compile_band()
+                self.Refresh(False)
+            elif mode == "Select Cut":
+                hits = self.hit(self.x, self.y, opengl_list(self.mainList), self.mainNumNames)
+                if hits:
+                    hits = self.hit(self.x, self.y, renderOneBlock(hits[0][2][0], self.vol), BLOCKSIZE)
+                    triangle = self.mesh.faces[hits[0][2][0]]
+                    self.mesh = self.mesh.cloneSubVol(triangle, self.band)
+                self.Refresh(False)
+            elif mode == "Select Cut":
+                hits = self.hit(self.x, self.y, opengl_list(self.mainList[self.draw_mesh]), self.mainNumNames)
+                if hits:
+                    hits = self.hit(self.x, self.y, renderOneBlock(hits[0][2][0], self.meshes[self.draw_mesh]), BLOCKSIZE)
+                    triangle = self.meshes[self.draw_mesh].faces[hits[0][2][0]]
+                    edges = sum([path.get_edges() for path in self.band], [])
+                    #Make list of edges to avoid.  Where there is a point in the middle of a triangle, an extra edge needs to be found.
+                    #such that a full ring of avoidance edges is created.
+                    avoid_edges = []
+                    #Find intial vertex
+                    if edges[-1].v1 in [edges[0].v1, edges[0].v2]:
+                        vertex = edges[-1].v1
+                    elif edges[-1].v2 in [edges[0].v1, edges[0].v2]:
+                        vertex = edges[-1].v2
                     else:
-                        for extra_edge in vertex.edges:
-                            if extra_edge.v1 == vertex and extra_edge.v2 == edge.v1:
-                                avoid_edges.append(extra_edge)
-                                vertex = edge.v2
-                                break
-                            elif extra_edge.v1 == vertex and extra_edge.v2 == edge.v2:
-                                avoid_edges.append(extra_edge)
-                                vertex = edge.v1
-                                break
-                            elif extra_edge.v2 == vertex and extra_edge.v1 == edge.v1:
-                                avoid_edges.append(extra_edge)
-                                vertex = edge.v2
-                                break
-                            elif extra_edge.v2 == vertex and extra_edge.v1 == edge.v2:
-                                avoid_edges.append(extra_edge)
-                                vertex = edge.v1
-                                break
+                        for extra_edge in edges[-1].v1.edges:
+                            if extra_edge.v1 == edges[-1].v1 and extra_edge.v2 in [edges[0].v1, edges[0].v2]:
+                                    avoid_edges.append(extra_edge)
+                                    vertex = extra_edge.v2
+                                    break
+                            if extra_edge.v2 == edges[-1].v1 and extra_edge.v1 in [edges[0].v1, edges[0].v2]:
+                                    avoid_edges.append(extra_edge)
+                                    vertex = extra_edge.v1
+                                    break
+                        for extra_edge in edges[-1].v2.edges:
+                            if extra_edge.v1 == edges[-1].v2 and extra_edge.v2 in [edges[0].v1, edges[0].v2]:
+                                    avoid_edges.append(extra_edge)
+                                    vertex = extra_edge.v2
+                                    break
+                            if extra_edge.v2 == edges[-1].v2 and extra_edge.v1 in [edges[0].v1, edges[0].v2]:
+                                    avoid_edges.append(extra_edge)
+                                    vertex = extra_edge.v1
+                                    break
+                    #Go around the loop of edges, adding them to the avoidance list, and adding extra edges where necessary.
+                    for edge in edges:
+                        if edge.v1 == vertex:
+                            vertex = edge.v2
+                            avoid_edges.append(edge)
+                        elif edge.v2 == vertex:
+                            vertex = edge.v1
+                            avoid_edges.append(edge)
                         else:
-                            assert False
-                        avoid_edges.append(edge)
-                f = open(self.base_file + "rough.ply", "w")
-                roughcut = self.meshes[self.draw_mesh].cloneSubVol(triangle, avoid_edges)
-                f.write(roughcut.save_ply())
-                f.close()
-                minx = min([v.x for v in roughcut.vertices]) - 0.01
-                maxx = max([v.x for v in roughcut.vertices]) + 0.01
-                miny = min([v.y for v in roughcut.vertices]) - 0.01
-                maxy = max([v.y for v in roughcut.vertices]) + 0.01
-                minz = min([v.z for v in roughcut.vertices]) - 0.01
-                maxz = max([v.z for v in roughcut.vertices]) + 0.01
-                points = Octree(((minx, maxx), (miny, maxy), (minz, maxz)))
-                for v in roughcut.vertices:
-                    n = v.normal()
-                    points.insert((v.x, v.y, v.z), (n.x, n.y, n.z))
-                external = expand(points, MOULD_THICKNESS)
-                make_ply(external, self.base_file + "external", poisson_depth = POISSON_DEPTH)
+                            for extra_edge in vertex.edges:
+                                if extra_edge.v1 == vertex and extra_edge.v2 == edge.v1:
+                                    avoid_edges.append(extra_edge)
+                                    vertex = edge.v2
+                                    break
+                                elif extra_edge.v1 == vertex and extra_edge.v2 == edge.v2:
+                                    avoid_edges.append(extra_edge)
+                                    vertex = edge.v1
+                                    break
+                                elif extra_edge.v2 == vertex and extra_edge.v1 == edge.v1:
+                                    avoid_edges.append(extra_edge)
+                                    vertex = edge.v2
+                                    break
+                                elif extra_edge.v2 == vertex and extra_edge.v1 == edge.v2:
+                                    avoid_edges.append(extra_edge)
+                                    vertex = edge.v1
+                                    break
+                            else:
+                                assert False
+                            avoid_edges.append(edge)
+                    #Save the cut out mesh to a file
+                    f = open(self.base_file + "rough.ply", "w")
+                    roughcut = self.meshes[self.draw_mesh].cloneSubVol(triangle, avoid_edges)
+                    f.write(roughcut.save_ply())
+                    f.close()
+                    #Expand cut out mesh and save that to a file called external
+                    minx = min([v.x for v in roughcut.vertices]) - 0.01
+                    maxx = max([v.x for v in roughcut.vertices]) + 0.01
+                    miny = min([v.y for v in roughcut.vertices]) - 0.01
+                    maxy = max([v.y for v in roughcut.vertices]) + 0.01
+                    minz = min([v.z for v in roughcut.vertices]) - 0.01
+                    maxz = max([v.z for v in roughcut.vertices]) + 0.01
+                    points = Octree(((minx, maxx), (miny, maxy), (minz, maxz)))
+                    for v in roughcut.vertices:
+                        n = v.normal()
+                        points.insert((v.x, v.y, v.z), (n.x, n.y, n.z))
+                    external = expand(points, MOULD_THICKNESS)
+                    make_ply(external, self.base_file + "external", poisson_depth = POISSON_DEPTH)
 
     def update_band(self):
         self.band = []
@@ -338,7 +365,7 @@ class MeshCanvas(glcanvas.GLCanvas):
         glLoadIdentity()
         glRotatef(self.theta, 1.0, 0.0, 0.0)
         glRotatef(self.phi, 0.0, 1.0, 0.0)
-        glTranslatef(-self.mean_x, -self.mean_y, -self.mean_z)
+        glTranslatef(self.tx, self.ty, self.tz)
 
     def get_path(self, s1, s2):
         s2Postion = s2[0], s2[1], s2[2]
@@ -385,7 +412,7 @@ class point_to_vertex:
     def points(self):
         return [((self.sx, self.sy, self.sz), (self.e.x, self.e.y, self.e.z))]
     def new_Paths(self):
-        results = [follow_edge(self.e, v, self.endPoint, self.endFace, edge) for v, edge in self.e.adjacent_verticies()] 
+        results = [follow_edge(self.e, v, self.endPoint, self.endFace, edge) for v, edge in self.e.adjacent_vertices()] 
         if self.endPoint is not None and self.endFace in self.e.faces:
             results += [vertex_to_point(self.e, self.endPoint)]
         return results
@@ -408,7 +435,7 @@ class follow_edge:
     def points(self):
         return [((self.s.x, self.s.y, self.s.z), (self.e.x, self.e.y, self.e.z))]
     def new_Paths(self):
-        results =  [follow_edge(self.e, v, self.endPoint, self.endFace, edge) for v, edge in self.e.adjacent_verticies()] 
+        results =  [follow_edge(self.e, v, self.endPoint, self.endFace, edge) for v, edge in self.e.adjacent_vertices()] 
         if self.endPoint is not None and self.endFace in self.e.faces:
             results += [vertex_to_point(self.e, self.endPoint)]
         return results
@@ -548,7 +575,7 @@ class MainWindow(wx.Frame):
         self.meshes = {}
         for name, filename in ply_files.items():
             f = open(filename)
-            self.meshes[name] = model.makeMesh(parseply.parseply(f))
+            self.meshes[name] = makeMesh(parseply.parseply(f))
             f.close()
             
         self.meshCanvas = MeshCanvas(self, self.meshes, self.modePanel, self.meshPanel, self.base_file, draw_mesh)
@@ -581,6 +608,9 @@ class MainWindow(wx.Frame):
 
         # Show
         self.Show(True)
+
+        # Maximise the window
+        self.Maximize()
 
     def Refresh(self):
         self.meshCanvas.Refresh(False)
