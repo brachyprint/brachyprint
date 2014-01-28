@@ -90,7 +90,7 @@ if __name__ == '__main__':
     openFileDialog.Destroy()
     base_filename = skin_file[:-8]
     frame = MainWindow({"Skin": skin_file, "Bone": base_filename + "bone.ply"}, 
-                       rois = {"Rough Cut": {"mesh": "Skin", "closed": True, "onSelect": OnSelect}}, 
+                       rois = {"Rough Cut": {"meshname": "Skin", "closed": True, "onSelect": OnSelect}}, 
                        title = "Rough Cut")
     app.MainLoop()
     del frame

@@ -46,7 +46,10 @@ class MeshCanvas(glcanvas.GLCanvas):
         range_y = meshes_max_Y - meshes_min_Y
         range_z = meshes_max_Z - meshes_min_Z
         self.range_max = (range_x ** 2 + range_y ** 2 + range_z ** 2) ** 0.5
-        self.rois = rois
+        
+        self.roiGUIs = {}
+        for roiname, roi in rois.items():
+            self.roiGUIs[roiname] = roiGUI(**roi)
         self.band = []
 
         glcanvas.GLCanvas.__init__(self, parent, -1, attribList=(glcanvas.WX_GL_DOUBLEBUFFER, ))
@@ -63,6 +66,7 @@ class MeshCanvas(glcanvas.GLCanvas):
         #self.sphere_selection = None
         #self.spheres = []
         #self.extra_lists = []
+        
         self.mainList = {}
         self.mainNumNames = None
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
@@ -123,13 +127,20 @@ class MeshCanvas(glcanvas.GLCanvas):
         mode = self.modePanel.GetMode()
         if evt.LeftIsDown():
             if mode[0] == "Edit":
-                hits = self.hit(self.x, self.y, opengl_lists(self.extra_lists), len(self.spheres))
-                if hits:
-                    self.sphere_selection =  hits[0][2][0]
+                roiGUI = self.roiGUIs[mode[1]]
+                sphere_hits = self.hit(self.x, self.y, opengl_list(roiGUI.sphere_list), len(roiGUI.points))
+                if sphere_hits:
+                    roiGUI.selection =  sphere_hits[0][2][0]
                 else:
-                    self.sphere_selection = None           
-                    self.placeSphere()
-                self.compile_band()
+                    roiGUI.selection = None
+                    face_hit = self.hit_location(roiGUI.meshname)           
+                    if face_hit:
+                        x, y, z, triangle_name = face_hit
+                        if roiGUI.selection is None:
+                            roiGUI.new_point(x, y, z, triangle_name)
+                        else:
+                            roiGUI.move_point(roiGUI.selection, x, y, z, triangle_name)
+                    roiGUI.update()
                 self.Refresh(False)
             elif mode[0] == "Select":
                 hits = self.hit(self.x, self.y, opengl_list(self.mainList[self.draw_mesh]), self.mainNumNames)
@@ -249,17 +260,14 @@ class MeshCanvas(glcanvas.GLCanvas):
                         glPopMatrix()
         glEndList()
             
-    def placeSphere(self, i = None):
+    def hit_location(self, meshname):
         #Find block
-        hits = self.hit(self.x, self.y, opengl_list(self.mainList[self.draw_mesh]), self.mainNumNames)
+        hits = self.hit(self.x, self.y, opengl_list(self.mainList[meshname]), self.mainNumNames)
         if hits:
             x, y, z = gluUnProject(self.x, self.GetClientSize().height - self.y, hits[0][0])
             #Find triangle
-            hits = self.hit(self.x, self.y, renderOneBlock(hits[0][2][0], self.meshes[self.draw_mesh]), BLOCKSIZE)
-            if i is None:
-                self.spheres.append((x, y, z, hits[0][2][0]))
-            else:
-                self.spheres[i] = (x, y, z, hits[0][2][0])
+            hits = self.hit(self.x, self.y, renderOneBlock(hits[0][2][0], self.meshes[meshname]), BLOCKSIZE)
+            return x, y, z, hits[0][2][0]
 
     def hit(self, x, y, opengl, maxhits):
         glSelectBuffer(4 * maxhits)
@@ -313,7 +321,8 @@ class MeshCanvas(glcanvas.GLCanvas):
         for key, mesh in self.meshes.items():
             self.mainList[key] = glGenLists (1)
             self.mainListInitial(self.mainList[key], mesh)
-        self.extra_lists = [glGenLists (1)]
+        for roiname, roigui in self.roiGUIs.items():
+            roigui.InitGL()
 
     def mainListInitial(self, name, mesh):
         glNewList(name, GL_COMPILE)
@@ -338,7 +347,6 @@ class MeshCanvas(glcanvas.GLCanvas):
         self.setupScene()
         for name in self.meshes.keys():
             style = self.meshPanel.getStyle(name)
-            print style
             if style == "Red":
                 glColor3f(1.0,0.7, 0.7)
             elif style == "Blue":
@@ -348,8 +356,9 @@ class MeshCanvas(glcanvas.GLCanvas):
             if style != "Hidden":
                 glCallList(self.mainList[name])
         glMatrixMode(GL_MODELVIEW)
-        for list_ in self.extra_lists:
-            glCallList(list_)
+        for roiGUI in self.roiGUIs.values():
+            glCallList(roiGUI.sphere_list)
+            glCallList(roiGUI.line_list)
         self.SwapBuffers()
 
     def setupScene(self):
@@ -382,6 +391,48 @@ class MeshCanvas(glcanvas.GLCanvas):
                     for newPath in lastPath.new_Paths():
                         new_dist = newPath.dist()
                         heappush(priority_queue, (dist + new_dist + pv.crowdist(), dist + new_dist, paths + [newPath]))
+
+class roiGUI:
+    def __init__(self, meshname, closed, onSelect):
+        self.meshname = meshname
+        self.closed = closed
+        self.onSelect = onSelect
+        self.points = []
+        self.paths = []
+        self.selection = None
+    def InitGL(self):
+        self.line_list = glGenLists(1)
+        self.sphere_list = glGenLists(1)
+        self.compile_sphere_list()
+        self.compile_line_list()
+    def new_point(self, x, y, z, face_name):
+        self.points.append((x, y, z, face_name))
+        self.paths.append(None)
+    def move_point(self, i, x, y, z, face_name):
+        self.points[i] = (x, y, z, face_name)
+        self.paths[i] = None
+        self.paths[i + 1] = None
+    def compile_sphere_list(self):
+        glNewList(self.sphere_list, GL_COMPILE)
+        glMatrixMode(GL_MODELVIEW)
+        for i, sphere in enumerate(self.points):
+            glPushMatrix()
+            glPushName(i)
+            glTranslatef(sphere[0], sphere[1], sphere[2])
+            glColor3f(0.2,1,0.2)
+            glutSolidSphere(7, 10, 10)
+            glPopName()
+            glPopMatrix()
+        glEndList()
+    def compile_line_list(self):
+        glNewList(self.line_list, GL_COMPILE)
+        glEndList()
+    def update(self):
+        for index, path in enumerate(self.paths):
+            if path is None:
+                self.paths[index] = 1
+        self.compile_sphere_list()
+        self.compile_line_list()  
 
 class point_to_point:
     def __init__(self, s, e, endPoint = None, endFace = None):
@@ -451,13 +502,6 @@ class vertex_to_point:
         return "Finished!!!"
     def get_edges(self):
         return []
-
-class opengl_lists:
-    def __init__(self, lists):
-        self.lists = lists
-    def __call__(self):
-        for l in self.lists:
-            glCallList(l)
 
 class opengl_list:
     def __init__(self, list_):
