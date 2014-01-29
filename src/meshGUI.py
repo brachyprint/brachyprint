@@ -392,48 +392,6 @@ class roiGUI:
         self.compile_sphere_list()
         self.compile_line_list()
 
-
-
-#del below
-    def update_band(self):
-        self.band = []
-        if len(self.spheres) > 0:
-            for i, (sphere, nextsphere) in enumerate(zip(self.spheres, self.spheres[1:] + [self.spheres[0]])):
-                self.band = self.band + self.get_path(sphere, nextsphere)
-                
-
-
-    def compile_band(self):
-        self.update_band()
-        glNewList(self.extra_lists[0], GL_COMPILE)
-        if len(self.spheres) > 0:
-            for i, (sphere, nextsphere) in enumerate(zip(self.spheres, self.spheres[1:] + [self.spheres[0]])):
-                glPushMatrix()
-                glPushName(i)
-                glTranslatef(sphere[0], sphere[1], sphere[2])
-                glColor3f(0.2,1,0.2)
-                glutSolidSphere(7, 10, 10)
-                glPopName()
-                glPopMatrix()
-        for path in self.band:
-            for start, end in path.points():
-                    dx = start[0] - end[0]
-                    dy = start[1] - end[1]
-                    dz = start[2] - end[2]
-                    length_d = (dx ** 2 + dy ** 2 + dz ** 2) ** 0.5
-                    if length_d > 0:
-                        #axis of rotation = (0, 0, 1) cross (dx, dy, dz) = (-dy, dx, 0)
-                        #angle to rotate = 180.0 / pi * acos((0,0,1).(dx, dy, dz) / (dx, dy, dz).(dx, dy, dz))
-                        glPushMatrix()
-                        glTranslatef(start[0], start[1], start[2])
-                        glRotatef(180.0 / pi * acos(dz / length_d), -dy, dx, 0)
-                        glutSolidSphere(3, 10, 10)
-                        glutSolidCylinder(3, -length_d, 20 ,20)
-                        glPopMatrix()
-        glEndList()
-
-
-
 class opengl_list:
     def __init__(self, list_):
         self.list = list_
