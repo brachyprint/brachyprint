@@ -1,5 +1,7 @@
 import parseply
 import struct
+from routes import *
+from heapq import heappush, heappop
 
 class AStar:
     def __init__(self, s1, s2, mesh):
@@ -70,6 +72,30 @@ class Mesh(object):
             f.add_edge(e)
         for v in [v1, v2, v3]:
             v.add_face(f)
+
+    def get_path(self, s1, s2):
+        s2Postion = s2[0], s2[1], s2[2]
+        s2Face = self.faces[s2[3]]
+        priority_queue = []
+        visited = {}
+        if s1[3] == s2[3]:
+            return [point_to_point(s1, s2)]
+        for v in self.faces[s1[3]].vertices:
+            pv = point_to_vertex(s1[0], s1[1], s1[2], v, s2Postion, s2Face)
+            heappush(priority_queue, (pv.dist() + pv.crowdist(), pv.dist(), [pv]))	
+        while (len(priority_queue) > 0):
+            dist_plus_crow, dist, paths = heappop(priority_queue)
+            lastPath = paths[-1]
+            end = lastPath.end()
+            if end not in visited:
+                if lastPath.finished():
+                    #Finished!
+                    return paths
+                else:
+                    visited[end] = True
+                    for newPath in lastPath.new_Paths():
+                        new_dist = newPath.dist()
+                        heappush(priority_queue, (dist + new_dist + pv.crowdist(), dist + new_dist, paths + [newPath]))
 
     def cloneSubVol(self, triangle, avoidEdges):
         vertex_map = {}

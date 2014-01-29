@@ -10,7 +10,6 @@ from OpenGL.GLUT import *
 import parseply
 from mesh import makeMesh
 from math import pi, acos, sin, cos
-from heapq import heappush, heappop
 from itertools import chain
 from settings import *
 from points import copy_point_cloud_excluding, makepoints, save, load, make_ply, expand
@@ -49,7 +48,7 @@ class MeshCanvas(glcanvas.GLCanvas):
         
         self.roiGUIs = {}
         for roiname, roi in rois.items():
-            self.roiGUIs[roiname] = roiGUI(**roi)
+            self.roiGUIs[roiname] = roiGUI(mesh = self.meshes[roi["meshname"]], **roi)
         self.band = []
 
         glcanvas.GLCanvas.__init__(self, parent, -1, attribList=(glcanvas.WX_GL_DOUBLEBUFFER, ))
@@ -222,43 +221,6 @@ class MeshCanvas(glcanvas.GLCanvas):
                         points.insert((v.x, v.y, v.z), (n.x, n.y, n.z))
                     external = expand(points, MOULD_THICKNESS)
                     make_ply(external, self.base_file + "external", poisson_depth = POISSON_DEPTH)
-
-    def update_band(self):
-        self.band = []
-        if len(self.spheres) > 0:
-            for i, (sphere, nextsphere) in enumerate(zip(self.spheres, self.spheres[1:] + [self.spheres[0]])):
-                self.band = self.band + self.get_path(sphere, nextsphere)
-                
-
-
-    def compile_band(self):
-        self.update_band()
-        glNewList(self.extra_lists[0], GL_COMPILE)
-        if len(self.spheres) > 0:
-            for i, (sphere, nextsphere) in enumerate(zip(self.spheres, self.spheres[1:] + [self.spheres[0]])):
-                glPushMatrix()
-                glPushName(i)
-                glTranslatef(sphere[0], sphere[1], sphere[2])
-                glColor3f(0.2,1,0.2)
-                glutSolidSphere(7, 10, 10)
-                glPopName()
-                glPopMatrix()
-        for path in self.band:
-            for start, end in path.points():
-                    dx = start[0] - end[0]
-                    dy = start[1] - end[1]
-                    dz = start[2] - end[2]
-                    length_d = (dx ** 2 + dy ** 2 + dz ** 2) ** 0.5
-                    if length_d > 0:
-                        #axis of rotation = (0, 0, 1) cross (dx, dy, dz) = (-dy, dx, 0)
-                        #angle to rotate = 180.0 / pi * acos((0,0,1).(dx, dy, dz) / (dx, dy, dz).(dx, dy, dz))
-                        glPushMatrix()
-                        glTranslatef(start[0], start[1], start[2])
-                        glRotatef(180.0 / pi * acos(dz / length_d), -dy, dx, 0)
-                        glutSolidSphere(3, 10, 10)
-                        glutSolidCylinder(3, -length_d, 20 ,20)
-                        glPopMatrix()
-        glEndList()
             
     def hit_location(self, meshname):
         #Find block
@@ -368,33 +330,12 @@ class MeshCanvas(glcanvas.GLCanvas):
         glRotatef(self.phi, 0.0, 1.0, 0.0)
         glTranslatef(self.tx, self.ty, self.tz)
 
-    def get_path(self, s1, s2):
-        s2Postion = s2[0], s2[1], s2[2]
-        s2Face = self.meshes[self.draw_mesh].faces[s2[3]]
-        priority_queue = []
-        visited = {}
-        if s1[3] == s2[3]:
-            return [point_to_point(s1, s2)]
-        for v in self.meshes[self.draw_mesh].faces[s1[3]].vertices:
-            pv = point_to_vertex(s1[0], s1[1], s1[2], v, s2Postion, s2Face)
-            heappush(priority_queue, (pv.dist() + pv.crowdist(), pv.dist(), [pv]))	
-        while (len(priority_queue) > 0):
-            dist_plus_crow, dist, paths = heappop(priority_queue)
-            lastPath = paths[-1]
-            end = lastPath.end()
-            if end not in visited:
-                if lastPath.finished():
-                    #Finished!
-                    return paths
-                else:
-                    visited[end] = True
-                    for newPath in lastPath.new_Paths():
-                        new_dist = newPath.dist()
-                        heappush(priority_queue, (dist + new_dist + pv.crowdist(), dist + new_dist, paths + [newPath]))
+
 
 class roiGUI:
-    def __init__(self, meshname, closed, onSelect):
+    def __init__(self, mesh, meshname, closed, onSelect):
         self.meshname = meshname
+        self.mesh = mesh
         self.closed = closed
         self.onSelect = onSelect
         self.points = []
@@ -407,7 +348,8 @@ class roiGUI:
         self.compile_line_list()
     def new_point(self, x, y, z, face_name):
         self.points.append((x, y, z, face_name))
-        self.paths.append(None)
+        if len(self.points) > 1:
+            self.paths.append(None)
     def move_point(self, i, x, y, z, face_name):
         self.points[i] = (x, y, z, face_name)
         self.paths[i] = None
@@ -426,82 +368,71 @@ class roiGUI:
         glEndList()
     def compile_line_list(self):
         glNewList(self.line_list, GL_COMPILE)
+        for path_list in self.paths:
+            for path in path_list:
+                for start, end in path.points():
+                    dx = start[0] - end[0]
+                    dy = start[1] - end[1]
+                    dz = start[2] - end[2]
+                    length_d = (dx ** 2 + dy ** 2 + dz ** 2) ** 0.5
+                    if length_d > 0:
+                        #axis of rotation = (0, 0, 1) cross (dx, dy, dz) = (-dy, dx, 0)
+                        #angle to rotate = 180.0 / pi * acos((0,0,1).(dx, dy, dz) / (dx, dy, dz).(dx, dy, dz))
+                        glPushMatrix()
+                        glTranslatef(start[0], start[1], start[2])
+                        glRotatef(180.0 / pi * acos(dz / length_d), -dy, dx, 0)
+                        glutSolidSphere(3, 10, 10)
+                        glutSolidCylinder(3, -length_d, 20 ,20)
+                        glPopMatrix()
         glEndList()
     def update(self):
         for index, path in enumerate(self.paths):
             if path is None:
-                self.paths[index] = 1
+                self.paths[index] = self.mesh.get_path(self.points[index], self.points[index + 1])
         self.compile_sphere_list()
-        self.compile_line_list()  
+        self.compile_line_list()
 
-class point_to_point:
-    def __init__(self, s, e, endPoint = None, endFace = None):
-        self.s, self.e = s,e 
-    def points(self):
-        return [((self.s[0], self.s[1], self.s[2]), (self.e[0], self.e[1], self.e[2]))]
-    def get_edges(self):
-        return []
 
-class point_to_vertex:
-    def __init__(self, sx, sy, sz, e, endPoint = None, endFace = None):
-        self.sx, self.sy, self.sz, self.e = sx, sy, sz, e
-        self.endPoint, self.endFace = endPoint, endFace
-    def dist(self):
-        return ((self.sx - self.e.x) ** 2 + (self.sy - self.e.y) ** 2 + (self.sz - self.e.z) ** 2) ** 0.5
-    def crowdist(self):
-        return ((self.e.x - self.endPoint[0]) ** 2 + (self.e.y - self.endPoint[1]) ** 2 + (self.e.z - self.endPoint[2]) ** 2) ** 0.5
-    def end(self):
-        return self.e
-    def points(self):
-        return [((self.sx, self.sy, self.sz), (self.e.x, self.e.y, self.e.z))]
-    def new_Paths(self):
-        results = [follow_edge(self.e, v, self.endPoint, self.endFace, edge) for v, edge in self.e.adjacent_vertices()] 
-        if self.endPoint is not None and self.endFace in self.e.faces:
-            results += [vertex_to_point(self.e, self.endPoint)]
-        return results
-    def finished(self):
-        return False
-    def get_edges(self):
-        return []
-    #def __str__(self):
-     
 
-class follow_edge:
-    def __init__(self, s, e, endPoint = None, endFace = None, edge = None):
-        self.s, self.e = s, e
-        self.endPoint, self.endFace = endPoint, endFace
-        self.edge = edge
-    def dist(self):
-        return ((self.s.x - self.e.x) ** 2 + (self.s.y - self.e.y) ** 2 + (self.s.z - self.e.z) ** 2) ** 0.5
-    def end(self):
-        return self.e
-    def points(self):
-        return [((self.s.x, self.s.y, self.s.z), (self.e.x, self.e.y, self.e.z))]
-    def new_Paths(self):
-        results =  [follow_edge(self.e, v, self.endPoint, self.endFace, edge) for v, edge in self.e.adjacent_vertices()] 
-        if self.endPoint is not None and self.endFace in self.e.faces:
-            results += [vertex_to_point(self.e, self.endPoint)]
-        return results
-    def finished(self):
-        return False
-    def crowdist(self):
-        return ((self.e.x - self.endPoint[0]) ** 2 + (self.e.y - self.endPoint[1]) ** 2 + (self.e.z - self.endPoint[2]) ** 2) ** 0.5
-    def get_edges(self):
-        return [self.edge]
+#del below
+    def update_band(self):
+        self.band = []
+        if len(self.spheres) > 0:
+            for i, (sphere, nextsphere) in enumerate(zip(self.spheres, self.spheres[1:] + [self.spheres[0]])):
+                self.band = self.band + self.get_path(sphere, nextsphere)
+                
 
-class vertex_to_point:
-    def __init__(self, s, (ex, ey, ez)):
-        self.s, self.ex, self.ey, self.ez = s, ex, ey, ez
-    def dist(self):
-        return ((self.s.x - self.ex) ** 2 + (self.s.y - self.ey) ** 2 + (self.s.z - self.ez) ** 2) ** 0.5
-    def finished(self):
-        return True
-    def points(self):
-        return [((self.s.x, self.s.y, self.s.z), (self.ex, self.ey, self.ez))]
-    def end(self):
-        return "Finished!!!"
-    def get_edges(self):
-        return []
+
+    def compile_band(self):
+        self.update_band()
+        glNewList(self.extra_lists[0], GL_COMPILE)
+        if len(self.spheres) > 0:
+            for i, (sphere, nextsphere) in enumerate(zip(self.spheres, self.spheres[1:] + [self.spheres[0]])):
+                glPushMatrix()
+                glPushName(i)
+                glTranslatef(sphere[0], sphere[1], sphere[2])
+                glColor3f(0.2,1,0.2)
+                glutSolidSphere(7, 10, 10)
+                glPopName()
+                glPopMatrix()
+        for path in self.band:
+            for start, end in path.points():
+                    dx = start[0] - end[0]
+                    dy = start[1] - end[1]
+                    dz = start[2] - end[2]
+                    length_d = (dx ** 2 + dy ** 2 + dz ** 2) ** 0.5
+                    if length_d > 0:
+                        #axis of rotation = (0, 0, 1) cross (dx, dy, dz) = (-dy, dx, 0)
+                        #angle to rotate = 180.0 / pi * acos((0,0,1).(dx, dy, dz) / (dx, dy, dz).(dx, dy, dz))
+                        glPushMatrix()
+                        glTranslatef(start[0], start[1], start[2])
+                        glRotatef(180.0 / pi * acos(dz / length_d), -dy, dx, 0)
+                        glutSolidSphere(3, 10, 10)
+                        glutSolidCylinder(3, -length_d, 20 ,20)
+                        glPopMatrix()
+        glEndList()
+
+
 
 class opengl_list:
     def __init__(self, list_):
