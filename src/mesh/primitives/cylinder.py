@@ -16,7 +16,8 @@ def make_cylinder(c, r, h, sampling, offset=[0,0,0]):
 
     vs = []; vs2 = []
 
-    hs=[x*h/10 + offset[2] for x in range(11)]
+    #hs=[x*h/10 + offset[2] for x in range(11)]
+    hs=[x*h/2 + offset[2] for x in range(3)]
 
     for j in range(len(hs)):
         vs.append([])

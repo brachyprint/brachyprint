@@ -20,39 +20,84 @@ def intersect(m1, m2):
     p = [[],[]]
     fs = []
 
+
+    # new algorithm:
+        # go through all faces in m1, and see if they intersect a plane in m2, and record where
+        # and which ones
+
+        # for non-intersecting planes in m1, if all points are outside m2, add to m
+        # for non-intersecting planes in m2, if all points are inside m1, add to m
+
+        # for all intersecting planes, add faces between the intersecting points
+
+    interm1 = []; noninterm1 = []
+    interm2 = []; noninterm2 = []
+    for f2 in m2.faces:
+        count = 0
+        for f1 in m1.faces:
+
+            # find intersection line
+            s = mesh.triangle_triangle_intersect(list(f2.vertices), list(f1.vertices))
+
+            if isinstance(s, mesh.Vector):
+                # these two faces intersect
+                # add m1 face to interm1
+                interm1.append(f1)
+        if count > 0:
+            # m2 face intersected
+            interm2.append(f2)
+        else:
+            noninterm2.append(f2)
+
+
+    for f2 in noninterm2:
+        # determine if inside or outside m1
+
+        # if all vertices are inside, add face to m
+        pass
+
+    for f1 in noninterm1:
+        # determine if inside or outside m2
+
+        # if all vertices are outside, add face to m
+        pass
+
     # go through vertices, allocating inside or outside
 
     outside = []; vertices1 = []
 
-    for v in m1.vertices:
+    for f1 in noninterm1:
+        for v in f1:
 
-        #n = p[0].faces[0].normal
-        p[0] = v.tovector()
-        count = 0
-        for f in m2.faces:
-            vs = f.vertices
+            #n = p[0].faces[0].normal
+            p[0] = v.tovector()
+            count = 0
+            for f in m2.faces:
+                vs = f.vertices
 
-            # construct a vector in a arbitrary direction to represent the line segment
-            # XXX: ensure this always extends outside object
-            p[1] = p[0] + mesh.Vector(0, 0, 150)
+                # construct a vector in a arbitrary direction to represent the line segment
+                # XXX: ensure this always extends outside object
+                p[1] = p[0] + mesh.Vector(0, 0, 150)
 
-            s = mesh.triangle_segment_intersect(p, vs)
+                s = mesh.triangle_segment_intersect(p, vs)
 
 
-            if isinstance(s, int) and s == 2:
-                print "umph"
+                if isinstance(s, int) and s == 2:
+                    print "umph"
 
-            if isinstance(s, mesh.Vector): # XXX: is this correct?
-                count += 1
+                if isinstance(s, mesh.Vector): # XXX: is this correct?
+                    count += 1
 
-        if count % 2 == 0: # m1 vertex is outside m2 (even number of intersections)
-            #m.add_vertex(p[0][0], p[0][1], p[0][2])
-            #print "%f %f %f %f %f %f" %(p[0][0], p[0][1], p[0][2], n[0], n[1], n[2])
-            #count2 += 1
+            if count > 1:
+                print count
+            if count % 2 == 0: # m1 vertex is outside m2 (even number of intersections)
+                #m.add_vertex(p[0][0], p[0][1], p[0][2])
+                #print "%f %f %f %f %f %f" %(p[0][0], p[0][1], p[0][2], n[0], n[1], n[2])
+                #count2 += 1
 
-            outside.append(v.name)
-            v = v.tovector()
-            vertices1.append(m.add_vertex(v[0], v[1], v[2]))
+                outside.append(v.name)
+                v = v.tovector()
+                vertices1.append(m.add_vertex(v[0], v[1], v[2]))
 
     # go through faces, relate back to vertices
     for f1 in m1.faces:
@@ -112,7 +157,7 @@ def intersect(m1, m2):
         if count == 3: # all inside
             m.add_face(vs2[0], vs2[2], vs2[1])
             #m.add_face(*f2.vertices)
-        elif count == 1 or count == 2: # intersection of two faces
+        elif count == 0 or count == 1 or count == 2: # intersection of two faces
             # search through m1 faces to find intersection
             coords1 = []
             for f1 in m1.faces:
@@ -133,15 +178,15 @@ def intersect(m1, m2):
 
                 # find intersection line
                 s = mesh.triangle_triangle_intersect(list(f2.vertices), list(f1.vertices))
-                s2 = mesh.triangle_triangle_intersect(list(f1.vertices), list(f2.vertices))
+                #s2 = mesh.triangle_triangle_intersect(list(f1.vertices), list(f2.vertices))
 
-                if s != s2:
-                    print s
-                    print s2
+                #if s != s2:
+                    #print s
+                    #print s2
 
-                    print f2.vertices
-                    print f1.vertices
-                #    continue
+                    #print f2.vertices
+                    #print f1.vertices
+                    #continue
 
                 if isinstance(s, int):
                     continue
@@ -150,7 +195,10 @@ def intersect(m1, m2):
 
                 coords1.append((vs1, count2, s, v_other1))
 
-            f2s.append((vs2, coords1, count, v_other2))
+            if count == 0:
+                print len(coords1)
+            if len(coords1) > 0:
+                f2s.append((vs2, coords1, count, v_other2))
 
 
     for f in f2s:

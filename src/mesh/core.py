@@ -218,7 +218,7 @@ class Vector(object):
             raise NotImplementedError
 
     def __rmul__(self, other):
-        self.__mul__(other)
+        return self.__mul__(other)
 
     def __div__(self, val):
         if isinstance(val, float) or isinstance(val, int):
@@ -227,7 +227,7 @@ class Vector(object):
             raise NotImplementedError
 
     def __rdiv__(self, other):
-        self.__div__(other)
+        return self.__div__(other)
 
     def __truediv__(self, val):
         if isinstance(val, float) or isinstance(val, int):
@@ -236,7 +236,7 @@ class Vector(object):
             raise NotImplementedError
 
     def __rtruediv__(self, other):
-        self.__truediv__(other)
+        return self.__truediv__(other)
 
     def __iadd__(self, v):
         if isinstance(v, Vector):

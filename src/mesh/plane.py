@@ -1,6 +1,8 @@
 
 from __future__ import division
 
+from math import sqrt
+
 # http://geomalgorithms.com/a06-_intersect-2.html
 
 
@@ -57,8 +59,10 @@ def triangle_segment_intersect(p, vs):
     if n[0] == 0 and n[1] == 0 and n[2] == 0:
         return -1 # bail out
     
-    a = -dot(n, p[0]-vs[0].tovector())
-    b = dot(n, p[1]-p[0])
+    dirv = p[1] - p[0]
+    w0 = p[0] - vs[0]
+    a = -dot(n, w0)
+    b = dot(n, dirv)
     
     if abs(b) < epsilon:
         if a == 0:
@@ -69,9 +73,11 @@ def triangle_segment_intersect(p, vs):
     r = a/b
     if r < 0 or r > 1: # segment behind or in front of the plane
         return 0
+    #if r < 0 or r > 1:
+    #    print r
     
     # find the intersection point of the line and the plane
-    i = p[0] + (p[1]-p[0])*r
+    i = p[0] + r * dirv
     
     # determine if i is inside the triangle T
     uu = dot(u,u)
@@ -81,7 +87,7 @@ def triangle_segment_intersect(p, vs):
     wu = dot(w,u)
     wv = dot(w,v)
     
-    d = uv*uv - uu * vv
+    d = uv * uv - uu * vv
     
     s = (uv * wv - vv * wu) / d
     if s < 0.0 or s > 1.0: # I is outside T
@@ -118,12 +124,20 @@ def triangle_triangle_intersect(f1, f2):
     # determine overlap between two lines
 
     b = s1[1] - s1[0] # basis vector in axis transformation
+    norm = dot(b,b)
+    b = b / sqrt(norm)
 
     d1 = [[],[]]; d2 = [[],[]]
-    d1[0] = dot(b, s1[0]-s1[0])
-    d1[1] = dot(b, s1[1]-s1[0])
-    d2[0] = dot(b, s2[0]-s1[0])
-    d2[1] = dot(b, s2[1]-s1[0])
+    d1[0] = dot(b, s1[0] - s1[0])
+    d1[1] = dot(b, s1[1] - s1[0])
+    d2[0] = dot(b, s2[0] - s1[0])
+    d2[1] = dot(b, s2[1] - s1[0])
+
+    epsilon = .00001
+    if abs(dot(cross(s1[1], s1[0]), s2[0])) > epsilon:
+        print "ijkhkj"
+    if abs(dot(cross(s1[1], s1[0]), s2[1])) > epsilon:
+        print "ijkhkj2"
 
     #b = s2[1] - s2[0] # basis vector in axis transformation
 
@@ -135,15 +149,14 @@ def triangle_triangle_intersect(f1, f2):
 
     swapped = 0
     if d1[0] > d1[1]:
-        d1[0], d1[1] = d1[1], d1[0]
-        s1[0], s1[1] = s1[1], s1[0]
+    #    d1[0], d1[1] = d1[1], d1[0]
+    #    s1[0], s1[1] = s1[1], s1[0]
         swapped += 1
     
     if d2[0] > d2[1]:
-        d2[0], d2[1] = d2[1], d2[0]
-        s2[0], s2[1] = s2[1], s2[0]
+    #    d2[0], d2[1] = d2[1], d2[0]
+    #    s2[0], s2[1] = s2[1], s2[0]
         swapped += 1
-
 
     if d1[0] < d2[0] and d1[1] < d2[0]:
         return 0
@@ -151,13 +164,14 @@ def triangle_triangle_intersect(f1, f2):
     if d1[0] > d2[1] and d1[1] > d2[1]:
         return 0
 
-    #if d1[0] < d2[0]:
-    #    if d2[0] > d1[1]:
-    #        return 0
+    if d1[0] < d2[0]:
+        if d2[0] > d1[1]:
+            return 0
 
-    #if d2[0] < d1[0]:
-    #    if d1[0] > d2[1]:
-    #        return 0
+    if d2[0] < d1[0]:
+        if d1[0] > d2[1]:
+            return 0
+
 
 #    return s2
 
@@ -186,6 +200,14 @@ def triangle_triangle_intersect(f1, f2):
     #print s2
     #print "s="
     #print s
+    if s1[0].z != s1[1].z and s2[0].z == 50:
+        print "s1="
+        print s1
+        print "s2="
+        print s2
+
+        print "s="
+        print s
 
     return s
 
@@ -198,8 +220,8 @@ def triangle_plane_intersect(f1, f2):
     
     # check for the intersection of the ray and the plane
 
-    u = f2[1].tovector() - f2[0].tovector()
-    v = f2[2].tovector() - f2[0].tovector()
+    u = f2[1] - f2[0]
+    v = f2[2] - f2[0]
     n = cross(u, v)
 
     # check if the triangle is degenerate
@@ -210,7 +232,7 @@ def triangle_plane_intersect(f1, f2):
     intersect = []
     behind = []; front = []
     for i in range(3):
-        a = dot(n, f1[i].tovector()-f2[0].tovector())
+        a = dot(n, f1[i]-f2[0])
         if a < -epsilon:
             # f1[i] is behind the plane
             behind.append(f1[i].tovector())
@@ -219,17 +241,23 @@ def triangle_plane_intersect(f1, f2):
             front.append(f1[i].tovector())
         else:
             # f1[i] is in the plane
-            print f1[i].tovector()
+            print f1[i]
             intersect.append(f1[i].tovector())
             
     if len(front) == 3 or len(behind) == 3: # no intersection
         return 0
 
+    if len(intersect) == 3:
+        return -1
+
     for i in range(len(front)):
         for j in range(len(behind)):
-            a = -dot(n, front[i]-f2[0].tovector())
+            a = -dot(n, front[i]-f2[0])
             b = dot(n, behind[j]-front[i])
             r = a/b
+
+            if r < 0 or r > 1:
+                print r
     
             intersect.append(front[i] + (behind[j]-front[i])*r)
 

@@ -50,7 +50,7 @@ def makepoints(t, zpositions, posX, posY, spacingX, spacingY, level):
     for i, j, k in zip(*hit.nonzero()):
         rx = nx[i, j, k] / spacingX
         ry = ny[i, j, k] / spacingY
-        rz = nz[i, j, k] / (zpositions[i+1] - zpositions[i])
+        rz = nz[i, j, k] / float(zpositions[i+1] - zpositions[i])
         rn = (rx ** 2 + ry ** 2 + rz ** 2) ** 0.5
         rx = -rx / rn
         ry = -ry / rn
@@ -59,7 +59,7 @@ def makepoints(t, zpositions, posX, posY, spacingX, spacingY, level):
         #print posX, posX + (k + 0.5 - dx[i, j, k] / 2) * spacingX, posX + (t.shape[0] + 1) * spacingX
         results.insert((posX + (k + 0.5 - dx[i, j, k]) * spacingX,
                         posY + (j + 0.5 - dy[i, j, k]) * spacingY,
-                        zpositions[i] * (0.5 + dz[i, j, k]) + zpositions[i+1] * (0.5 - dz[i, j, k])),
+                        float(zpositions[i]) * (0.5 + dz[i, j, k]) + float(zpositions[i+1]) * (0.5 - dz[i, j, k])),
                         (rx,
                         ry,
                         rz))
@@ -119,10 +119,10 @@ def load(mypath, myseries, levels, sampling):
     return dict([(level, 
                  makepoints(t, 
                       zpositions, 
-                      exampleSlice.ImagePositionPatient[0], 
-                      exampleSlice.ImagePositionPatient[1],
-                      exampleSlice.PixelSpacing[0] * sampling,
-                      exampleSlice.PixelSpacing[1] * sampling,
+                      float(exampleSlice.ImagePositionPatient[0]), 
+                      float(exampleSlice.ImagePositionPatient[1]),
+                      float(exampleSlice.PixelSpacing[0] * sampling),
+                      float(exampleSlice.PixelSpacing[1] * sampling),
                       level)) for level in levels])
 
 def save(points, outfile):
