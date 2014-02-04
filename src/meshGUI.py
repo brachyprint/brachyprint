@@ -9,7 +9,7 @@ from OpenGL.GLU import *
 from OpenGL.GLUT import *
 import parseply
 from mesh import makeMesh
-from math import pi, acos, sin, cos
+from math import pi, acos, sin, cos, ceil
 from itertools import chain
 from settings import *
 from points import copy_point_cloud_excluding, makepoints, save, load, make_ply, expand
@@ -32,24 +32,26 @@ class MeshCanvas(glcanvas.GLCanvas):
         self.meshes = meshes
         self.modePanel = modePanel
         self.meshPanel = MeshPanel
-        meshes_max_X = max([m.maxX for m in meshes.values()])
-        meshes_min_X = max([m.minX for m in meshes.values()])
-        meshes_max_Y = max([m.maxY for m in meshes.values()])
-        meshes_min_Y = max([m.minY for m in meshes.values()])
-        meshes_max_Z = max([m.maxZ for m in meshes.values()])
-        meshes_min_Z = max([m.minZ for m in meshes.values()])
-        self.mean_x = (meshes_max_X + meshes_min_X) / 2
-        self.mean_y = (meshes_max_Y + meshes_min_Y) / 2
-        self.mean_z = (meshes_max_Z + meshes_min_Z) / 2
-        range_x = meshes_max_X - meshes_min_X
-        range_y = meshes_max_Y - meshes_min_Y
-        range_z = meshes_max_Z - meshes_min_Z
+        self.meshes_max_X = max([m.maxX for m in meshes.values()])
+        self.meshes_min_X = max([m.minX for m in meshes.values()])
+        self.meshes_max_Y = max([m.maxY for m in meshes.values()])
+        self.meshes_min_Y = max([m.minY for m in meshes.values()])
+        self.meshes_max_Z = max([m.maxZ for m in meshes.values()])
+        self.meshes_min_Z = max([m.minZ for m in meshes.values()])
+        self.mean_x = (self.meshes_max_X + self.meshes_min_X) / 2
+        self.mean_y = (self.meshes_max_Y + self.meshes_min_Y) / 2
+        self.mean_z = (self.meshes_max_Z + self.meshes_min_Z) / 2
+        range_x = self.meshes_max_X - self.meshes_min_X
+        range_y = self.meshes_max_Y - self.meshes_min_Y
+        range_z = self.meshes_max_Z - self.meshes_min_Z
         self.range_max = (range_x ** 2 + range_y ** 2 + range_z ** 2) ** 0.5
         
         self.roiGUIs = {}
         for roiname, roi in rois.items():
             self.roiGUIs[roiname] = roiGUI(mesh = self.meshes[roi["meshname"]], **roi)
         self.band = []
+
+        self.parent = parent
 
         glcanvas.GLCanvas.__init__(self, parent, -1, attribList=(glcanvas.WX_GL_DOUBLEBUFFER, ))
         self.init = False
@@ -321,6 +323,13 @@ class MeshCanvas(glcanvas.GLCanvas):
         for roiGUI in self.roiGUIs.values():
             glCallList(roiGUI.sphere_list)
             glCallList(roiGUI.line_list)
+
+
+        if self.parent.showgrid.GetValue():
+            self.drawXAxisGrid()
+            self.drawYAxisGrid()
+            self.drawZAxisGrid()
+
         self.SwapBuffers()
 
     def setupScene(self):
@@ -330,6 +339,84 @@ class MeshCanvas(glcanvas.GLCanvas):
         glRotatef(self.phi, 0.0, 1.0, 0.0)
         glTranslatef(self.tx, self.ty, self.tz)
 
+    def drawXAxisGrid(self):
+        rangex = []
+        rangey = [self.meshes_min_Y, self.meshes_max_Y]
+        rangez = [self.meshes_min_Z, self.meshes_max_Z]
+        self.drawGrid(rangex, rangey, rangez)
+
+    def drawYAxisGrid(self):
+        rangex = [self.meshes_min_X, self.meshes_max_X]
+        rangey = []
+        rangez = [self.meshes_min_Z, self.meshes_max_Z]
+        self.drawGrid(rangex, rangey, rangez)
+
+    def drawZAxisGrid(self):
+        rangex = [self.meshes_min_X, self.meshes_max_X]
+        rangey = [self.meshes_min_Y, self.meshes_max_Y]
+        rangez = []
+        self.drawGrid(rangex, rangey, rangez)
+
+    def drawGrid(self, rangex, rangey, rangez, numLines=10):
+        '''
+            drawGrid -- draw a grid of lines on an axis
+
+            Arguments:
+                rangex -- min and max X coordinates
+                rangey -- min and max Y coordinates
+                rangez -- min and max Z coordinates
+                numLines -- the number of lines on the smallest axis
+        '''
+        d = [float('inf')]*3
+        if rangex:
+            d[0] = (rangex[1]-rangex[0])/numLines
+        if rangey:
+            d[1] = (rangey[1]-rangey[0])/numLines
+        if rangez:
+            d[2] = (rangez[1]-rangez[0])/numLines
+
+        d = min(d)
+
+        xs = []; ys = []; zs = []
+        if rangex:
+            numx = int(ceil(-rangex[0]/d)) + int(ceil(rangex[1])/d)
+            offx = int(ceil(rangex[0]/d))
+            xs = map(lambda x: x*d + offx*d, range(numx))
+        else:
+            rangex = [0,0]
+
+        if rangey:
+            numy = int(ceil(-rangey[0]/d)) + int(ceil(rangey[1])/d)
+            offy = int(ceil(rangey[0]/d))
+            ys = map(lambda y: y*d + offy*d, range(numy))
+        else:
+            rangey = [0,0]
+
+        if rangez:
+            numz = int(ceil(-rangez[0]/d)) + int(ceil(rangez[1])/d)
+            offz = int(ceil(rangez[0]/d))
+            zs = map(lambda z: z*d + offz*d, range(numz))
+        else:
+            rangez = [0,0]
+
+        halfGridSize = 100; inc = 10
+        glBegin(GL_LINES);
+        glColor3f(0.75, 0.75, 0.75);
+
+        for x in xs:
+            glVertex3f(x,rangey[0],rangez[0])
+            glVertex3f(x,rangey[-1],rangez[-1])
+
+        for y in ys:
+            glVertex3f(rangex[0],y,rangez[0])
+            glVertex3f(rangex[-1],y,rangez[-1])
+
+        for z in zs:
+            glVertex3f(rangex[0],rangey[0],z)
+            glVertex3f(rangex[-1],rangey[-1],z)
+
+        glEnd()
+     
 
 
 class roiGUI:
@@ -475,7 +562,7 @@ class MeshPanel(wx.Panel):
         self.parent.Refresh()
 
 class MainWindow(wx.Frame):
-    def __init__(self, ply_files, parent = None, id = -1, title = "PyOpenGL Example 1", rois = []):
+    def __init__(self, ply_files, parent = None, id = -1, title = "Brachyprint mould viewer", rois = []):
         # Init
         wx.Frame.__init__(
                 self, parent, id, title, size = (400,300),
@@ -493,6 +580,10 @@ class MainWindow(wx.Frame):
         box = wx.BoxSizer(wx.HORIZONTAL)
         vbox.Add(self.meshPanel, 0.5, wx.EXPAND)
         vbox.Add(self.modePanel, 0.5, wx.EXPAND)
+
+        self.showgrid = wx.CheckBox(self, label="Show grid")
+        vbox.Add(self.showgrid, 0, wx.TOP, 20)
+
         box.Add(vbox, 0.5, wx.EXPAND)
         self.meshes = {}
         for name, filename in ply_files.items():
@@ -505,6 +596,8 @@ class MainWindow(wx.Frame):
         self.SetAutoLayout(True)
         self.SetSizer(box)
         self.Layout()
+
+        self.showgrid.Bind(wx.EVT_CHECKBOX, lambda x: self.meshCanvas.OnDraw())
 
 
         # StatusBar
@@ -538,8 +631,8 @@ class MainWindow(wx.Frame):
         self.meshCanvas.Refresh(False)
 
     def OnAbout(self,event):
-        message = "Using PyOpenGL in wxPython"
-        caption = "About PyOpenGL Example"
+        message = "Viewer for brachyprint moulds"
+        caption = "Brachyprint mould viewer"
         wx.MessageBox(message, caption, wx.OK)
 
     def OnExit(self,event):
