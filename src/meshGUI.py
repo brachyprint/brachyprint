@@ -9,6 +9,7 @@ from OpenGL.GLU import *
 from OpenGL.GLUT import *
 import parseply
 from mesh import makeMesh
+import mesh
 from math import pi, acos, sin, cos, ceil
 from itertools import chain
 from settings import *
@@ -33,11 +34,11 @@ class MeshCanvas(glcanvas.GLCanvas):
         self.modePanel = modePanel
         self.meshPanel = MeshPanel
         self.meshes_max_X = max([m.maxX for m in meshes.values()])
-        self.meshes_min_X = max([m.minX for m in meshes.values()])
+        self.meshes_min_X = min([m.minX for m in meshes.values()])
         self.meshes_max_Y = max([m.maxY for m in meshes.values()])
-        self.meshes_min_Y = max([m.minY for m in meshes.values()])
+        self.meshes_min_Y = min([m.minY for m in meshes.values()])
         self.meshes_max_Z = max([m.maxZ for m in meshes.values()])
-        self.meshes_min_Z = max([m.minZ for m in meshes.values()])
+        self.meshes_min_Z = min([m.minZ for m in meshes.values()])
         self.mean_x = (self.meshes_max_X + self.meshes_min_X) / 2
         self.mean_y = (self.meshes_max_Y + self.meshes_min_Y) / 2
         self.mean_z = (self.meshes_max_Z + self.meshes_min_Z) / 2
@@ -79,6 +80,22 @@ class MeshCanvas(glcanvas.GLCanvas):
         self.Bind(wx.EVT_RIGHT_UP, self.OnMouseUp)
         self.Bind(wx.EVT_MOTION, self.OnMouseMotion)
         self.Bind(wx.EVT_MOUSEWHEEL, self.OnMouseWheel)
+
+    def addMesh(self, mesh, name):
+        self.meshes[name] = mesh
+        self.meshes_max_X = max(self.meshes_max_X, mesh.maxX)
+        self.meshes_min_X = min(self.meshes_min_X, mesh.minX)
+        self.meshes_max_Y = max(self.meshes_max_Y, mesh.maxY)
+        self.meshes_min_Y = min(self.meshes_min_Y, mesh.minY)
+        self.meshes_max_Z = max(self.meshes_max_Z, mesh.maxZ)
+        self.meshes_min_Z = min(self.meshes_min_Z, mesh.minZ)
+        self.mean_x = (self.meshes_max_X + self.meshes_min_X) / 2
+        self.mean_y = (self.meshes_max_Y + self.meshes_min_Y) / 2
+        self.mean_z = (self.meshes_max_Z + self.meshes_min_Z) / 2
+        range_x = self.meshes_max_X - self.meshes_min_X
+        range_y = self.meshes_max_Y - self.meshes_min_Y
+        range_z = self.meshes_max_Z - self.meshes_min_Z
+        self.range_max = (range_x ** 2 + range_y ** 2 + range_z ** 2) ** 0.5
 
     def OnEraseBackground(self, event):
         pass # Do nothing, to avoid flashing on MSW.
@@ -544,16 +561,23 @@ class MeshPanel(wx.Panel):
         self.InitUI()
         
     def InitUI(self):   
-        box = wx.BoxSizer(wx.VERTICAL)
+        self.box = wx.BoxSizer(wx.VERTICAL)
         styles = ["Hidden", "Red", "Blue"]
         for meshname in self.meshnames:
-            box.Add(wx.StaticText(self, -1, meshname))
+            self.box.Add(wx.StaticText(self, -1, meshname))
             self.cbs[meshname] = wx.ComboBox(self, -1, choices=styles, style=wx.CB_READONLY)
-            box.Add(self.cbs[meshname], 0.5, wx.EXPAND)
+            self.box.Add(self.cbs[meshname], 0.5, wx.EXPAND)
         self.SetAutoLayout(True)
-        self.SetSizer(box)
+        self.SetSizer(self.box)
         self.Layout()
         self.Bind(wx.EVT_COMBOBOX, self.OnChange)
+
+    def addMesh(self, meshname):
+        styles = ["Hidden", "Red", "Blue"]
+        self.box.Add(wx.StaticText(self, -1, meshname))
+        self.cbs[meshname] = wx.ComboBox(self, -1, choices=styles, style=wx.CB_READONLY)
+        self.box.Add(self.cbs[meshname], 0.5, wx.EXPAND)
+        
 
     def getStyle(self, meshname):
         return self.cbs[meshname].GetValue()
@@ -599,6 +623,11 @@ class MainWindow(wx.Frame):
 
         self.showgrid.Bind(wx.EVT_CHECKBOX, lambda x: self.meshCanvas.OnDraw())
 
+        # add a cube mesh to the display
+        #m1 = mesh.Mesh()
+        #mesh.primitives.make_cube(m1, 100)
+        #self.meshCanvas.addMesh(m1, "cube1")
+        #self.meshPanel.addMesh("cube1")
 
         # StatusBar
         #self.CreateStatusBar()
