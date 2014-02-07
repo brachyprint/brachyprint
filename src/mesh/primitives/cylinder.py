@@ -43,8 +43,4 @@ def make_cylinder(c, r, h, sampling, offset=[0,0,0]):
     for i in range(len(vs[-1])):
         c.add_face(vs[-1][i],vs[-1][i-1],o2)
 
-    c.allocate_volumes()
-
-    return c
-
 
