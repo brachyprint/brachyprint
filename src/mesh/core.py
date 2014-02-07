@@ -346,7 +346,7 @@ class Vertex(Vector):
         return [(e.v1, e) for e in self.edges if e.v2 is self] + [(e.v2, e) for e in self.edges if e.v1 is self]
 
 
-class Face:
+class Face(object):
     '''
     A class representing a mesh face.
     '''
@@ -362,7 +362,7 @@ class Face:
         self.edges.append(edge)
 
 
-class Edge:
+class Edge(object):
     '''
     A class representing a mesh edge.
     '''
