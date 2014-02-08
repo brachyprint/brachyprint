@@ -172,7 +172,6 @@ def triangle_triangle_intersect(f1, f2):
         if d1[0] > d2[1]:
             return 0
 
-
 #    return s2
 
 
@@ -194,20 +193,24 @@ def triangle_triangle_intersect(f1, f2):
     else:
         s[1] = s1[1]
 
+    # check for a point "intersection"
+    if s[1] == s[0]:
+        return s[1]
+
     #if swapped % 2 == 1:
     #    s[0], s[1] = s[1], s[0]
     #print s1
     #print s2
     #print "s="
     #print s
-    if s1[0].z != s1[1].z and s2[0].z == 50:
-        print "s1="
-        print s1
-        print "s2="
-        print s2
+    #if s1[0].z != s1[1].z and s2[0].z == 50:
+    #    print "s1="
+    #    print s1
+    #    print "s2="
+    #    print s2
 
-        print "s="
-        print s
+    #    print "s="
+    #    print s
 
     return s
 
@@ -256,8 +259,8 @@ def triangle_plane_intersect(f1, f2):
             b = dot(n, behind[j]-front[i])
             r = a/b
 
-            if r < 0 or r > 1:
-                print r
+            #if r < 0 or r > 1:
+            #    print r
     
             intersect.append(front[i] + (behind[j]-front[i])*r)
 

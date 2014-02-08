@@ -3,6 +3,8 @@
 import wx
 from meshGUI import MainWindow
 from settings import *
+from mesh import makeMesh
+import parseply
 
 if __name__ == '__main__':
     app = wx.App(False)
@@ -12,7 +14,17 @@ if __name__ == '__main__':
     skin_file = openFileDialog.GetPath()
     openFileDialog.Destroy()
     base_filename = skin_file[:-8]
-    frame = MainWindow({"Skin": skin_file, "Bone": base_filename + "bone.ply", "Rough Inner": base_filename + "rough.ply", "Rough Outer": base_filename + "external.ply"}, draw_mesh = "Rough Outer", title = "Fine Cut", base_filename = skin_file[:-8])
+
+    ply_files = {"Skin": skin_file, "Bone": base_filename + "bone.ply", "Rough Inner": base_filename + "rough.ply", "Rough Outer": base_filename + "external.ply"}
+
+    meshes = {}
+    for name, filename in ply_files.items():
+        f = open(filename)
+        meshes[name] = makeMesh(parseply.parseply(f))
+        f.close()
+
+    frame = MainWindow(meshes=meshes, draw_mesh = "Rough Outer", title = "Fine Cut", base_filename = skin_file[:-8])
     app.MainLoop()
     del frame
     del app
+

@@ -2,6 +2,7 @@
 # -*- coding: iso-8859-1 -*-
 
 import wx
+import wx.grid
 import sys
 from wx import glcanvas
 from OpenGL.GL import *
@@ -33,6 +34,7 @@ class MeshCanvas(glcanvas.GLCanvas):
         self.meshes = meshes
         self.modePanel = modePanel
         self.meshPanel = MeshPanel
+
         self.meshes_max_X = max([m.maxX for m in meshes.values()])
         self.meshes_min_X = min([m.minX for m in meshes.values()])
         self.meshes_max_Y = max([m.maxY for m in meshes.values()])
@@ -71,6 +73,7 @@ class MeshCanvas(glcanvas.GLCanvas):
         
         self.mainList = {}
         self.mainNumNames = None
+        self.vertexList = {}
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
         self.Bind(wx.EVT_SIZE, self.OnSize)
         self.Bind(wx.EVT_PAINT, self.OnPaint)
@@ -302,6 +305,7 @@ class MeshCanvas(glcanvas.GLCanvas):
         for key, mesh in self.meshes.items():
             self.mainList[key] = glGenLists (1)
             self.mainListInitial(self.mainList[key], mesh)
+            self.vertexListInit(key, mesh)
         for roiname, roigui in self.roiGUIs.items():
             roigui.InitGL()
 
@@ -319,8 +323,22 @@ class MeshCanvas(glcanvas.GLCanvas):
                     glVertex(v.x, v.y, v.z)
             glEnd()
             glPopName()
-        glEndList()   
+        glEndList()
         self.mainNumNames = len(blocks) 
+
+    def vertexListInit(self, key, mesh):
+        self.vertexList[key] = glGenLists(1)
+        glNewList(self.vertexList[key], GL_COMPILE)
+        glMatrixMode(GL_MODELVIEW)
+        for i, v in enumerate(mesh.vertices):
+            glPushMatrix()
+            glPushName(i)
+            glTranslatef(v[0], v[1], v[2])
+            glColor3f(0.2,1,0.2)
+            glutSolidSphere(3, 10, 10)
+            glPopName()
+            glPopMatrix()
+        glEndList()
 
     def OnDraw(self):
         # clear color and depth buffers
@@ -334,9 +352,12 @@ class MeshCanvas(glcanvas.GLCanvas):
                 glColor3f(0.7,0.7, 1.0)
             else:
                 glColor3f(1.0, 1.0, 1.0)
-            if style != "Hidden":
+            if self.meshPanel.getVisible(name):
                 glCallList(self.mainList[name])
         glMatrixMode(GL_MODELVIEW)
+        for name in self.meshes.keys():
+            if self.meshPanel.getShowVertices(name): 
+                glCallList(self.vertexList[name])
         for roiGUI in self.roiGUIs.values():
             glCallList(roiGUI.sphere_list)
             glCallList(roiGUI.line_list)
@@ -553,40 +574,62 @@ class ModePanel(wx.Panel):
             if rb.GetValue(): return "Select", roiname
 
 class MeshPanel(wx.Panel):
+    '''
+        MeshPanel -- display a panel of information about the loaded meshes
+    '''
     def __init__(self, parent, meshnames, *args, **kw):
         self.parent = parent
         self.meshnames = meshnames
         self.cbs = {}
+        self.visible = {}
+        self.vertices = {}
         super(MeshPanel, self).__init__(parent, *args, **kw) 
         self.InitUI()
         
     def InitUI(self):   
-        self.box = wx.BoxSizer(wx.VERTICAL)
-        styles = ["Hidden", "Red", "Blue"]
+        self.box = wx.FlexGridSizer(1, 4, 3, 5)
+
+        titles = ["Name", "Show?", "Vertices?", "Colour"]
+        for i in range(4):
+            self.box.Add(wx.StaticText(self, -1, titles[i]))
+
         for meshname in self.meshnames:
-            self.box.Add(wx.StaticText(self, -1, meshname))
-            self.cbs[meshname] = wx.ComboBox(self, -1, choices=styles, style=wx.CB_READONLY)
-            self.box.Add(self.cbs[meshname], 0.5, wx.EXPAND)
+            self.addMesh(meshname)
+            
         self.SetAutoLayout(True)
         self.SetSizer(self.box)
         self.Layout()
         self.Bind(wx.EVT_COMBOBOX, self.OnChange)
+        self.Bind(wx.EVT_CHECKBOX, self.OnChange)
 
     def addMesh(self, meshname):
-        styles = ["Hidden", "Red", "Blue"]
-        self.box.Add(wx.StaticText(self, -1, meshname))
+        styles = ["Red", "Blue"]
+
         self.cbs[meshname] = wx.ComboBox(self, -1, choices=styles, style=wx.CB_READONLY)
+        self.cbs[meshname].SetStringSelection(styles[0])
+        self.visible[meshname] = wx.CheckBox(self, -1, "")
+        self.visible[meshname].SetValue(True)
+        self.vertices[meshname] = wx.CheckBox(self, -1, "")
+        self.vertices[meshname].SetValue(False)
+        self.box.Add(wx.StaticText(self, -1, meshname))
+        self.box.Add(self.visible[meshname])
+        self.box.Add(self.vertices[meshname])
         self.box.Add(self.cbs[meshname], 0.5, wx.EXPAND)
-        
 
     def getStyle(self, meshname):
         return self.cbs[meshname].GetValue()
+            
+    def getVisible(self, meshname):
+        return self.visible[meshname].GetValue()
+
+    def getShowVertices(self, meshname):
+        return self.vertices[meshname].GetValue()
 
     def OnChange(self, event):
         self.parent.Refresh()
 
 class MainWindow(wx.Frame):
-    def __init__(self, ply_files, parent = None, id = -1, title = "Brachyprint mould viewer", rois = []):
+    def __init__(self, parent = None, id = -1, title = "Brachyprint mould viewer", rois = [], meshes={}):
         # Init
         wx.Frame.__init__(
                 self, parent, id, title, size = (400,300),
@@ -598,36 +641,28 @@ class MainWindow(wx.Frame):
         
         #self.control = ConeCanvas(self)
         self.modePanel = ModePanel(self, rois)
-        self.meshPanel = MeshPanel(self, ply_files.keys())
+        self.meshPanel = MeshPanel(self, meshes.keys(), style=wx.SUNKEN_BORDER)
         
         vbox = wx.BoxSizer(wx.VERTICAL) 
         box = wx.BoxSizer(wx.HORIZONTAL)
-        vbox.Add(self.meshPanel, 0.5, wx.EXPAND)
+        vbox.Add(self.meshPanel, 0.5, wx.EXPAND | wx.ALL, border=5)
         vbox.Add(self.modePanel, 0.5, wx.EXPAND)
 
         self.showgrid = wx.CheckBox(self, label="Show grid")
         vbox.Add(self.showgrid, 0, wx.TOP, 20)
 
         box.Add(vbox, 0.5, wx.EXPAND)
-        self.meshes = {}
-        for name, filename in ply_files.items():
-            f = open(filename)
-            self.meshes[name] = makeMesh(parseply.parseply(f))
-            f.close()
-            
+
+        # create the meshes
+        self.meshes = meshes            
         self.meshCanvas = MeshCanvas(self, self.meshes, self.modePanel, self.meshPanel, rois)
         box.Add(self.meshCanvas, 1, wx.EXPAND)
+
         self.SetAutoLayout(True)
         self.SetSizer(box)
         self.Layout()
 
         self.showgrid.Bind(wx.EVT_CHECKBOX, lambda x: self.meshCanvas.OnDraw())
-
-        # add a cube mesh to the display
-        #m1 = mesh.Mesh()
-        #mesh.primitives.make_cube(m1, 100)
-        #self.meshCanvas.addMesh(m1, "cube1")
-        #self.meshPanel.addMesh("cube1")
 
         # StatusBar
         #self.CreateStatusBar()

@@ -3,6 +3,8 @@
 import wx
 from meshGUI import MainWindow
 from settings import *
+from mesh import makeMesh
+import parseply
 
 def OnSelect(band):
     edges = sum([path.get_edges() for path in band], [])
@@ -89,9 +91,19 @@ if __name__ == '__main__':
     skin_file = openFileDialog.GetPath()
     openFileDialog.Destroy()
     base_filename = skin_file[:-8]
-    frame = MainWindow({"Skin": skin_file, "Bone": base_filename + "bone.ply"}, 
+
+    ply_files = {"Skin": skin_file, "Bone": base_filename + "bone.ply"}
+
+    meshes = {}
+    for name, filename in ply_files.items():
+        f = open(filename)
+        meshes[name] = makeMesh(parseply.parseply(f))
+        f.close()
+
+    frame = MainWindow(meshes=meshes, 
                        rois = {"Rough Cut": {"meshname": "Skin", "closed": True, "onSelect": OnSelect}}, 
                        title = "Rough Cut")
     app.MainLoop()
     del frame
     del app
+
