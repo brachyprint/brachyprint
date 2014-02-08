@@ -550,8 +550,8 @@ class MainWindow(wx.Frame):
     def OnExit(self,event):
         self.Close(True)  # Close the frame.
 
-#Test_mode = "Seperate"
-Test_mode = "Intersection"
+Test_mode = "Seperate"
+#Test_mode = "Intersection"
 if __name__ == '__main__':
     app = wx.App(False)
     c1 = make_cylinder(Mesh(), 10, 50, 10, offset = (0, 0, -25), axis = (0, 0, 1)) 
