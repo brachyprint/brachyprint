@@ -2,7 +2,6 @@
 # -*- coding: iso-8859-1 -*-
 
 import wx
-import wx.grid
 import sys
 from wx import glcanvas
 from OpenGL.GL import *
@@ -587,11 +586,15 @@ class MeshPanel(wx.Panel):
         self.InitUI()
         
     def InitUI(self):   
-        self.box = wx.FlexGridSizer(1, 4, 3, 5)
+        self.box = wx.GridBagSizer(3, 10)
 
         titles = ["Name", "Show?", "Vertices?", "Colour"]
         for i in range(4):
-            self.box.Add(wx.StaticText(self, -1, titles[i]))
+            self.box.Add(wx.StaticText(self, -1, titles[i]), wx.GBPosition(0, i))
+
+        self.box.Add(wx.StaticLine(self, -1), wx.GBPosition(1, 0), span=wx.GBSpan(1, 4), flag=wx.EXPAND|wx.TOP|wx.BOTTOM, border=3)
+
+        self.cols = 2
 
         for meshname in self.meshnames:
             self.addMesh(meshname)
@@ -606,15 +609,20 @@ class MeshPanel(wx.Panel):
         styles = ["Red", "Blue"]
 
         self.cbs[meshname] = wx.ComboBox(self, -1, choices=styles, style=wx.CB_READONLY)
+        width, height = self.cbs[meshname].GetSize()
+        dc = wx.ClientDC (self.cbs[meshname])
+        tsize = max ( (dc.GetTextExtent (c)[0] for c in styles) )
+        self.cbs[meshname].SetMinSize((tsize+50, height))
         self.cbs[meshname].SetStringSelection(styles[0])
         self.visible[meshname] = wx.CheckBox(self, -1, "")
         self.visible[meshname].SetValue(True)
         self.vertices[meshname] = wx.CheckBox(self, -1, "")
         self.vertices[meshname].SetValue(False)
-        self.box.Add(wx.StaticText(self, -1, meshname))
-        self.box.Add(self.visible[meshname])
-        self.box.Add(self.vertices[meshname])
-        self.box.Add(self.cbs[meshname], 0.5, wx.EXPAND)
+        self.box.Add(wx.StaticText(self, -1, meshname), wx.GBPosition(self.cols, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        self.box.Add(self.visible[meshname], wx.GBPosition(self.cols, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        self.box.Add(self.vertices[meshname], wx.GBPosition(self.cols, 2), flag=wx.ALIGN_CENTER_VERTICAL)
+        self.box.Add(self.cbs[meshname], wx.GBPosition(self.cols, 3), flag=wx.ALIGN_CENTER_VERTICAL)
+        self.cols += 1
 
     def getStyle(self, meshname):
         return self.cbs[meshname].GetValue()
