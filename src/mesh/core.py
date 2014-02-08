@@ -37,7 +37,11 @@ class Mesh(object):
         self.next_volume_name = 0
         self.face_to_vol = {}
 
-    def add_vertex(self, x, y, z):
+    def add_vertex(self, x, y=None, z=None):
+        if isinstance(x, Vector):
+            y = x.y
+            z = x.z
+            x = x.x
         v = Vertex(x,y,z, self.next_vertex_name)
         self.next_vertex_name += 1
         self.vertices.append(v)
@@ -169,12 +173,13 @@ class Vector(object):
 
     def __init__(self, x, y, z):
         self.x, self.y, self.z = x, y, z
+        self.epsilon = 0.00001
 
     def __eq__(self, v):
         if isinstance(v, Vector):
-            return self.x == v.x and self.y == v.y and self.z == v.z
+            return abs(self.x - v.x) <= self.epsilon and abs(self.y - v.y) <= self.epsilon and abs(self.z - v.z) <= self.epsilon
         elif isinstance(v, list):
-            return self.x == v[0] and self.y == v[1] and self.z == v[2]
+            return abs(self.x - v[0]) <= self.epsilon and abs(self.y - v[1]) <= self.epsilon and abs(self.z - v[2]) <= self.epsilon
         else:
             raise NotImplementedError
 
@@ -306,7 +311,7 @@ class Vertex(Vector):
     '''
 
     def __init__(self, x, y, z, name):
-        self.x, self.y, self.z = x, y, z
+        super(Vertex, self).__init__(x, y, z)
         self.name = name
         self.edges = []
         self.faces = []
