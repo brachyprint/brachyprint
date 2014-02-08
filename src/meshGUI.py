@@ -15,6 +15,7 @@ from itertools import chain
 from settings import *
 from points import copy_point_cloud_excluding, makepoints, save, load, make_ply, expand
 from octrees.octrees import Octree
+from copy import copy
 
 def null():
     pass
@@ -149,6 +150,7 @@ class MeshCanvas(glcanvas.GLCanvas):
             if mode[0] == "Edit":
                 roiGUI = self.roiGUIs[mode[1]]
                 sphere_hits = self.hit(self.x, self.y, opengl_list(roiGUI.sphere_list), roiGUI.sphere_list_length())
+                line_hits = self.hit(self.x, self.y, opengl_list(roiGUI.line_list), roiGUI.line_list_length())
                 if sphere_hits:
                     roi, index =  roiGUI.pointlookup[sphere_hits[0][2][0]]
                     if roi == roiGUI.current_roi and \
@@ -158,14 +160,20 @@ class MeshCanvas(glcanvas.GLCanvas):
                         roiGUI.complete()
                     roiGUI.current_roi, roiGUI.current_point_index = roi, index
                     roiGUI.update()
+                elif line_hits and roiGUI.current_point_index is None:
+                    roi, index =  roiGUI.linelookup[line_hits[0][2][0]]
+                    face_hit = self.hit_location(roiGUI.meshname) 
+                    if face_hit:
+                        x, y, z, triangle_name = face_hit
+                        roiGUI.current_roi = roi
+                        roiGUI.new_point(x, y, z, triangle_name, index = index)  
+                        roiGUI.update()
                 else:
                     face_hit = self.hit_location(roiGUI.meshname)           
                     if face_hit:
                         x, y, z, triangle_name = face_hit
                         if roiGUI.current_roi is None:
-                            print "New"
                             roiGUI.current_roi = roiGUI.new_roi()
-                            print roiGUI.current_roi.being_drawn()
                         if roiGUI.current_roi.being_drawn() and \
                            (roiGUI.current_roi.is_last(roiGUI.current_point_index) or roiGUI.current_roi.is_empty()):
                             roiGUI.new_point(x, y, z, triangle_name)
@@ -475,8 +483,15 @@ class ROI:
     def __init__(self):
         self.paths = []
         self.points = []
-    def new_point(self, x, y, z, face_name, end):
-        if end:
+    def new_point(self, x, y, z, face_name, end, index):
+        if index is not None:
+            print self.points
+            self.points = self.points[:index + 1] + [(x, y, z, face_name)] + self.points[index+1:]
+            temp = copy(self.paths)
+            self.paths = temp[:index] + [None, None] + temp[index+1:]
+            print self.points
+            return index + 1
+        elif end:
             self.points.append((x, y, z, face_name))
             if len(self.points) > 1:
                 self.paths.append(None)
@@ -494,7 +509,7 @@ class ROI:
         return i == len(self.points) - 1
 
 class roiGUI:
-    def __init__(self, mesh, meshname, closed, onSelect):
+    def __init__(self, mesh, meshname, closed, onSelect=None):
         self.meshname = meshname
         self.mesh = mesh
         self.closed = closed
@@ -513,11 +528,11 @@ class roiGUI:
         r = ROI()
         self.rois.append(r)
         return r
-    def new_point(self, x, y, z, face_name, end = True):
+    def new_point(self, x, y, z, face_name, end = True, index=None):
+        print "Start", index
         if self.current_roi:
-            self.current_point_index = self.current_roi.new_point(x, y, z, face_name, end)
+            self.current_point_index = self.current_roi.new_point(x, y, z, face_name, end, index)
     def move_point(self, i, x, y, z, face_name):
-        print i
         if self.current_roi:
             self.current_roi.points[i] = (x, y, z, face_name)
             if i > 0:
@@ -532,18 +547,15 @@ class roiGUI:
                     self.current_roi.paths[0] = None
             
     def complete(self):
-        print "Complete"
         assert self.current_roi.being_drawn() == True
         if self.closed == True:
             self.current_roi.paths.append(None)
-            print self.current_roi.paths
     def compile_sphere_list(self):
         name = 0
         self.pointlookup = []
         glNewList(self.sphere_list, GL_COMPILE)
         glMatrixMode(GL_MODELVIEW)
         for roi in self.rois:
-            print len(roi.points)
             for i, sphere in enumerate(roi.points):
                 glPushMatrix()
                 glPushName(name)
@@ -568,9 +580,9 @@ class roiGUI:
         glNewList(self.line_list, GL_COMPILE)
         glColor3f(0.2,1,0.2)
         for roi in self.rois:
-            for path_list in roi.paths:
-                for index, path in enumerate(path_list):
-                    glPushName(name)
+            for index, path_list in enumerate(roi.paths):
+                glPushName(name)
+                for path in path_list:
                     self.linelookup.append((roi, index))
                     name = name + 1
                     for start, end in path.points():
@@ -587,13 +599,12 @@ class roiGUI:
                             glutSolidSphere(3, 10, 10)
                             glutSolidCylinder(3, -length_d, 20 ,20)
                             glPopMatrix()
-                    glPopName() 
+                glPopName() 
         glEndList()
     def update(self):
         for roi in self.rois:
             for index, path in enumerate(roi.paths):
                 if path is None:
-                    print index, len(roi.points), len(roi.paths)
                     if index + 1 < len(roi.points):
                         roi.paths[index] = self.mesh.get_path(roi.points[index], roi.points[index + 1])
                     else:
@@ -602,6 +613,8 @@ class roiGUI:
         self.compile_line_list()
     def sphere_list_length(self):
         return len(self.pointlookup)
+    def line_list_length(self):
+        return len(self.linelookup)
 
 class opengl_list:
     def __init__(self, list_):
