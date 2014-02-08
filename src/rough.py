@@ -99,9 +99,11 @@ if __name__ == '__main__':
         f = open(filename)
         meshes[name] = makeMesh(parseply.parseply(f))
         f.close()
+
     frame = MainWindow(meshes=meshes, 
                        rois = {"Rough Cut": {"meshname": "Skin", "closed": True, "onSelect": OnSelect}}, 
                        title = "Rough Cut")
     app.MainLoop()
     del frame
     del app
+

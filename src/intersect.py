@@ -30,10 +30,9 @@ if __name__ == '__main__':
 
     meshes = {"cube2": m2, "cube3": m3}
 
-    frame = MainWindow({},
+    frame = MainWindow(meshes = meshes,
                        rois = {},
-                       title = "Intersection test",
-                       meshes = meshes)
+                       title = "Intersection test")
     app.MainLoop()
     del frame
     del app
