@@ -111,15 +111,19 @@ def line_intersect():
 
 def triangle_triangle_intersect(f1, f2):
     
+    # intersect f1 with the plane of f2
     s1 = triangle_plane_intersect(f1, f2)
 
     if isinstance(s1, int): # no intersection
         return 0
 
+    # intersect f2 with the plane of f1
     s2 = triangle_plane_intersect(f2, f1)
 
     if isinstance(s2, int): # no intersection
         return 0
+
+    # given the two intersection lines, determine their overlap
 
     # determine overlap between two lines
 
@@ -288,9 +292,6 @@ def triangle_plane_intersect(f1, f2):
     # find the intersection point of the line and the plane
     i = p[0] + (p[1]-p[0])*r
 
-    # intersect f2 with the plane of f1
-
-    # given the two intersection lines, determine their overlap
 
     return 0
 
