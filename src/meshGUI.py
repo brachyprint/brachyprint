@@ -340,10 +340,12 @@ class MeshCanvas(glcanvas.GLCanvas):
             glPushName(name)
             glBegin(GL_TRIANGLES)
             for f in subvol:
+                n = f.normal.normalise()
+                glNormal3f(n.x, n.y, n.z)
                 assert len(f.vertices) == 3
                 for v in f.vertices:
-                    n = v.normal()
-                    glNormal3f(n.x, n.y, n.z)
+                    #n = v.normal()
+                    #glNormal3f(n.x, n.y, n.z)
                     glVertex(v.x, v.y, v.z)
             glEnd()
             glPopName()
