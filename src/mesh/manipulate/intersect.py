@@ -113,10 +113,22 @@ def intersect(m1, m2):
                     m2_intersections[f2.name] = [s]
 
                 m1_face_points[f1.name].append(s[0])
-                #if f1.name in m1_intersections:
-                #    m1_intersections[f1.name].append(s)
-                #else:
-                #    m1_intersections[f1.name] = [s]
+
+                # record edge connections
+                if f1.name in m1_intersections:
+                    if s[0] in m1_intersections[f1.name]:
+                        m1_intersections[f1.name][s[0]].append(s[1])
+                    else:
+                        m1_intersections[f1.name][s[0]] = [s[1]]
+                        
+                    if s[1] in m1_intersections[f1.name]:
+                        m1_intersections[f1.name][s[1]].append(s[0])
+                    else:
+                        m1_intersections[f1.name][s[1]] = [s[0]]
+                else:
+                    m1_intersections[f1.name] = {}
+                    m1_intersections[f1.name][s[0]] = [s[1]]
+                    m1_intersections[f1.name][s[1]] = [s[0]]
 
     # create new output mesh
     m = mesh.Mesh()
@@ -153,58 +165,130 @@ def intersect(m1, m2):
             print vs
             print nv[vs[0]]
         else:
-            # project the points into a plane for the 2D triangulation
+
+            # partition the surface
+
+            edges = [[vs[0]],[vs[1]],[vs[2]]]
+
+            print k
+            print m1_intersections[k]
+            inter = m1_intersections[k]
+
+            # find the edge points
+            edge_points = [k for k,x in m1_intersections[k].items() if len(x)==1]
+            print edge_points
             
-            if 0:
-                vs2 = vs
-                vs = []
-                for i in vs2:
-                    if include_vertex[i]:
-                        vs.append(i)
+            bv = [0,0,0]
+            bv[0] = new_vertices[vs[1]]-new_vertices[vs[0]]
+            bv[1] = new_vertices[vs[2]]-new_vertices[vs[1]]
+            bv[2] = new_vertices[vs[0]]-new_vertices[vs[2]]
+
+            # assign each edge point to the corresponding edge
+            for p in edge_points:
+                for i in range(3):
+                    if bv[i].cross(new_vertices[p]-new_vertices[vs[i]]) == mesh.nullVector:
+                        edges[i].append(p)
+            
+            edges = edges[0] + edges[1] + edges[2]
+
+            path = {}
+            for p in edge_points:
+                # trace out the paths
+                ps = [p]
+                while 1:
+                    for ip in inter[ps[-1]]:
+                        if not ip in ps:
+                            ps.append(ip)
+                    if ps[-1] in edge_points:
+                        break
+                path[p] = ps[1:]
+
+            partitions = []
+
+            for p in edge_points:
+                i = edges.index(p)
+                part = [p]
+                follow_edge = False
+                # traverse round the way
+                n = -1
+                while n != p:
+                    # toggle following the edge, or the partition
+                    if n in edge_points:
+                        if follow_edge:
+                            follow_edge = False
+                            i = (i + 1) % len(edges)
+                            n = edges[i]
+                            part.append(n)
+                        else:
+                            follow_edge = True
+                            for ps in path[n]:
+                                if ps == p:
+                                    n = p
+                                    break
+                                else:
+                                    part.append(ps)
+                            if n == p:
+                                continue
+                            i = edges.index(part[-1])
+                            n = edges[i]
+                    else:
+                        i = (i + 1) % len(edges)
+                        n = edges[i]
+                        part.append(n)
+                        
+                partitions.append(part)
                 
-                if len(vs) == 3:
-                    print "kjkjkj"
-                    m.add_face(nv[vs[0]], nv[vs[1]], nv[vs[2]])
-                    continue
-                elif len(vs) < 3:
-                    print "xxxx"
+            print "partitions"
+            print partitions
+            print "partitionsend"
+                    
 
-                vs = vs2
+            
+            for part in partitions:
+                if len(part) == 3:
+                    # just add the face
+                    if include_vertex[part[0]]==2 and include_vertex[part[1]]==2 and include_vertex[part[2]]==2:
+                        continue
+                    elif include_vertex[part[0]]==2 and include_vertex[part[1]]==2 and include_vertex[part[2]]==2:
+                        m.add_face(nv[part[0]], nv[part[1]], nv[part[2]])
+                else:
+                    # project the points into a plane for the 2D triangulation
+                    
+                    vs = part
+                    # create orthogonal basis vectors
+                    u = new_vertices[vs[1]] - new_vertices[vs[0]]
+                    v = new_vertices[vs[1]] - new_vertices[vs[2]]
+                    n = v.cross(u)
+                    v = n.cross(u)
 
-            # create orthogonal basis vectors
-            u = new_vertices[vs[1]] - new_vertices[vs[0]]
-            v = new_vertices[vs[1]] - new_vertices[vs[2]]
-            n = v.cross(u)
-            v = n.cross(u)
+                    points = []
+                    vs = list(set(vs)) # remove duplicates
+                    for i in vs:
+                        points.append(new_vertices[i] + mesh.Vector(random.uniform(-0.00001, 0.00001), random.uniform(-0.00001, 0.00001), random.uniform(-0.00001, 0.00001)))
 
-            points = []
-            vs = list(set(vs)) # remove duplicates
-            for i in vs:
-                points.append(new_vertices[i] + mesh.Vector(random.uniform(-0.00001, 0.00001), random.uniform(-0.00001, 0.00001), random.uniform(-0.00001, 0.00001)))
+                    def dot(a, b):
+                        return sum([a[i]*b[i] for i in range(len(a))])
 
-            def dot(a, b):
-                return sum([a[i]*b[i] for i in range(len(a))])
+                    def project(a):
+                        return [dot(u, a), dot(v, a)]
 
-            def project(a):
-                return [dot(u, a), dot(v, a)]
+                    # project every point into 2d
+                    for i in range(len(points)):
+                        points[i] = project(points[i])
 
-            # project every point into 2d
-            for i in range(len(points)):
-                points[i] = project(points[i])
+                    # perform the triangulation
+                    points = np.array(points)
+                    tris = Delaunay(points)
 
-            # perform the triangulation
-            points = np.array(points)
-            tris = Delaunay(points)
-
-            try:
-                simplices = tris.simplices
-            except AttributeError: #For compatability with old scipy libraries
-                simplices = tris.vertices
-            for t in simplices:
-                if include_vertex[vs[t[0]]]==2 and include_vertex[vs[t[1]]]==2 and include_vertex[vs[t[2]]]==2:
-                    continue
-                elif include_vertex[vs[t[0]]] and include_vertex[vs[t[1]]] and include_vertex[vs[t[2]]]:
-                    m.add_face(nv[vs[t[0]]], nv[vs[t[1]]], nv[vs[t[2]]])
+                    try:
+                        simplices = tris.simplices
+                    except AttributeError: #For compatability with old scipy libraries
+                        simplices = tris.vertices
+                    for t in simplices:
+                        if include_vertex[vs[t[0]]]==2 and include_vertex[vs[t[1]]]==2 and include_vertex[vs[t[2]]]==2:
+                            continue
+                        elif include_vertex[vs[t[0]]] and include_vertex[vs[t[1]]] and include_vertex[vs[t[2]]]:
+                            m.add_face(nv[vs[t[0]]], nv[vs[t[1]]], nv[vs[t[2]]])
                 #else:
                 #    print vs[t[0]]
                 #    print vs[t[1]]
