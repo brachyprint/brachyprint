@@ -7,6 +7,8 @@ from math import pi, cos, sin
 import numpy as np
 from scipy.spatial import Delaunay
 
+import random
+
 
 def intersect(m1, m2):
     '''
@@ -15,20 +17,217 @@ def intersect(m1, m2):
     Returns a new mesh with m2 cut out of m1.
     '''
 
-    m = mesh.Mesh()
-    
-    p = [[],[]]
-    fs = []
-
 
     # new algorithm:
-        # go through all faces in m1, and see if they intersect a plane in m2, and record where
-        # and which ones
 
-        # for non-intersecting planes in m1, if all points are outside m2, add to m
-        # for non-intersecting planes in m2, if all points are inside m1, add to m
+        # classify vertices in m1 into inside and outside
+        # classify vertices in m2 into inside and outside
 
-        # for all intersecting planes, add faces between the intersecting points
+        # for each face in m1
+            # for each face in m2
+                # if there is an intersection, record the end points
+            # triangulate the m1 face and add extra vertices
+
+        # for each face in m2
+            # if intersections are recorded
+                # triangulate the m2 face and add extra vertices
+
+        # for each face in m1
+            # if all points are outside or on the border
+                # add the face to m
+
+        # for each face in m2
+            # if all points are inside or on the border
+                # add the face to m
+
+    m1_intersections = {}
+    m2_intersections = {}
+
+    new_vertices = {}
+    new_name = {0: 0} # hack to be visible in the inner function
+
+    m1_vertices = {}
+    include_vertex = {}
+
+    # determine if m1 vertex is inside or outside m2
+    for v in m1.vertices:
+        count = 0
+        p = [v, v + mesh.Vector(1, 1, 250)]
+        for f2 in m2.faces:
+
+            vs = f2.vertices
+            s = mesh.triangle_segment_intersect(p, vs)
+
+            if isinstance(s, mesh.Vector): # XXX: is this correct?
+                print s
+                count += 1
+
+        if count % 2 == 0: # even number of crossing => outside
+            m1_vertices[v.name] = 1
+        else:
+            m1_vertices[v.name] = 0
+
+    print m1_vertices
+
+    def add_vertex(v, include):
+        s = [k for k, ve in new_vertices.iteritems() if ve==v]
+
+        if len(s) == 0:
+            new_vertices[new_name[0]] = v
+            include_vertex[new_name[0]] = include
+            r = new_name[0]
+            new_name[0] += 1
+        else:
+            r = s[0]
+
+        return r
+        
+    m1_face_points = {}
+    for f1 in m1.faces:
+        m1_face_points[f1.name] = []
+
+        for i in range(3):
+            m1_face_points[f1.name].append(add_vertex(f1.vertices[i], m1_vertices[f1.vertices[i].name]))
+
+    # determine all face/face intersections
+    # XXX: optimise this using octrees
+    for f1 in m1.faces:
+
+        #f1_vertices[f1.name] = [f1.vertices[0], f1.vertices[1], f1.vertices[2]]
+        #for i in range(3):
+        #    add_vertex(f1.vertices[i])
+
+        for f2 in m2.faces:
+
+            s = mesh.triangle_triangle_intersect(list(f2.vertices), list(f1.vertices))
+
+            if isinstance(s, list):
+                # these two faces intersect
+                # add the vertices to the list
+                s[0] = add_vertex(s[0], 2)
+                s[1] = add_vertex(s[1], 2)
+
+                if f2.name in m2_intersections:
+                    m2_intersections[f2.name].append(s)
+                else:
+                    m2_intersections[f2.name] = [s]
+
+                m1_face_points[f1.name].append(s[0])
+                #if f1.name in m1_intersections:
+                #    m1_intersections[f1.name].append(s)
+                #else:
+                #    m1_intersections[f1.name] = [s]
+
+    # create new output mesh
+    m = mesh.Mesh()
+
+    #print include_vertex
+    # add all the vertices
+    nv = []
+    for k,v in new_vertices.items():
+        if include_vertex[k]:
+            nv.append(m.add_vertex(v))
+        else:
+            print v
+            nv.append(None)
+
+    for k,vs in m1_face_points.items():
+
+    #for k,vs in m1_intersections.items():
+        # triangulate the face with the new vertices
+        
+        # fetch all the points in the triangle
+        # 3 corners of the original face
+        #points = f1_vertices[k]
+
+        # additional vertices
+        #vs = [item for sublist in vs for item in sublist]
+        #vs = list(set(vs)) # remove duplicates
+        #vs = list(vs)
+
+        if len(vs) < 3:
+            print "Error!"
+        elif len(vs) == 3:
+            # no intersection; just add the face
+            m.add_face(nv[vs[0]], nv[vs[1]], nv[vs[2]])
+            print vs
+            print nv[vs[0]]
+        else:
+            # project the points into a plane for the 2D triangulation
+            
+            if 0:
+                vs2 = vs
+                vs = []
+                for i in vs2:
+                    if include_vertex[i]:
+                        vs.append(i)
+                
+                if len(vs) == 3:
+                    print "kjkjkj"
+                    m.add_face(nv[vs[0]], nv[vs[1]], nv[vs[2]])
+                    continue
+                elif len(vs) < 3:
+                    print "xxxx"
+
+                vs = vs2
+
+            # create orthogonal basis vectors
+            u = new_vertices[vs[1]] - new_vertices[vs[0]]
+            v = new_vertices[vs[1]] - new_vertices[vs[2]]
+            n = v.cross(u)
+            v = n.cross(u)
+
+            points = []
+            vs = list(set(vs)) # remove duplicates
+            for i in vs:
+                points.append(new_vertices[i] + mesh.Vector(random.uniform(-0.00001, 0.00001), random.uniform(-0.00001, 0.00001), random.uniform(-0.00001, 0.00001)))
+
+            def dot(a, b):
+                return sum([a[i]*b[i] for i in range(len(a))])
+
+            def project(a):
+                return [dot(u, a), dot(v, a)]
+
+            # project every point into 2d
+            for i in range(len(points)):
+                points[i] = project(points[i])
+
+            # perform the triangulation
+            points = np.array(points)
+            tris = Delaunay(points)
+
+            for t in tris.simplices:
+                if include_vertex[vs[t[0]]]==2 and include_vertex[vs[t[1]]]==2 and include_vertex[vs[t[2]]]==2:
+                    continue
+                elif include_vertex[vs[t[0]]] and include_vertex[vs[t[1]]] and include_vertex[vs[t[2]]]:
+                    m.add_face(nv[vs[t[0]]], nv[vs[t[1]]], nv[vs[t[2]]])
+                #else:
+                #    print vs[t[0]]
+                #    print vs[t[1]]
+                #    print vs[t[2]]
+                #count += 1
+
+    return m
+
+
+        # coalesce new vertices
+        #r = []
+        #for i in range(len(vs)-1):
+        #    for j in range(i+1, len(vs)):
+        #        if vs[i] == vs[j]:
+        #            r.append(j)
+
+        #v = []
+        #for i in range(len(vs)):
+        #    if not i in r:
+        #        v.append(vs[i])
+
+        # add new vertices to m1
+        
+
+
+
+def intersect2(m1, m2):
 
     interm1 = []; noninterm1 = []
     interm2 = []; noninterm2 = []
