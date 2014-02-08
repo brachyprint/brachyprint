@@ -47,6 +47,7 @@ def intersect(m1, m2):
     new_name = {0: 0} # hack to be visible in the inner function
 
     m1_vertices = {}
+    m2_vertices = {}
     include_vertex = {}
 
     # determine if m1 vertex is inside or outside m2
@@ -66,6 +67,22 @@ def intersect(m1, m2):
         else:
             m1_vertices[v.name] = 0
 
+    # determine if m2 vertex is inside or outside m1
+    for v in m2.vertices:
+        count = 0
+        p = [v, v + mesh.Vector(1, 1, 250)]
+        for f1 in m1.faces:
+
+            vs = f1.vertices
+            s = mesh.triangle_segment_intersect(p, vs)
+
+            if isinstance(s, mesh.Vector): # XXX: is this correct?
+                count += 1
+
+        if count % 2 == 0: # even number of crossing => outside
+            m2_vertices[v.name] = 0
+        else:
+            m2_vertices[v.name] = 1
 
     # add vertices to the new vertex list, reusing existing vertices
     # if extant
@@ -90,13 +107,16 @@ def intersect(m1, m2):
         for i in range(3):
             m1_face_points[f1.name].append(add_vertex(f1.vertices[i], m1_vertices[f1.vertices[i].name]))
 
+    m2_face_points = {}
+    for f2 in m2.faces:
+        m2_face_points[f2.name] = []
+
+        for i in range(3):
+            m2_face_points[f2.name].append(add_vertex(f2.vertices[i], m2_vertices[f2.vertices[i].name]))
+
     # determine all face/face intersections
     # XXX: optimise this using octrees
     for f1 in m1.faces:
-
-        #f1_vertices[f1.name] = [f1.vertices[0], f1.vertices[1], f1.vertices[2]]
-        #for i in range(3):
-        #    add_vertex(f1.vertices[i])
 
         for f2 in m2.faces:
 
@@ -109,17 +129,17 @@ def intersect(m1, m2):
                 s[0] = add_vertex(s[0], 2)
                 s[1] = add_vertex(s[1], 2)
 
-                if f2.name in m2_intersections:
-                    m2_intersections[f2.name].append(s)
-                else:
-                    m2_intersections[f2.name] = [s]
+                #if f2.name in m2_intersections:
+                #    m2_intersections[f2.name].append(s)
+                #else:
+                #    m2_intersections[f2.name] = [s]
 
                 if not s[0] in m1_face_points[f1.name]:
                     m1_face_points[f1.name].append(s[0])
                 if not s[1] in m1_face_points[f1.name]:
                     m1_face_points[f1.name].append(s[1])
 
-                # record edge connections
+                # record m1 edge connections
                 if f1.name in m1_intersections:
                     if s[0] in m1_intersections[f1.name]:
                         m1_intersections[f1.name][s[0]].append(s[1])
@@ -135,10 +155,31 @@ def intersect(m1, m2):
                     m1_intersections[f1.name][s[0]] = [s[1]]
                     m1_intersections[f1.name][s[1]] = [s[0]]
 
+                # record m2 vertices
+                if not s[0] in m2_face_points[f2.name]:
+                    m2_face_points[f2.name].append(s[0])
+                if not s[1] in m2_face_points[f2.name]:
+                    m2_face_points[f2.name].append(s[1])
+
+                # record m2 edge connections
+                if f2.name in m2_intersections:
+                    if s[0] in m2_intersections[f2.name]:
+                        m2_intersections[f2.name][s[0]].append(s[1])
+                    else:
+                        m2_intersections[f2.name][s[0]] = [s[1]]
+                        
+                    if s[1] in m2_intersections[f2.name]:
+                        m2_intersections[f2.name][s[1]].append(s[0])
+                    else:
+                        m2_intersections[f2.name][s[1]] = [s[0]]
+                else:
+                    m2_intersections[f2.name] = {}
+                    m2_intersections[f2.name][s[0]] = [s[1]]
+                    m2_intersections[f2.name][s[1]] = [s[0]]
+
     # create new output mesh
     m = mesh.Mesh()
 
-    #print include_vertex
     # add all the vertices
     nv = []
     for k,v in new_vertices.items():
@@ -147,36 +188,38 @@ def intersect(m1, m2):
         else:
             nv.append(None)
 
-    for k,vs in m1_face_points.items():
+    output_faces(m1_face_points, include_vertex, m1_intersections, new_vertices, m, nv)
+    output_faces(m2_face_points, include_vertex, m2_intersections, new_vertices, m, nv, True)
 
-    #for k,vs in m1_intersections.items():
+    return m
+
+
+def output_faces(face_points, include_vertex, intersections, new_vertices, m, nv, invert=False):
+
+    # output the faces from m1
+    for k,vs in face_points.items():
+
         # triangulate the face with the new vertices
-        
-        # fetch all the points in the triangle
-        # 3 corners of the original face
-        #points = f1_vertices[k]
-
-        # additional vertices
-        #vs = [item for sublist in vs for item in sublist]
-        #vs = list(set(vs)) # remove duplicates
-        #vs = list(vs)
 
         if len(vs) < 3:
             print "Error!"
         elif len(vs) == 3:
             # no intersection; just add the face
             if include_vertex[vs[0]] and include_vertex[vs[1]] and include_vertex[vs[2]]:
-                m.add_face(nv[vs[0]], nv[vs[1]], nv[vs[2]])
+                if invert:
+                    m.add_face(nv[vs[1]], nv[vs[0]], nv[vs[2]])
+                else:
+                    m.add_face(nv[vs[0]], nv[vs[1]], nv[vs[2]])
         else:
 
             # partition the surface
 
             edges = [[vs[0]],[vs[1]],[vs[2]]]
 
-            inter = m1_intersections[k]
+            inter = intersections[k]
 
             # find the edge points
-            edge_points = [ki for ki,x in m1_intersections[k].items() if len(x)==1]
+            edge_points = [ki for ki,x in intersections[k].items() if len(x)==1]
             #print edge_points
             #print "len vs", len(vs)
             #print vs
@@ -189,18 +232,15 @@ def intersect(m1, m2):
             # assign each edge point to the corresponding edge
             # XXX: are you sure this always puts them in the correct order?
             for p in edge_points:
-                #print p
-                #print new_vertices[p]
                 for i in range(3):
-                    #print bv[i].cross(new_vertices[p]-new_vertices[vs[i]])
                     if bv[i].cross(new_vertices[p]-new_vertices[vs[i]]) == mesh.nullVector:
                         edges[i].append(p)
             
             edges = edges[0] + edges[1] + edges[2]
 
-            if len(edge_points)+3 != len(edges):
-                print "Not enough edge points!"
-                continue
+            #if len(edge_points)+3 != len(edges):
+            #    print "Not enough edge points!"
+            #    continue
 
             path = {}
             for p in edge_points:
@@ -258,10 +298,13 @@ def intersect(m1, m2):
             for part in partitions:
                 if len(part) == 3:
                     # just add the face
-                    if include_vertex[part[0]]==2 and include_vertex[part[1]]==2 and include_vertex[part[2]]==2:
+                    if not invert and include_vertex[part[0]]==2 and include_vertex[part[1]]==2 and include_vertex[part[2]]==2:
                         continue
                     elif include_vertex[part[0]] and include_vertex[part[1]] and include_vertex[part[2]]:
-                        m.add_face(nv[part[0]], nv[part[1]], nv[part[2]])
+                        if invert:
+                            m.add_face(nv[part[1]], nv[part[0]], nv[part[2]])
+                        else:
+                            m.add_face(nv[part[0]], nv[part[1]], nv[part[2]])
                 else:
                     # project the points into a plane for the 2D triangulation
                     
@@ -297,11 +340,14 @@ def intersect(m1, m2):
                     except AttributeError: #For compatability with old scipy libraries
                         simplices = tris.vertices
                     for t in simplices:
-                        if include_vertex[vs[t[0]]]==2 and include_vertex[vs[t[1]]]==2 and include_vertex[vs[t[2]]]==2:
+                        if not invert and include_vertex[vs[t[0]]]==2 and include_vertex[vs[t[1]]]==2 and include_vertex[vs[t[2]]]==2:
                             continue
                         elif include_vertex[vs[t[0]]] and include_vertex[vs[t[1]]] and include_vertex[vs[t[2]]]:
-                            m.add_face(nv[vs[t[1]]], nv[vs[t[0]]], nv[vs[t[2]]])
+                            if invert:
+                                m.add_face(nv[vs[t[0]]], nv[vs[t[1]]], nv[vs[t[2]]])
+                            else:
+                                m.add_face(nv[vs[t[1]]], nv[vs[t[0]]], nv[vs[t[2]]])
 
-    return m
+
 
 
