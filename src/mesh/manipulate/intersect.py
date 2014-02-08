@@ -196,7 +196,11 @@ def intersect(m1, m2):
             points = np.array(points)
             tris = Delaunay(points)
 
-            for t in tris.simplices:
+            try:
+                simplices = tris.simplices
+            except AttributeError: #For compatability with old scipy libraries
+                simplices = tris.vertices
+            for t in simplices:
                 if include_vertex[vs[t[0]]]==2 and include_vertex[vs[t[1]]]==2 and include_vertex[vs[t[2]]]==2:
                     continue
                 elif include_vertex[vs[t[0]]] and include_vertex[vs[t[1]]] and include_vertex[vs[t[2]]]:
