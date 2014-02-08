@@ -151,11 +151,10 @@ class MeshCanvas(glcanvas.GLCanvas):
                 sphere_hits = self.hit(self.x, self.y, opengl_list(roiGUI.sphere_list), roiGUI.sphere_list_length())
                 if sphere_hits:
                     roi, index =  roiGUI.pointlookup[sphere_hits[0][2][0]]
-                    last_index = roiGUI.sphere_list_length() - 1
                     if roi == roiGUI.current_roi and \
                        roiGUI.current_roi.being_drawn() and \
-                       ((roiGUI.current_point_index == 0 and index == last_index) or \
-                        (roiGUI.current_point_index == last_index and index == 0)):
+                       ((roiGUI.current_point_index == 0 and roiGUI.current_roi.is_last(index)) or \
+                        (roiGUI.current_roi.is_last(roiGUI.current_point_index) and index == 0)):
                         roiGUI.complete()
                     roiGUI.current_roi, roiGUI.current_point_index = roi, index
                     roiGUI.update()
@@ -164,17 +163,20 @@ class MeshCanvas(glcanvas.GLCanvas):
                     if face_hit:
                         x, y, z, triangle_name = face_hit
                         if roiGUI.current_roi is None:
+                            print "New"
                             roiGUI.current_roi = roiGUI.new_roi()
+                            print roiGUI.current_roi.being_drawn()
                         if roiGUI.current_roi.being_drawn() and \
-                           (roiGUI.current_point_index == roiGUI.sphere_list_length() - 1 or \
-                            roiGUI.sphere_list_length()==0):
+                           (roiGUI.current_roi.is_last(roiGUI.current_point_index) or roiGUI.current_roi.is_empty()):
                             roiGUI.new_point(x, y, z, triangle_name)
                         elif roiGUI.current_roi.being_drawn() and \
                              roiGUI.current_point_index == 0:
                             roiGUI.new_point(x, y, z, triangle_name, end = False)
-                        else:
-                            print "move"
+                        elif roiGUI.current_point_index is not None:
                             roiGUI.move_point(roiGUI.current_point_index, x, y, z, triangle_name)
+                    else:
+                        roiGUI.current_point_index = None
+                        roiGUI.current_roi = None
                     roiGUI.update()
                 self.Refresh(False)
             elif mode[0] == "Select":
@@ -486,6 +488,10 @@ class ROI:
             return 0
     def being_drawn(self):
         return len(self.points) == 0 or len(self.paths) < len(self.points)
+    def is_empty(self):
+        return len(self.points) == 0
+    def is_last(self, i):
+        return i == len(self.points) - 1
 
 class roiGUI:
     def __init__(self, mesh, meshname, closed, onSelect):
