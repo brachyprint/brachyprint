@@ -130,7 +130,6 @@ class MeshCanvas(glcanvas.GLCanvas):
             if mode[0] == "Edit":
                 roiGUI = self.roiGUIs[mode[1]]
                 sphere_hits = self.hit(self.x, self.y, opengl_list(roiGUI.sphere_list), len(roiGUI.points))
-                print sphere_hits
                 if sphere_hits:
                     roiGUI.selection =  sphere_hits[0][2][0]
                 else:
@@ -478,7 +477,7 @@ class MeshPanel(wx.Panel):
         self.parent.Refresh()
 
 class MainWindow(wx.Frame):
-    def __init__(self, meshes, parent = None, id = -1, title = "PyOpenGL Example 1", rois = None):
+    def __init__(self, meshes, parent = None, id = -1, title = "Brachy Print", rois = None):
         # Init
         wx.Frame.__init__(
                 self, parent, id, title, size = (400,300),
@@ -551,18 +550,14 @@ class MainWindow(wx.Frame):
         self.Close(True)  # Close the frame.
 
 Test_mode = "Seperate"
-#Test_mode = "Intersection"
+Test_mode = "Intersection"
 if __name__ == '__main__':
     app = wx.App(False)
     c1 = make_cylinder(Mesh(), 10, 50, 10, offset = (0, 0, -25), axis = (0, 0, 1)) 
-    if Test_mode == "Seperate":
-        #Make two seperate (but overlapping) cylinders    
-        make_cylinder(c1, 10, 50, 10, offset = (0, -25, 0), axis = (0, 1, 0))   
-        frame = MainWindow({"2 cylinders": c1})
-    else:
-        #Make intersect cylinders  
-        c2 = make_cylinder(Mesh(), 10, 50, 10, offset = (0, -25, 0), axis = (0, 1, 0))   
-        frame = MainWindow({"intersection": intersect(c1, c2)})
+    c2 = make_cylinder(Mesh(), 10, 50, 10, offset = (0.1, -25.1, 0.1), axis = (0, 1, 0))   
+    c3 = make_cylinder(Mesh(), 10, 50, 10, offset = (0, 0, -25), axis = (0, 0, 1))  
+    c3 = make_cylinder(c3, 10, 50, 10, offset = (0.1, -25.1, 0.1), axis = (0, 1, 0))   
+    frame = MainWindow({"intersection": intersect(c1, c2), "2 cylinders": c3})
     app.MainLoop()
     del frame
     del app
