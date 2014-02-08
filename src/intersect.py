@@ -23,12 +23,16 @@ if __name__ == '__main__':
 
     m2 = mesh.Mesh()
     mesh.primitives.make_cube(m2, 100, (-48, 48, 48))
+
+    c1 = mesh.Mesh()
+    mesh.primitives.make_cylinder(c1, 50, 40, 20, offset=[1,1,-10])
     #self.meshCanvas.addMesh(m2, "cube2")
     #self.meshPanel.addMesh("cube2")
 
-    m3 = mesh.manipulate.intersect(m1, m2)
+    m3 = mesh.manipulate.intersect(m1, c1)
+    m4 = mesh.manipulate.intersect(m3, m2)
 
-    meshes = {"cube2": m2, "cube3": m3}
+    meshes = {"cylinder":c1, "cube2": m2, "cube4": m4}
 
     frame = MainWindow(meshes = meshes,
                        rois = {},

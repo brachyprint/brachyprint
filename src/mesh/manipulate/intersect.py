@@ -59,7 +59,6 @@ def intersect(m1, m2):
             s = mesh.triangle_segment_intersect(p, vs)
 
             if isinstance(s, mesh.Vector): # XXX: is this correct?
-                print s
                 count += 1
 
         if count % 2 == 0: # even number of crossing => outside
@@ -67,7 +66,6 @@ def intersect(m1, m2):
         else:
             m1_vertices[v.name] = 0
 
-    print m1_vertices
 
     def add_vertex(v, include):
         s = [k for k, ve in new_vertices.iteritems() if ve==v]
@@ -104,6 +102,7 @@ def intersect(m1, m2):
             if isinstance(s, list):
                 # these two faces intersect
                 # add the vertices to the list
+
                 s[0] = add_vertex(s[0], 2)
                 s[1] = add_vertex(s[1], 2)
 
@@ -112,7 +111,10 @@ def intersect(m1, m2):
                 else:
                     m2_intersections[f2.name] = [s]
 
-                m1_face_points[f1.name].append(s[0])
+                if not s[0] in m1_face_points[f1.name]:
+                    m1_face_points[f1.name].append(s[0])
+                if not s[1] in m1_face_points[f1.name]:
+                    m1_face_points[f1.name].append(s[1])
 
                 # record edge connections
                 if f1.name in m1_intersections:
@@ -140,7 +142,6 @@ def intersect(m1, m2):
         if include_vertex[k]:
             nv.append(m.add_vertex(v))
         else:
-            print v
             nv.append(None)
 
     for k,vs in m1_face_points.items():
@@ -161,22 +162,21 @@ def intersect(m1, m2):
             print "Error!"
         elif len(vs) == 3:
             # no intersection; just add the face
-            m.add_face(nv[vs[0]], nv[vs[1]], nv[vs[2]])
-            print vs
-            print nv[vs[0]]
+            if include_vertex[vs[0]] and include_vertex[vs[1]] and include_vertex[vs[2]]:
+                m.add_face(nv[vs[0]], nv[vs[1]], nv[vs[2]])
         else:
 
             # partition the surface
 
             edges = [[vs[0]],[vs[1]],[vs[2]]]
 
-            print k
-            print m1_intersections[k]
             inter = m1_intersections[k]
 
             # find the edge points
-            edge_points = [k for k,x in m1_intersections[k].items() if len(x)==1]
-            print edge_points
+            edge_points = [ki for ki,x in m1_intersections[k].items() if len(x)==1]
+            #print edge_points
+            #print "len vs", len(vs)
+            #print vs
             
             bv = [0,0,0]
             bv[0] = new_vertices[vs[1]]-new_vertices[vs[0]]
@@ -184,12 +184,20 @@ def intersect(m1, m2):
             bv[2] = new_vertices[vs[0]]-new_vertices[vs[2]]
 
             # assign each edge point to the corresponding edge
+            # XXX: are you sure this always puts them in the correct order?
             for p in edge_points:
+                #print p
+                #print new_vertices[p]
                 for i in range(3):
+                    #print bv[i].cross(new_vertices[p]-new_vertices[vs[i]])
                     if bv[i].cross(new_vertices[p]-new_vertices[vs[i]]) == mesh.nullVector:
                         edges[i].append(p)
             
             edges = edges[0] + edges[1] + edges[2]
+
+            if len(edge_points)+3 != len(edges):
+                print "Not enough edge points!"
+                continue
 
             path = {}
             for p in edge_points:
@@ -238,9 +246,9 @@ def intersect(m1, m2):
                         
                 partitions.append(part)
                 
-            print "partitions"
-            print partitions
-            print "partitionsend"
+            #print "partitions"
+            #print partitions
+            #print "partitionsend"
                     
 
             
@@ -262,9 +270,10 @@ def intersect(m1, m2):
                     v = n.cross(u)
 
                     points = []
-                    vs = list(set(vs)) # remove duplicates
+                    #vs = list(set(vs)) # remove duplicates
                     for i in vs:
-                        points.append(new_vertices[i] + mesh.Vector(random.uniform(-0.00001, 0.00001), random.uniform(-0.00001, 0.00001), random.uniform(-0.00001, 0.00001)))
+                        #points.append(new_vertices[i] + mesh.Vector(random.uniform(-0.00001, 0.00001), random.uniform(-0.00001, 0.00001), random.uniform(-0.00001, 0.00001)))
+                        points.append(new_vertices[i])
 
                     def dot(a, b):
                         return sum([a[i]*b[i] for i in range(len(a))])
@@ -288,12 +297,7 @@ def intersect(m1, m2):
                         if include_vertex[vs[t[0]]]==2 and include_vertex[vs[t[1]]]==2 and include_vertex[vs[t[2]]]==2:
                             continue
                         elif include_vertex[vs[t[0]]] and include_vertex[vs[t[1]]] and include_vertex[vs[t[2]]]:
-                            m.add_face(nv[vs[t[0]]], nv[vs[t[1]]], nv[vs[t[2]]])
-                #else:
-                #    print vs[t[0]]
-                #    print vs[t[1]]
-                #    print vs[t[2]]
-                #count += 1
+                            m.add_face(nv[vs[t[1]]], nv[vs[t[0]]], nv[vs[t[2]]])
 
     return m
 

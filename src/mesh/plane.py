@@ -123,6 +123,10 @@ def triangle_triangle_intersect(f1, f2):
     if isinstance(s2, int): # no intersection
         return 0
 
+    if len(s1) < 2 or len(s2) < 2:
+        print "hmm"
+        return 0
+
     # given the two intersection lines, determine their overlap
 
     # determine overlap between two lines
@@ -153,13 +157,13 @@ def triangle_triangle_intersect(f1, f2):
 
     swapped = 0
     if d1[0] > d1[1]:
-    #    d1[0], d1[1] = d1[1], d1[0]
-    #    s1[0], s1[1] = s1[1], s1[0]
+        d1[0], d1[1] = d1[1], d1[0]
+        s1[0], s1[1] = s1[1], s1[0]
         swapped += 1
     
     if d2[0] > d2[1]:
-    #    d2[0], d2[1] = d2[1], d2[0]
-    #    s2[0], s2[1] = s2[1], s2[0]
+        d2[0], d2[1] = d2[1], d2[0]
+        s2[0], s2[1] = s2[1], s2[0]
         swapped += 1
 
     if d1[0] < d2[0] and d1[1] < d2[0]:
