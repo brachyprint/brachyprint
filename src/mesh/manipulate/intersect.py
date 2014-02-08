@@ -249,7 +249,7 @@ def intersect(m1, m2):
                     # just add the face
                     if include_vertex[part[0]]==2 and include_vertex[part[1]]==2 and include_vertex[part[2]]==2:
                         continue
-                    elif include_vertex[part[0]]==2 and include_vertex[part[1]]==2 and include_vertex[part[2]]==2:
+                    elif include_vertex[part[0]] and include_vertex[part[1]] and include_vertex[part[2]]:
                         m.add_face(nv[part[0]], nv[part[1]], nv[part[2]])
                 else:
                     # project the points into a plane for the 2D triangulation
