@@ -148,18 +148,33 @@ class MeshCanvas(glcanvas.GLCanvas):
         if evt.LeftIsDown():
             if mode[0] == "Edit":
                 roiGUI = self.roiGUIs[mode[1]]
-                sphere_hits = self.hit(self.x, self.y, opengl_list(roiGUI.sphere_list), len(roiGUI.points))
+                sphere_hits = self.hit(self.x, self.y, opengl_list(roiGUI.sphere_list), roiGUI.sphere_list_length())
                 if sphere_hits:
-                    roiGUI.selection =  sphere_hits[0][2][0]
+                    roi, index =  roiGUI.pointlookup[sphere_hits[0][2][0]]
+                    last_index = roiGUI.sphere_list_length() - 1
+                    if roi == roiGUI.current_roi and \
+                       roiGUI.current_roi.being_drawn() and \
+                       ((roiGUI.current_point_index == 0 and index == last_index) or \
+                        (roiGUI.current_point_index == last_index and index == 0)):
+                        roiGUI.complete()
+                    roiGUI.current_roi, roiGUI.current_point_index = roi, index
+                    roiGUI.update()
                 else:
-                    roiGUI.selection = None
                     face_hit = self.hit_location(roiGUI.meshname)           
                     if face_hit:
                         x, y, z, triangle_name = face_hit
-                        if roiGUI.selection is None:
+                        if roiGUI.current_roi is None:
+                            roiGUI.current_roi = roiGUI.new_roi()
+                        if roiGUI.current_roi.being_drawn() and \
+                           (roiGUI.current_point_index == roiGUI.sphere_list_length() - 1 or \
+                            roiGUI.sphere_list_length()==0):
                             roiGUI.new_point(x, y, z, triangle_name)
+                        elif roiGUI.current_roi.being_drawn() and \
+                             roiGUI.current_point_index == 0:
+                            roiGUI.new_point(x, y, z, triangle_name, end = False)
                         else:
-                            roiGUI.move_point(roiGUI.selection, x, y, z, triangle_name)
+                            print "move"
+                            roiGUI.move_point(roiGUI.current_point_index, x, y, z, triangle_name)
                     roiGUI.update()
                 self.Refresh(False)
             elif mode[0] == "Select":
@@ -454,7 +469,23 @@ class MeshCanvas(glcanvas.GLCanvas):
 
         glEnd()
      
-
+class ROI:
+    def __init__(self):
+        self.paths = []
+        self.points = []
+    def new_point(self, x, y, z, face_name, end):
+        if end:
+            self.points.append((x, y, z, face_name))
+            if len(self.points) > 1:
+                self.paths.append(None)
+            return len(self.points) - 1
+        else:
+            self.points = [(x, y, z, face_name)] + self.points
+            if len(self.points) > 1:
+                self.paths = [None] + self.paths
+            return 0
+    def being_drawn(self):
+        return len(self.points) == 0 or len(self.paths) < len(self.points)
 
 class roiGUI:
     def __init__(self, mesh, meshname, closed, onSelect):
@@ -462,59 +493,109 @@ class roiGUI:
         self.mesh = mesh
         self.closed = closed
         self.onSelect = onSelect
-        self.points = []
-        self.paths = []
-        self.selection = None
+        self.rois = []
+        self.current_roi = None
+        self.current_point_index = None
+        self.pointlookup = []
+        self.linelookup = []
     def InitGL(self):
         self.line_list = glGenLists(1)
         self.sphere_list = glGenLists(1)
         self.compile_sphere_list()
         self.compile_line_list()
-    def new_point(self, x, y, z, face_name):
-        self.points.append((x, y, z, face_name))
-        if len(self.points) > 1:
-            self.paths.append(None)
+    def new_roi(self):
+        r = ROI()
+        self.rois.append(r)
+        return r
+    def new_point(self, x, y, z, face_name, end = True):
+        if self.current_roi:
+            self.current_point_index = self.current_roi.new_point(x, y, z, face_name, end)
     def move_point(self, i, x, y, z, face_name):
-        self.points[i] = (x, y, z, face_name)
-        self.paths[i] = None
-        self.paths[i + 1] = None
+        print i
+        if self.current_roi:
+            self.current_roi.points[i] = (x, y, z, face_name)
+            if i > 0:
+                self.current_roi.paths[i - 1] = None
+            else:
+                if not self.current_roi.being_drawn():
+                    self.current_roi.paths[-1] = None
+            if i < len(self.current_roi.paths):
+                self.current_roi.paths[i] = None
+            else:
+                if not self.current_roi.being_drawn():
+                    self.current_roi.paths[0] = None
+            
+    def complete(self):
+        print "Complete"
+        assert self.current_roi.being_drawn() == True
+        if self.closed == True:
+            self.current_roi.paths.append(None)
+            print self.current_roi.paths
     def compile_sphere_list(self):
+        name = 0
+        self.pointlookup = []
         glNewList(self.sphere_list, GL_COMPILE)
         glMatrixMode(GL_MODELVIEW)
-        for i, sphere in enumerate(self.points):
+        for roi in self.rois:
+            print len(roi.points)
+            for i, sphere in enumerate(roi.points):
+                glPushMatrix()
+                glPushName(name)
+                self.pointlookup.append((roi, i))
+                name = name + 1
+                glTranslatef(sphere[0], sphere[1], sphere[2])
+                glColor3f(0.2,1,0.2)
+                glutSolidSphere(7, 10, 10)
+                glPopName()
+                glPopMatrix()
+        if self.current_point_index is not None:
+            sphere = self.current_roi.points[self.current_point_index]
             glPushMatrix()
-            glPushName(i)
             glTranslatef(sphere[0], sphere[1], sphere[2])
-            glColor3f(0.2,1,0.2)
-            glutSolidSphere(7, 10, 10)
-            glPopName()
+            glColor3f(1,0.2,0.2)
+            glutSolidSphere(10, 11, 11)
             glPopMatrix()
-        glEndList()
+        glEndList()    
     def compile_line_list(self):
+        name = 0
+        self.linelookup = []
         glNewList(self.line_list, GL_COMPILE)
-        for path_list in self.paths:
-            for path in path_list:
-                for start, end in path.points():
-                    dx = start[0] - end[0]
-                    dy = start[1] - end[1]
-                    dz = start[2] - end[2]
-                    length_d = (dx ** 2 + dy ** 2 + dz ** 2) ** 0.5
-                    if length_d > 0:
-                        #axis of rotation = (0, 0, 1) cross (dx, dy, dz) = (-dy, dx, 0)
-                        #angle to rotate = 180.0 / pi * acos((0,0,1).(dx, dy, dz) / (dx, dy, dz).(dx, dy, dz))
-                        glPushMatrix()
-                        glTranslatef(start[0], start[1], start[2])
-                        glRotatef(180.0 / pi * acos(dz / length_d), -dy, dx, 0)
-                        glutSolidSphere(3, 10, 10)
-                        glutSolidCylinder(3, -length_d, 20 ,20)
-                        glPopMatrix()
+        glColor3f(0.2,1,0.2)
+        for roi in self.rois:
+            for path_list in roi.paths:
+                for index, path in enumerate(path_list):
+                    glPushName(name)
+                    self.linelookup.append((roi, index))
+                    name = name + 1
+                    for start, end in path.points():
+                        dx = start[0] - end[0]
+                        dy = start[1] - end[1]
+                        dz = start[2] - end[2]
+                        length_d = (dx ** 2 + dy ** 2 + dz ** 2) ** 0.5
+                        if length_d > 0:
+                            #axis of rotation = (0, 0, 1) cross (dx, dy, dz) = (-dy, dx, 0)
+                            #angle to rotate = 180.0 / pi * acos((0,0,1).(dx, dy, dz) / (dx, dy, dz).(dx, dy, dz))
+                            glPushMatrix()
+                            glTranslatef(start[0], start[1], start[2])
+                            glRotatef(180.0 / pi * acos(dz / length_d), -dy, dx, 0)
+                            glutSolidSphere(3, 10, 10)
+                            glutSolidCylinder(3, -length_d, 20 ,20)
+                            glPopMatrix()
+                    glPopName() 
         glEndList()
     def update(self):
-        for index, path in enumerate(self.paths):
-            if path is None:
-                self.paths[index] = self.mesh.get_path(self.points[index], self.points[index + 1])
+        for roi in self.rois:
+            for index, path in enumerate(roi.paths):
+                if path is None:
+                    print index, len(roi.points), len(roi.paths)
+                    if index + 1 < len(roi.points):
+                        roi.paths[index] = self.mesh.get_path(roi.points[index], roi.points[index + 1])
+                    else:
+                        roi.paths[index] = self.mesh.get_path(roi.points[index], roi.points[0])
         self.compile_sphere_list()
         self.compile_line_list()
+    def sphere_list_length(self):
+        return len(self.pointlookup)
 
 class opengl_list:
     def __init__(self, list_):
