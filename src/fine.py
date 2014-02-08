@@ -23,7 +23,11 @@ if __name__ == '__main__':
         meshes[name] = makeMesh(parseply.parseply(f))
         f.close()
 
-    frame = MainWindow(meshes=meshes, draw_mesh = "Rough Outer", title = "Fine Cut", base_filename = skin_file[:-8])
+    frame = MainWindow(meshes=meshes, 
+                       rois = {"Catheters": {"meshname": "Rough Outer", "closed": False}, 
+                               "Bridges": {"meshname": "Rough Outer", "closed": False}, 
+                               "Extent": {"meshname": "Rough Outer", "closed": True}}, 
+                       title = "Fine Cut")
     app.MainLoop()
     del frame
     del app
