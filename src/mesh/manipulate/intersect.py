@@ -234,7 +234,6 @@ def intersect2(m1, m2):
     for f2 in m2.faces:
         count = 0
         for f1 in m1.faces:
-
             # find intersection line
             s = mesh.triangle_triangle_intersect(list(f2.vertices), list(f1.vertices))
 
@@ -459,8 +458,11 @@ def intersect2(m1, m2):
                 p.append(m.add_vertex(s[1][0], s[1][1], s[1][2]))
             points = np.array(points)
             tris = Delaunay(points)
-
-            for t in tris.simplices:
+            try:
+                simplices = tris.simplices
+            except AttributeError: #For compatability with old scipy libraries
+                simplices = tris.vertices
+            for t in simplices:
                 m.add_face(p[t[0]], p[t[1]], p[t[2]])
                 
 
@@ -516,7 +518,7 @@ def intersect2(m1, m2):
                 m.add_face(v0, vs1[0], v1)
                 m.add_face(vs1[0], vs1[1], v1)
 
-    m.allocate_volumes()
+    #m.allocate_volumes()
 
     return m
 
