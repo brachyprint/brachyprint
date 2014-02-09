@@ -294,12 +294,21 @@ class Vector(object):
                       self.z * v.x - self.x * v.z,
                       self.x * v.y - self.y * v.x)
 
+    def dot(self, v):
+        return self.x * v.x + self.y * v.y + self.z * v.z
+
     def normalise(self):
         m = (self.x ** 2 + self.y ** 2 + self.z ** 2) ** 0.5
         if m == 0.0:
             return Vector(self.x, self.y, self.z)
         else:
             return Vector(self.x/m, self.y/m, self.z/m)
+
+    def project2d(self, u, v):
+        '''
+        Project the vector into 2d using the basis vectors 'u' and 'v'.
+        '''
+        return [self.dot(u), self.dot(v)]
 
 
 nullVector = Vector(0, 0, 0)
@@ -334,8 +343,8 @@ class Vertex(Vector):
         '''
         self.faces.append(face)
 
-    def tovector(self):
-        return Vector(self.x, self.y, self.z)
+    #def tovector(self):
+    #    return Vector(self.x, self.y, self.z)
 
     def normal(self):
         '''

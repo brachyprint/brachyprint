@@ -155,5 +155,39 @@ class BasicArithmeticTests(TestCase):
         with self.assertRaises(NotImplementedError):
             v /= Vector(1, 3, 5)
 
+
+class VectorManipulationTests(TestCase):
+
+    def setUp(self):
+        self.v1 = Vector(1, 2, 3)
+        self.v2 = Vector(-1, 2, 4)
+    
+    def test_dot_product(self):
+        d1 = self.v1.dot(self.v2)
+        d2 = self.v2.dot(self.v1)
+
+        self.assertEqual(d1, 15)
+        self.assertEqual(d1, d2)
+
+    def test_cross_product(self):
+        v1 = self.v1.cross(self.v2)
+        v2 = self.v2.cross(self.v1)
+
+        self.assertEqual(v1, Vector(2, -7, 4))
+        self.assertEqual(v2, Vector(-2, 7, -4))
+
+        v3 = self.v1.cross(self.v1)
+
+        self.assertEqual(v3, nullVector)
+
+    def test_cross_dot(self):
+        v1 = self.v1.cross(self.v2)
+        
+        # test for orthogonality
+        self.assertEqual(v1.dot(self.v1), 0)
+        self.assertEqual(v1.dot(self.v2), 0)
+
+
 if __name__ == '__main__':
     main()
+

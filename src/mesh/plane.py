@@ -25,20 +25,12 @@ from math import sqrt
 #    determine the overlapping octree nodes
 
 
-def dot(a, b):
-    return sum([a[i]*b[i] for i in range(len(a))])
-
-def cross(a, b):
-    return [a[1]*b[2] - a[2]*b[1],
-            a[2]*b[0] - a[0]*b[2],
-            a[0]*b[1] - a[1]*b[0]]
-
 def triangle_segment_intersect(p, vs):
     '''
     Determine if a polygon is intersected by a segment.
     
-    p -- two item list of points
-    v -- three item list of points
+    p -- two item list of Vectors
+    vs -- three item list of Vectors
 
     Returns:
         -1: triangle degenerate
@@ -53,7 +45,7 @@ def triangle_segment_intersect(p, vs):
 
     u = vs[1] - vs[0]
     v = vs[2] - vs[0]
-    n = cross(u, v)
+    n = u.cross(v)
     
     # check if the triangle is degenerate
     if n[0] == 0 and n[1] == 0 and n[2] == 0:
@@ -61,8 +53,8 @@ def triangle_segment_intersect(p, vs):
     
     dirv = p[1] - p[0]
     w0 = p[0] - vs[0]
-    a = -dot(n, w0)
-    b = dot(n, dirv)
+    a = -n.dot(w0)
+    b = n.dot(dirv)
     
     if abs(b) < epsilon:
         if a == 0:
@@ -80,12 +72,12 @@ def triangle_segment_intersect(p, vs):
     i = p[0] + r * dirv
     
     # determine if i is inside the triangle T
-    uu = dot(u,u)
-    uv = dot(u,v)
-    vv = dot(v,v)
+    uu = u.dot(u)
+    uv = u.dot(v)
+    vv = v.dot(v)
     w = i - vs[0]
-    wu = dot(w,u)
-    wv = dot(w,v)
+    wu = w.dot(u)
+    wv = w.dot(v)
     
     d = uv * uv - uu * vv
     
@@ -132,19 +124,19 @@ def triangle_triangle_intersect(f1, f2):
     # determine overlap between two lines
 
     b = s1[1] - s1[0] # basis vector in axis transformation
-    norm = dot(b,b)
+    norm = b.dot(b)
     b = b / sqrt(norm)
 
     d1 = [[],[]]; d2 = [[],[]]
-    d1[0] = dot(b, s1[0] - s1[0])
-    d1[1] = dot(b, s1[1] - s1[0])
-    d2[0] = dot(b, s2[0] - s1[0])
-    d2[1] = dot(b, s2[1] - s1[0])
+    d1[0] = b.dot(s1[0] - s1[0])
+    d1[1] = b.dot(s1[1] - s1[0])
+    d2[0] = b.dot(s2[0] - s1[0])
+    d2[1] = b.dot(s2[1] - s1[0])
 
     epsilon = .00001
-    if abs(dot(cross(s1[1], s1[0]), s2[0])) > epsilon:
+    if abs(s1[1].cross(s1[0]).dot(s2[0])) > epsilon:
         print "ijkhkj"
-    if abs(dot(cross(s1[1], s1[0]), s2[1])) > epsilon:
+    if abs(s1[1].cross(s1[0]).dot(s2[1])) > epsilon:
         print "ijkhkj2"
 
     #b = s2[1] - s2[0] # basis vector in axis transformation
@@ -233,7 +225,7 @@ def triangle_plane_intersect(f1, f2):
 
     u = f2[1] - f2[0]
     v = f2[2] - f2[0]
-    n = cross(u, v)
+    n = u.cross(v)
 
     # check if the triangle is degenerate
     if n[0] == 0 and n[1] == 0 and n[2] == 0:
@@ -243,17 +235,17 @@ def triangle_plane_intersect(f1, f2):
     intersect = []
     behind = []; front = []
     for i in range(3):
-        a = dot(n, f1[i]-f2[0])
+        a = n.dot(f1[i]-f2[0])
         if a < -epsilon:
             # f1[i] is behind the plane
-            behind.append(f1[i].tovector())
+            behind.append(f1[i])
         elif a > epsilon:
             # f1[i] is in front of the plane
-            front.append(f1[i].tovector())
+            front.append(f1[i])
         else:
             # f1[i] is in the plane
             print f1[i]
-            intersect.append(f1[i].tovector())
+            intersect.append(f1[i])
             
     if len(front) == 3 or len(behind) == 3: # no intersection
         return 0
@@ -263,8 +255,8 @@ def triangle_plane_intersect(f1, f2):
 
     for i in range(len(front)):
         for j in range(len(behind)):
-            a = -dot(n, front[i]-f2[0])
-            b = dot(n, behind[j]-front[i])
+            a = -n.dot(front[i]-f2[0])
+            b = n.dot(behind[j]-front[i])
             r = a/b
 
             #if r < 0 or r > 1:
@@ -280,8 +272,8 @@ def triangle_plane_intersect(f1, f2):
     count = 0
     for i in range(3):
         p = [f1[i-1], f1[i]]
-        a = -dot(n, p[0]-f2[0].tovector())
-        b = dot(n, p[1]-p[0])
+        a = -n.dot(p[0]-f2[0])
+        b = n.dot(p[1]-p[0])
     
         if abs(b) < epsilon:
             if a == 0:
@@ -315,7 +307,7 @@ def polygon_plane_clip(vertices,plane):
     planeOriginDistance = plane[3] 
 
     for a in xrange(len(vertices)):
-        d = dot(plane[:3],vertices[a]) + planeOriginDistance;
+        d = plane[:3].dot(vertices[a]) + planeOriginDistance;
         if d > boundaryEpsilon:
             location[a] = polygonInterior
             positive += 1
@@ -341,7 +333,7 @@ def polygon_plane_clip(vertices,plane):
                 v2 = vertices[index]
                 dv = vec_subt(v2,v1)
                 
-                t = (dot(plane[:3],v2) + planeOriginDistance) /dot(plane[:3],dv)
+                t = (v2.dot(plane[:3]) + planeOriginDistance) / dv.dot(plane[:3])
                 result[count] = vec_subt(v2,sc_vec(t,dv))
                 count += 1
         else:
@@ -350,7 +342,7 @@ def polygon_plane_clip(vertices,plane):
                 v2 = vertices[previous]
                 dv = vec_subt(v2,v1)
                 
-                t = (dot(plane[:3],v2) + planeOriginDistance) /dot(plane[:3],dv)
+                t = (v2.dot(plane[:3]) + planeOriginDistance) / dv.dot(plane[:3])
                 result[count] = vec_subt(v2,sc_vec(t,dv))
                 count += 1
 

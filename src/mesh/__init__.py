@@ -17,7 +17,7 @@ manipulate
 
 Utilities
 ---------
-test
+tests
     Run mesh unittests
 
 """

@@ -235,6 +235,11 @@ def output_faces(face_points, include_vertex, intersections, new_vertices, m, nv
                 for i in range(3):
                     if bv[i].cross(new_vertices[p]-new_vertices[vs[i]]) == mesh.nullVector:
                         edges[i].append(p)
+
+            for j in range(3):
+                edges[j] = [(bv[j].dot(new_vertices[edges[j][i]]), edges[j][i]) for i in range(len(edges[j]))]
+                edges[j].sort(key=lambda t: t[1])
+                edges[j] = [edges[j][i][1] for i in range(len(edges[j]))]
             
             edges = edges[0] + edges[1] + edges[2]
 
@@ -294,6 +299,8 @@ def output_faces(face_points, include_vertex, intersections, new_vertices, m, nv
             #print "partitionsend"
                     
 
+            if len(partitions) > 2:
+                print ">2"
             
             for part in partitions:
                 if len(part) == 3:
@@ -309,6 +316,18 @@ def output_faces(face_points, include_vertex, intersections, new_vertices, m, nv
                     # project the points into a plane for the 2D triangulation
                     
                     vs = part
+
+                    cont = False
+                    count = 0
+                    for v in vs:
+                        if include_vertex[v] == 0:
+                            cont = True
+                            break
+                        elif include_vertex[v] == 2:
+                            count += 1
+                    if cont or count == len(vs):
+                        continue
+
                     # create orthogonal basis vectors
                     u = new_vertices[vs[1]] - new_vertices[vs[0]]
                     v = new_vertices[vs[1]] - new_vertices[vs[2]]
@@ -316,20 +335,12 @@ def output_faces(face_points, include_vertex, intersections, new_vertices, m, nv
                     v = n.cross(u)
 
                     points = []
-                    #vs = list(set(vs)) # remove duplicates
                     for i in vs:
-                        #points.append(new_vertices[i] + mesh.Vector(random.uniform(-0.00001, 0.00001), random.uniform(-0.00001, 0.00001), random.uniform(-0.00001, 0.00001)))
                         points.append(new_vertices[i])
-
-                    def dot(a, b):
-                        return sum([a[i]*b[i] for i in range(len(a))])
-
-                    def project(a):
-                        return [dot(u, a), dot(v, a)]
 
                     # project every point into 2d
                     for i in range(len(points)):
-                        points[i] = project(points[i])
+                        points[i] = points[i].project2d(u, v)
 
                     # perform the triangulation
                     points = np.array(points)
@@ -340,13 +351,13 @@ def output_faces(face_points, include_vertex, intersections, new_vertices, m, nv
                     except AttributeError: #For compatability with old scipy libraries
                         simplices = tris.vertices
                     for t in simplices:
-                        if not invert and include_vertex[vs[t[0]]]==2 and include_vertex[vs[t[1]]]==2 and include_vertex[vs[t[2]]]==2:
-                            continue
-                        elif include_vertex[vs[t[0]]] and include_vertex[vs[t[1]]] and include_vertex[vs[t[2]]]:
-                            if invert:
-                                m.add_face(nv[vs[t[0]]], nv[vs[t[1]]], nv[vs[t[2]]])
-                            else:
-                                m.add_face(nv[vs[t[1]]], nv[vs[t[0]]], nv[vs[t[2]]])
+                        #if include_vertex[vs[t[0]]]==2 and include_vertex[vs[t[1]]]==2 and include_vertex[vs[t[2]]]==2:
+                        #    continue
+                        #elif include_vertex[vs[t[0]]] and include_vertex[vs[t[1]]] and include_vertex[vs[t[2]]]:
+                        if invert:
+                            m.add_face(nv[vs[t[0]]], nv[vs[t[1]]], nv[vs[t[2]]])
+                        else:
+                            m.add_face(nv[vs[t[1]]], nv[vs[t[0]]], nv[vs[t[2]]])
 
 
 
