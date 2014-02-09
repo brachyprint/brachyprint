@@ -480,6 +480,26 @@ class MeshCanvas(glcanvas.GLCanvas):
             glVertex3f(rangex[-1],rangey[-1],z)
 
         glEnd()
+
+
+    def Screenshot(self, filename="screenshot.jpg", fileformat=wx.BITMAP_TYPE_JPEG):
+        # get the size of the canvas
+        width, height = self.GetSize()
+
+        # create a Bitmap to hold the screenshot
+        screenshot = wx.EmptyBitmap(width, height)
+
+        winDC = wx.ClientDC(self)
+
+        memDC = wx.MemoryDC(screenshot)
+
+        # copy the canvas to the bitmap
+        memDC.Blit( 0, 0, width, height, winDC, 0, 0)
+    
+        # save the screenshot
+        screenshot.SaveFile(filename, fileformat);
+
+
      
 class ROI:
     def __init__(self):
@@ -761,6 +781,9 @@ class MainWindow(wx.Frame):
         self.showgrid = wx.CheckBox(self, label="Show grid")
         vbox.Add(self.showgrid, 0, wx.TOP, 20)
 
+        self.screenshot = wx.Button(self, label="Screenshot")
+        vbox.Add(self.screenshot, 0, wx.TOP, 20)
+
         box.Add(vbox, 0.5, wx.EXPAND)
 
         # create the meshes
@@ -773,6 +796,8 @@ class MainWindow(wx.Frame):
         self.Layout()
 
         self.showgrid.Bind(wx.EVT_CHECKBOX, lambda x: self.meshCanvas.OnDraw())
+        #self.screenshot.Bind(wx.EVT_BUTTON, lambda x: self.meshCanvas.Screenshot("screenshot.png", wx.BITMAP_TYPE_PNG))
+        self.screenshot.Bind(wx.EVT_BUTTON, lambda x: self.meshCanvas.Screenshot("screenshot.jpg", wx.BITMAP_TYPE_JPEG))
 
         # StatusBar
         #self.CreateStatusBar()
