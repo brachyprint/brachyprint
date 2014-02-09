@@ -107,7 +107,7 @@ def load(mypath, myseries, levels, sampling):
         d.append(r / sampling ** 2)
     del r
     exampleSlice = mySlices[0]
-    zpositions = [s.ImagePositionPatient[2] for s in mySlices[::sampling]]
+    zpositions = [float(s.ImagePositionPatient[2]) for s in mySlices[::sampling]]
     del mySlices
     ts = numpy.array(d)
     t = 0
