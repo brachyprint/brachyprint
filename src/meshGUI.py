@@ -63,7 +63,7 @@ class MeshCanvas(glcanvas.GLCanvas):
         self.lasty = self.y = 0
         self.size = None
         self.scale = 0.5
-        self.theta = 0
+        self.theta = 180
         self.phi = 0
         self.tx, self.ty, self.tz = -self.mean_x, -self.mean_y, -self.mean_z
         #self.selection = None
