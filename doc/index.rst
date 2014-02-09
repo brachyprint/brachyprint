@@ -15,6 +15,7 @@ Contents:
    :maxdepth: 2
 
    quickstart.rst
+   testing.rst
 
 
 Indices and tables
