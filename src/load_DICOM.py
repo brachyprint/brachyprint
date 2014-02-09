@@ -20,7 +20,10 @@ if __name__ == '__main__':
     seriesInstanceUIDs = {}
     for f in listdir(path):
         if isfile(join(path,f)):
-            d = dicom.read_file(join(path,f)) 
+            try:
+                d = dicom.read_file(join(path,f)) 
+            except dicom.filereader.InvalidDicomError: # ignore invalid DICOM files
+                continue
             seriesInstanceUIDs[d.SeriesInstanceUID] = "%s - %s - %s - %s" % (d.Modality, d.PatientsName, d.StudyDescription, d.SeriesDescription)
             del d
     series = seriesInstanceUIDs.items()
