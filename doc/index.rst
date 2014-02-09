@@ -7,13 +7,14 @@ Brachyprint
 ===========
 
 *Brachyprint* is a set of programs for creating brachytherapy moulds from
-computer tomography scan data.
+X-ray computed tomography scan data.
 
 Contents:
 
 .. toctree::
    :maxdepth: 2
 
+   quickstart.rst
 
 
 Indices and tables
