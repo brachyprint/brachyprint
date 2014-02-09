@@ -16,6 +16,8 @@ Contents:
 
    quickstart.rst
    testing.rst
+   mesh.rst
+
 
 
 Indices and tables
