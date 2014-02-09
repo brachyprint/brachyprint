@@ -2,7 +2,7 @@
 
 from unittest import TestCase, main
 
-from model import *
+from mesh import *
 
 
 class BasicArithmeticTests(TestCase):
