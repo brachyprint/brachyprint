@@ -8,7 +8,7 @@ from OpenGL.GL import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import *
 import parseply
-from mesh import makeMesh, Mesh
+from mesh import Mesh
 from mesh.primitives import make_cylinder
 from mesh.manipulate import intersect
 from math import pi, acos, sin, cos
@@ -498,10 +498,6 @@ class MainWindow(wx.Frame):
         vbox.Add(self.modePanel, 0.5, wx.EXPAND)
         box.Add(vbox, 0.5, wx.EXPAND)
         self.meshes = {}
-        #for name, filename in ply_files.items():
-        #    f = open(filename)
-        #    self.meshes[name] = makeMesh(parseply.parseply(f))
-        #    f.close()
         self.meshes = meshes
         self.meshCanvas = MeshCanvas(self, self.meshes, self.modePanel, self.meshPanel, rois)
         box.Add(self.meshCanvas, 1, wx.EXPAND)

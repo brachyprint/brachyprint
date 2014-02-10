@@ -18,12 +18,13 @@ reElement = re.compile("^element\s+(\S+)\s+(\d+)$")
 reProperty = re.compile("^property\s+(.+)\s+(\S+)$")
 reEndHeader = re.compile("^end_header$")
 
-def read_ply(inputfile):
+def read_ply(filename):
     '''
     Create a mesh from a ply file.
     '''
 
-    ply = _read_ply(inputfile)
+    with open(filename) as fp:
+        ply = _read_ply(fp)
 
     mesh = Mesh()
     for v in ply["vertex"]: 
@@ -111,6 +112,6 @@ end_header
 
     # open the file and write out the ply string
     with open(filename, "w") as fp:
-        f.write(r)
+        fp.write(r)
 
 

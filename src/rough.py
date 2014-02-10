@@ -94,9 +94,7 @@ if __name__ == '__main__':
 
     meshes = {}
     for name, filename in ply_files.items():
-        f = open(filename)
-        meshes[name] = mesh.fileio.read_ply(f)
-        f.close()
+        meshes[name] = mesh.fileio.read_ply(filename)
 
     frame = MainWindow(meshes=meshes, 
                        rois = {"Rough Cut": {"meshname": "Skin", "closed": True, "onSelect": OnSelect}}, 
