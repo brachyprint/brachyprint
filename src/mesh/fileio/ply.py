@@ -30,7 +30,7 @@ def read_ply(filename):
     for v in ply["vertex"]: 
         mesh.add_vertex(v['x'], v['y'], v['z'])
     for face in ply["face"]:
-        mesh.add_face(*[mesh.vertices[i] for i in face['vertex_indices']])
+        mesh.add_face(*[mesh.vertices[i] for i in face['vertex']])
     #mesh.allocate_volumes()
     return mesh
     
@@ -70,8 +70,11 @@ def _read_ply(inputfile):
         for n in range(elementCount):
             element = {}
             for propertyType, propertyName in properties:
+                # XXX: these seem to be synonyms?
+                propertyName = re.sub("_index$", "", propertyName)
+                propertyName = re.sub("_indices$", "", propertyName)
                 if file_format == ('binary_little_endian', '1.0'):
-                    if propertyType == "float":
+                    if propertyType == "float" or propertyType == "float32":
                         element[propertyName] = struct.unpack("<f", inputfile.read(4))[0]
                     elif propertyType == "list uchar int":
                         l = []
