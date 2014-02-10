@@ -2,6 +2,8 @@
 '''
 Functions to read and write STL files.
 
+See https://en.wikipedia.org/wiki/STL_%28file_format%29
+
 read_stl(filename)
 write_stl(mesh, filename)
 '''

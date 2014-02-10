@@ -1,14 +1,14 @@
 '''
-File input/output.
+Mesh file input/output.
 
 Supported input formats:
-    ply
-    stl (TBD)
+    PLY
 
 Supported output formats:
-    ply
-    stl (TBD)
+    PLY
+    STL (ASCII only)
 '''
+
 __all__ = ["ply", "stl"]
 
 from ply import *

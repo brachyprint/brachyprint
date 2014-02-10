@@ -2,6 +2,8 @@
 '''
 Functions to read and write PLY files.
 
+See https://en.wikipedia.org/wiki/PLY_%28file_format%29
+
 read_ply(filename)
 write_ply(mesh, filename)
 '''
