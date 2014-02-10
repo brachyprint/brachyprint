@@ -28,4 +28,5 @@ from plane import *
 # subpackages
 import primitives
 import manipulate
+import fileio
 

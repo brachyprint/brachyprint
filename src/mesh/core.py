@@ -1,3 +1,7 @@
+'''
+Core functionality for the mesh library.
+'''
+
 import parseply
 import struct
 from routes import *
@@ -123,26 +127,7 @@ class Mesh(object):
         #newMesh.allocate_volumes()
         return newMesh
 
-    def save_ply(self):
-        r = """ply
-format binary_little_endian 1.0
-comment Rough Cut
-element vertex %i
-property float x
-property float y
-property float z
-element face %i
-property list uchar int vertex_indices
-end_header
-""" % (len(self.vertices), len(self.faces))
-        for v in self.vertices:
-            r = r + struct.pack("<f", v.x) + struct.pack("<f", v.y) + struct.pack("<f", v.z)
-        for f in self.faces:
-            r = r + struct.pack("<B", 3)
-            for v in f.vertices:
-                r = r + struct.pack("<i", self.vertices.index(v))
-        return r
-  
+
 #    def allocate_volumes(self):
 #        '''Allocate each face to a particular volume.
 #
@@ -343,9 +328,6 @@ class Vertex(Vector):
         '''
         self.faces.append(face)
 
-    #def tovector(self):
-    #    return Vector(self.x, self.y, self.z)
-
     def normal(self):
         '''
         Determine a normal at the vertex by averaging its associated face normals.
@@ -391,13 +373,3 @@ class Edge(object):
         self.faces.append(face)
     
         
-def makeMesh(ply):
-    mesh = Mesh()
-    for v in ply["vertex"]: 
-        mesh.add_vertex(v['x'], v['y'], v['z'])
-    for face in ply["face"]:
-        mesh.add_face(*[mesh.vertices[i] for i in face['vertex_indices']])
-    #mesh.allocate_volumes()
-    return mesh
-
-

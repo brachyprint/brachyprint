@@ -3,8 +3,7 @@
 import wx
 from meshGUI import MainWindow
 from settings import *
-from mesh import makeMesh
-import parseply
+import mesh
 
 def OnSelect(band):
     edges = sum([path.get_edges() for path in band], [])
@@ -65,10 +64,9 @@ def OnSelect(band):
                     assert False
                 avoid_edges.append(edge)
     #Save the cut out mesh to a file
-    f = open(self.base_file + "rough.ply", "w")
     roughcut = self.meshes[self.draw_mesh].cloneSubVol(triangle, avoid_edges)
-    f.write(roughcut.save_ply())
-    f.close()
+    mesh.fileio.write_ply(roughcut, self.base_file + "rough.ply")
+
     #Expand cut out mesh and save that to a file called external
     minx = min([v.x for v in roughcut.vertices]) - 0.01
     maxx = max([v.x for v in roughcut.vertices]) + 0.01
@@ -97,7 +95,7 @@ if __name__ == '__main__':
     meshes = {}
     for name, filename in ply_files.items():
         f = open(filename)
-        meshes[name] = makeMesh(parseply.parseply(f))
+        meshes[name] = mesh.fileio.read_ply(f)
         f.close()
 
     frame = MainWindow(meshes=meshes, 

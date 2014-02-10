@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: iso-8859-1 -*-
 
+from __future__ import division
 import wx
 import sys
 from wx import glcanvas
@@ -8,9 +9,8 @@ from OpenGL.GL import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import *
 import parseply
-from mesh import makeMesh
 import mesh
-from math import pi, acos, sin, cos, ceil
+from math import pi, acos, sin, cos, ceil, floor
 from itertools import chain
 from settings import *
 from points import copy_point_cloud_excluding, makepoints, save, load, make_ply, expand
@@ -29,24 +29,56 @@ class pickPixel:
 def zerocmp(x, y):
     return cmp(x[0], y[0])
 
+
+class MeshCollection(object):
+    def __init__(self, d={}):
+        self.meshes = d
+
+        self.max_X = max([m.maxX for m in self.meshes.values()])
+        self.min_X = min([m.minX for m in self.meshes.values()])
+        self.max_Y = max([m.maxY for m in self.meshes.values()])
+        self.min_Y = min([m.minY for m in self.meshes.values()])
+        self.max_Z = max([m.maxZ for m in self.meshes.values()])
+        self.min_Z = min([m.minZ for m in self.meshes.values()])
+
+        self.mean_x = (self.max_X + self.min_X) / 2
+        self.mean_y = (self.max_Y + self.min_Y) / 2
+        self.mean_z = (self.max_Z + self.min_Z) / 2
+        range_x = self.max_X - self.min_X
+        range_y = self.max_Y - self.min_Y
+        range_z = self.max_Z - self.min_Z
+
+    def items(self):
+        return self.meshes.items()
+    
+    def keys(self):
+        return self.meshes.keys()
+
+    def add_mesh(self, m, name):
+        self.meshes[name] = m
+        self.max_X = max(self.max_X, m.maxX)
+        self.min_X = min(self.min_X, m.minX)
+        self.max_Y = max(self.max_Y, m.maxY)
+        self.min_Y = min(self.min_Y, m.minY)
+        self.max_Z = max(self.max_Z, m.maxZ)
+        self.min_Z = min(self.min_Z, m.minZ)
+
+    def __getitem__(self, it):
+        return self.meshes[it]
+
+
 class MeshCanvas(glcanvas.GLCanvas):
     def __init__(self, parent, meshes, modePanel, MeshPanel, rois):
-        self.meshes = meshes
+        self.meshes = MeshCollection(meshes)
         self.modePanel = modePanel
         self.meshPanel = MeshPanel
 
-        self.meshes_max_X = max([m.maxX for m in meshes.values()])
-        self.meshes_min_X = min([m.minX for m in meshes.values()])
-        self.meshes_max_Y = max([m.maxY for m in meshes.values()])
-        self.meshes_min_Y = min([m.minY for m in meshes.values()])
-        self.meshes_max_Z = max([m.maxZ for m in meshes.values()])
-        self.meshes_min_Z = min([m.minZ for m in meshes.values()])
-        self.mean_x = (self.meshes_max_X + self.meshes_min_X) / 2
-        self.mean_y = (self.meshes_max_Y + self.meshes_min_Y) / 2
-        self.mean_z = (self.meshes_max_Z + self.meshes_min_Z) / 2
-        range_x = self.meshes_max_X - self.meshes_min_X
-        range_y = self.meshes_max_Y - self.meshes_min_Y
-        range_z = self.meshes_max_Z - self.meshes_min_Z
+        self.mean_x = (self.meshes.max_X + self.meshes.min_X) / 2
+        self.mean_y = (self.meshes.max_Y + self.meshes.min_Y) / 2
+        self.mean_z = (self.meshes.max_Z + self.meshes.min_Z) / 2
+        range_x = self.meshes.max_X - self.meshes.min_X
+        range_y = self.meshes.max_Y - self.meshes.min_Y
+        range_z = self.meshes.max_Z - self.meshes.min_Z
         self.range_max = (range_x ** 2 + range_y ** 2 + range_z ** 2) ** 0.5
         
         self.roiGUIs = {}
@@ -85,13 +117,7 @@ class MeshCanvas(glcanvas.GLCanvas):
         self.Bind(wx.EVT_MOUSEWHEEL, self.OnMouseWheel)
 
     def addMesh(self, mesh, name):
-        self.meshes[name] = mesh
-        self.meshes_max_X = max(self.meshes_max_X, mesh.maxX)
-        self.meshes_min_X = min(self.meshes_min_X, mesh.minX)
-        self.meshes_max_Y = max(self.meshes_max_Y, mesh.maxY)
-        self.meshes_min_Y = min(self.meshes_min_Y, mesh.minY)
-        self.meshes_max_Z = max(self.meshes_max_Z, mesh.maxZ)
-        self.meshes_min_Z = min(self.meshes_min_Z, mesh.minZ)
+        self.meshes.add_mesh(mesh)
         self.mean_x = (self.meshes_max_X + self.meshes_min_X) / 2
         self.mean_y = (self.meshes_max_Y + self.meshes_min_Y) / 2
         self.mean_z = (self.meshes_max_Z + self.meshes_min_Z) / 2
@@ -250,10 +276,9 @@ class MeshCanvas(glcanvas.GLCanvas):
                                 assert False
                             avoid_edges.append(edge)
                     #Save the cut out mesh to a file
-                    f = open(self.base_file + "rough.ply", "w")
                     roughcut = self.meshes[self.draw_mesh].cloneSubVol(triangle, avoid_edges)
-                    f.write(roughcut.save_ply())
-                    f.close()
+                    mesh.fileio.write_ply(roughcut, self.base_file + "rough.ply")
+
                     #Expand cut out mesh and save that to a file called external
                     minx = min([v.x for v in roughcut.vertices]) - 0.01
                     maxx = max([v.x for v in roughcut.vertices]) + 0.01
@@ -335,7 +360,7 @@ class MeshCanvas(glcanvas.GLCanvas):
 
     def mainListInitial(self, name, mesh):
         glNewList(name, GL_COMPILE)
-        blocks = range(1 + len(mesh.faces) / BLOCKSIZE)
+        blocks = range(int(1 + len(mesh.faces) / BLOCKSIZE))
         for name, subvol in [(n, mesh.faces[n * BLOCKSIZE: (n+1) * BLOCKSIZE]) for n in blocks]:
             glPushName(name)
             glBegin(GL_TRIANGLES)
@@ -403,34 +428,29 @@ class MeshCanvas(glcanvas.GLCanvas):
         glRotatef(self.phi, 0.0, 1.0, 0.0)
         glTranslatef(self.tx, self.ty, self.tz)
 
-    def drawXAxisGrid(self):
+    def drawXAxisGrid(self, d=10):
         rangex = []
-        rangey = [self.meshes_min_Y, self.meshes_max_Y]
-        rangez = [self.meshes_min_Z, self.meshes_max_Z]
-        self.drawGrid(rangex, rangey, rangez)
+        rangey = [self.meshes.min_Y, self.meshes.max_Y]
+        rangez = [self.meshes.min_Z, self.meshes.max_Z]
+        self.drawGrid(rangex, rangey, rangez, d)
 
-    def drawYAxisGrid(self):
-        rangex = [self.meshes_min_X, self.meshes_max_X]
+    def drawYAxisGrid(self, d=10):
+        rangex = [self.meshes.min_X, self.meshes.max_X]
         rangey = []
-        rangez = [self.meshes_min_Z, self.meshes_max_Z]
-        self.drawGrid(rangex, rangey, rangez)
+        rangez = [self.meshes.min_Z, self.meshes.max_Z]
+        self.drawGrid(rangex, rangey, rangez, d)
 
-    def drawZAxisGrid(self):
-        rangex = [self.meshes_min_X, self.meshes_max_X]
-        rangey = [self.meshes_min_Y, self.meshes_max_Y]
+    def drawZAxisGrid(self, d=10):
+        rangex = [self.meshes.min_X, self.meshes.max_X]
+        rangey = [self.meshes.min_Y, self.meshes.max_Y]
         rangez = []
-        self.drawGrid(rangex, rangey, rangez)
+        self.drawGrid(rangex, rangey, rangez, d)
 
-    def drawGrid(self, rangex, rangey, rangez, numLines=10):
-        '''
-            drawGrid -- draw a grid of lines on an axis
+    def calcGridSize(self, numLines=10):
+        rangex = [self.meshes.min_X, self.meshes.max_X]
+        rangey = [self.meshes.min_Y, self.meshes.max_Y]
+        rangez = [self.meshes.min_Z, self.meshes.max_Z]
 
-            Arguments:
-                rangex -- min and max X coordinates
-                rangey -- min and max Y coordinates
-                rangez -- min and max Z coordinates
-                numLines -- the number of lines on the smallest axis
-        '''
         d = [float('inf')]*3
         if rangex:
             d[0] = (rangex[1]-rangex[0])/numLines
@@ -440,24 +460,36 @@ class MeshCanvas(glcanvas.GLCanvas):
             d[2] = (rangez[1]-rangez[0])/numLines
 
         d = min(d)
+        return d
+
+    def drawGrid(self, rangex, rangey, rangez, d):
+        '''
+            drawGrid -- draw a grid of lines on an axis
+
+            Arguments:
+                rangex -- min and max X coordinates
+                rangey -- min and max Y coordinates
+                rangez -- min and max Z coordinates
+                numLines -- the number of lines on the smallest axis
+        '''
 
         xs = []; ys = []; zs = []
         if rangex:
-            numx = int(ceil(-rangex[0]/d)) + int(ceil(rangex[1])/d)
+            numx = int(floor(-rangex[0]/d)) + int(ceil(rangex[1])/d) + 1
             offx = int(ceil(rangex[0]/d))
             xs = map(lambda x: x*d + offx*d, range(numx))
         else:
             rangex = [0,0]
 
         if rangey:
-            numy = int(ceil(-rangey[0]/d)) + int(ceil(rangey[1])/d)
+            numy = int(floor(-rangey[0]/d)) + int(ceil(rangey[1])/d) + 1
             offy = int(ceil(rangey[0]/d))
             ys = map(lambda y: y*d + offy*d, range(numy))
         else:
             rangey = [0,0]
 
         if rangez:
-            numz = int(ceil(-rangez[0]/d)) + int(ceil(rangez[1])/d)
+            numz = int(floor(-rangez[0]/d)) + int(ceil(rangez[1])/d) + 1
             offz = int(ceil(rangez[0]/d))
             zs = map(lambda z: z*d + offz*d, range(numz))
         else:

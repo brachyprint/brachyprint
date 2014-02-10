@@ -206,10 +206,9 @@ class MeshCanvas(glcanvas.GLCanvas):
                                 assert False
                             avoid_edges.append(edge)
                     #Save the cut out mesh to a file
-                    f = open(self.base_file + "rough.ply", "w")
                     roughcut = self.meshes[self.draw_mesh].cloneSubVol(triangle, avoid_edges)
-                    f.write(roughcut.save_ply())
-                    f.close()
+                    mesh.fileio.write_ply(roughcut, self.base_file + "rough.ply")
+
                     #Expand cut out mesh and save that to a file called external
                     minx = min([v.x for v in roughcut.vertices]) - 0.01
                     maxx = max([v.x for v in roughcut.vertices]) + 0.01
