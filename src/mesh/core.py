@@ -64,7 +64,21 @@ class Mesh(object):
         elif z < self.minZ: self.minZ = z
         return v
 
-    def add_face(self, v1, v2, v3):
+    def add_face(self, v1, v2=None, v3=None):
+        if isinstance(v1, list):
+            if len(v1) == 3:
+                self.add_triangle_face(v1[0], v1[1], v1[2])
+            elif len(v1) == 4:
+                self.add_triangle_face(v1[0], v1[1], v1[2])
+                self.add_triangle_face(v1[2], v1[3], v1[0])
+            else:
+                self.add_triangle_face(v1[0], v1[1], v1[2])
+                self.add_triangle_face(v1[2], v1[3], v1[0])
+                #raise NotImplementedError("Faces with more than 4 vertices not supported")
+        else:
+            self.add_triangle_face(v1, v2, v3)
+
+    def add_triangle_face(self, v1, v2, v3):
         f = Face(self.next_face_name, v1, v2, v3)
         self.next_face_name += 1
         self.faces.append(f)
