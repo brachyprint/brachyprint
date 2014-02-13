@@ -75,8 +75,17 @@ class Mesh(object):
             elif len(v1) < 3:
                 raise TypeError("Must supply at least 3 vertices")
             else:
+                # find orthogonal basis vectors from the supplied vertices
                 u = v1[1] - v1[0]
-                v = v1[1] - v1[2]
+                v = None
+                for i in range(2, len(v1)):
+                    if (v1[1] - v1[i]).cross(u) != nullVector:
+                        v = v1[1] - v1[i]
+                        break
+
+                if type(v) != Vector:
+                    raise ValueError("All points in the face are colinear")
+
                 n = v.cross(u)
                 v = n.cross(u)
 
@@ -96,7 +105,10 @@ class Mesh(object):
                 vertices = dict(vertices=points, segments=segments)
 
                 # triangulate constraining triangulation to the segment edge
-                t = triangle.triangulate(vertices, 'p')
+                t = triangle.triangulate(vertices, 'pq0')
+
+                if not "triangles" in t:
+                    raise ValueError("Ill-conditioned face vertices -- unable to produce a triangulation")
 
                 for vertices in t["triangles"]:
                     self.add_triangle_face(v1[vertices[0]], v1[vertices[1]], v1[vertices[2]])
@@ -206,6 +218,9 @@ class Vector(object):
             return abs(self.x - v[0]) <= self.epsilon and abs(self.y - v[1]) <= self.epsilon and abs(self.z - v[2]) <= self.epsilon
         else:
             raise NotImplementedError
+
+    def __ne__(self, v):
+        return not self.__eq__(v)
 
     def __gt__(self, v):
         raise TypeError("Ambiguous meaning for a Vector")
