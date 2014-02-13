@@ -6,6 +6,7 @@ import parseply
 import struct
 from routes import *
 from heapq import heappush, heappop
+import triangle
 
 class AStar:
     def __init__(self, s1, s2, mesh):
@@ -71,10 +72,34 @@ class Mesh(object):
             elif len(v1) == 4:
                 self.add_triangle_face(v1[0], v1[1], v1[2])
                 self.add_triangle_face(v1[2], v1[3], v1[0])
+            elif len(v1) < 3:
+                raise TypeError("Must supply at least 3 vertices")
             else:
-                self.add_triangle_face(v1[0], v1[1], v1[2])
-                self.add_triangle_face(v1[2], v1[3], v1[0])
-                #raise NotImplementedError("Faces with more than 4 vertices not supported")
+                u = v1[1] - v1[0]
+                v = v1[1] - v1[2]
+                n = v.cross(u)
+                v = n.cross(u)
+
+                points = []
+                for i in range(len(v1)):
+                    points.append(v1[i])
+
+                segments = []
+                for i in range(len(v1)-1):
+                    segments.append([i, i+1])
+                segments.append([len(v1)-1, 0])
+
+                # project every point into 2d
+                for i in range(len(points)):
+                    points[i] = points[i].project2d(u, v)
+
+                vertices = dict(vertices=points, segments=segments)
+
+                # triangulate constraining triangulation to the segment edge
+                t = triangle.triangulate(vertices, 'p')
+
+                for vertices in t["triangles"]:
+                    self.add_triangle_face(v1[vertices[0]], v1[vertices[1]], v1[vertices[2]])
         else:
             self.add_triangle_face(v1, v2, v3)
 

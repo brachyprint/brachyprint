@@ -53,7 +53,8 @@ def intersect(m1, m2):
     # determine if m1 vertex is inside or outside m2
     for v in m1.vertices:
         count = 0
-        p = [v, v + mesh.Vector(1, 1, 250)]
+        # XXX: this is going to break at some point!
+        p = [v, v + mesh.Vector(5, 5, 350)]
         for f2 in m2.faces:
 
             vs = f2.vertices
@@ -293,72 +294,77 @@ def output_faces(face_points, include_vertex, intersections, new_vertices, m, nv
                         part.append(n)
                         
                 partitions.append(part)
+
+            # cull any duplicate partitions
+            partition_sets = range(len(partitions))
+
+            for i in range(len(partitions)):
+                partition_sets[i] = set(partitions[i])
+
+            to_delete = []
+            for i in range(len(partition_sets)):
+                for j in range(len(partition_sets)):
+                    if i==j or partition_sets[i] == None or partition_sets[j] == None:
+                        continue
+                    if partition_sets[i] == partition_sets[j]:
+                        partition_sets[j] = None
+                        to_delete.append(j)
+
+            to_delete.sort(reverse=True)
+
+            for i in to_delete:
+                del partitions[i]
                 
-            #print "partitions"
-            #print partitions
-            #print "partitionsend"
-                    
+            # work out which partitions to display
+            # start at v[0], if in include_vertex, display that partition.
+            # find all partitions adjacent to v[0] partition
+                # set display opposite to v[0] partition
+            # find all partitions adjacent to these partitions
+                # set display the same as v[0] partition
+            # etc.
 
-            if len(partitions) > 2:
-                print ">2"
+            ps_i = range(len(partitions))
+            disp = [None]*len(partitions)
+
+            for p in ps_i:
+                if vs[0] in partitions[p]:
+                    disp[p] = (include_vertex[vs[0]] == 1)
+                    part_prev = p
+                    break
+
+            def find_all_adj(p_prev):
+                for p in ps_i:
+                    if disp[p] != None:
+                        continue
+                    # must share an edge (i.e. two points)
+                    if len([i for i in partitions[p] if i in partitions[p_prev]]) > 1:
+                        disp[p] = not disp[p_prev]
+                        find_all_adj(p)
+
+            find_all_adj(part_prev)
+
+            # XXX: check that the display of partitions containing v[1] and v[2]
+            # are set correctly according to include_vertex
+            for p in ps_i:
+                if vs[1] in partitions[p]:
+                    #disp[p] = (include_vertex[vs[0]] == 1)
+                    if disp[p] != (include_vertex[vs[1]] == 1):
+                        raise RuntimeError("Paritioning algorithm has a bug")
+                if vs[2] in partitions[p]:
+                    if disp[p] != (include_vertex[vs[2]] == 1):
+                        raise RuntimeError("Paritioning algorithm has a bug")
             
-            for part in partitions:
-                if len(part) == 3:
-                    # just add the face
-                    if not invert and include_vertex[part[0]]==2 and include_vertex[part[1]]==2 and include_vertex[part[2]]==2:
-                        continue
-                    elif include_vertex[part[0]] and include_vertex[part[1]] and include_vertex[part[2]]:
-                        if invert:
-                            m.add_face(nv[part[1]], nv[part[0]], nv[part[2]])
-                        else:
-                            m.add_face(nv[part[0]], nv[part[1]], nv[part[2]])
-                else:
-                    # project the points into a plane for the 2D triangulation
-                    
-                    vs = part
+            for p in range(len(partitions)):
 
-                    cont = False
-                    count = 0
-                    for v in vs:
-                        if include_vertex[v] == 0:
-                            cont = True
-                            break
-                        elif include_vertex[v] == 2:
-                            count += 1
-                    if cont or count == len(vs):
-                        continue
+                part = partitions[p]
 
-                    # create orthogonal basis vectors
-                    u = new_vertices[vs[1]] - new_vertices[vs[0]]
-                    v = new_vertices[vs[1]] - new_vertices[vs[2]]
-                    n = v.cross(u)
-                    v = n.cross(u)
+                if not disp[p]:
+                    continue
 
-                    points = []
-                    for i in vs:
-                        points.append(new_vertices[i])
+                verts = []
+                for index in partitions[p]:
+                    verts.append(nv[index])
 
-                    # project every point into 2d
-                    for i in range(len(points)):
-                        points[i] = points[i].project2d(u, v)
-
-                    # perform the triangulation
-                    points = np.array(points)
-                    tris = Delaunay(points)
-
-                    try:
-                        simplices = tris.simplices
-                    except AttributeError: #For compatability with old scipy libraries
-                        simplices = tris.vertices
-                    for t in simplices:
-                        #if include_vertex[vs[t[0]]]==2 and include_vertex[vs[t[1]]]==2 and include_vertex[vs[t[2]]]==2:
-                        #    continue
-                        #elif include_vertex[vs[t[0]]] and include_vertex[vs[t[1]]] and include_vertex[vs[t[2]]]:
-                        if invert:
-                            m.add_face(nv[vs[t[0]]], nv[vs[t[1]]], nv[vs[t[2]]])
-                        else:
-                            m.add_face(nv[vs[t[1]]], nv[vs[t[0]]], nv[vs[t[2]]])
-
-
+                m.add_face(verts)
 
 
