@@ -65,7 +65,8 @@ def intersect(m1, m2):
     # determine if m2 vertex is inside or outside m1
     for v in m2.vertices:
         count = 0
-        p = [v, v + mesh.Vector(1, 1, 250)]
+        # XXX: this is going to break at some point!
+        p = [v, v + mesh.Vector(5, 5, 350)]
         for f1 in m1.faces:
 
             vs = f1.vertices
@@ -124,11 +125,7 @@ def intersect(m1, m2):
                 s[0] = add_vertex(s[0], 2)
                 s[1] = add_vertex(s[1], 2)
 
-                #if f2.name in m2_intersections:
-                #    m2_intersections[f2.name].append(s)
-                #else:
-                #    m2_intersections[f2.name] = [s]
-
+                # record m1 vertices
                 if not s[0] in m1_face_points[f1.name]:
                     m1_face_points[f1.name].append(s[0])
                 if not s[1] in m1_face_points[f1.name]:
