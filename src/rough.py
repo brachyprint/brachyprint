@@ -4,67 +4,75 @@ import wx
 from meshGUI import MainWindow
 from settings import *
 import mesh
+from octrees.octrees import Octree
+from points import expand, make_ply
 
-def OnSelect(band):
-    edges = sum([path.get_edges() for path in band], [])
-    #Make list of edges to avoid.  Where there is a point in the middle of a triangle, an extra edge needs to be found.
-    #such that a full ring of avoidance edges is created.
+class OnSelect:
+  def __init__(self, mesh, base_file):
+    self.mesh = mesh
+    self.base_file = base_file
+  def __call__(self, roiGUI, triangle):
     avoid_edges = []
-    #Find intial vertex
-    if edges[-1].v1 in [edges[0].v1, edges[0].v2]:
-        vertex = edges[-1].v1
-    elif edges[-1].v2 in [edges[0].v1, edges[0].v2]:
-        vertex = edges[-1].v2
-    else:
-        for extra_edge in edges[-1].v1.edges:
-            if extra_edge.v1 == edges[-1].v1 and extra_edge.v2 in [edges[0].v1, edges[0].v2]:
-                avoid_edges.append(extra_edge)
-                vertex = extra_edge.v2
-                break
-            if extra_edge.v2 == edges[-1].v1 and extra_edge.v1 in [edges[0].v1, edges[0].v2]:
-                avoid_edges.append(extra_edge)
-                vertex = extra_edge.v1
-                break
-            for extra_edge in edges[-1].v2.edges:
-                if extra_edge.v1 == edges[-1].v2 and extra_edge.v2 in [edges[0].v1, edges[0].v2]:
+    for roi in roiGUI.rois:
+        paths = sum(sum([roi.paths for roi in roiGUI.rois], []), [])
+        edges = sum([path.get_edges() for path in paths], [])
+        #Make list of edges to avoid.  Where there is a point in the middle of a triangle, an extra edge needs to be found.
+        #such that a full ring of avoidance edges is created.
+        #Find intial vertex
+        if edges[-1].v1 in [edges[0].v1, edges[0].v2]:
+            vertex = edges[-1].v1
+        elif edges[-1].v2 in [edges[0].v1, edges[0].v2]:
+            vertex = edges[-1].v2
+        else:
+            for extra_edge in edges[-1].v1.edges:
+                if extra_edge.v1 == edges[-1].v1 and extra_edge.v2 in [edges[0].v1, edges[0].v2]:
                     avoid_edges.append(extra_edge)
                     vertex = extra_edge.v2
                     break
-                if extra_edge.v2 == edges[-1].v2 and extra_edge.v1 in [edges[0].v1, edges[0].v2]:
+                if extra_edge.v2 == edges[-1].v1 and extra_edge.v1 in [edges[0].v1, edges[0].v2]:
                     avoid_edges.append(extra_edge)
                     vertex = extra_edge.v1
                     break
-    #Go around the loop of edges, adding them to the avoidance list, and adding extra edges where necessary.
-    for edge in edges:
-        if edge.v1 == vertex:
-            vertex = edge.v2
-            avoid_edges.append(edge)
-        elif edge.v2 == vertex:
-            vertex = edge.v1
-            avoid_edges.append(edge)
-        else:
-            for extra_edge in vertex.edges:
-                if extra_edge.v1 == vertex and extra_edge.v2 == edge.v1:
-                    avoid_edges.append(extra_edge)
-                    vertex = edge.v2
-                    break
-                elif extra_edge.v1 == vertex and extra_edge.v2 == edge.v2:
-                    avoid_edges.append(extra_edge)
-                    vertex = edge.v1
-                    break
-                elif extra_edge.v2 == vertex and extra_edge.v1 == edge.v1:
-                    avoid_edges.append(extra_edge)
-                    vertex = edge.v2
-                    break
-                elif extra_edge.v2 == vertex and extra_edge.v1 == edge.v2:
-                    avoid_edges.append(extra_edge)
-                    vertex = edge.v1
-                    break
+                for extra_edge in edges[-1].v2.edges:
+                    if extra_edge.v1 == edges[-1].v2 and extra_edge.v2 in [edges[0].v1, edges[0].v2]:
+                        avoid_edges.append(extra_edge)
+                        vertex = extra_edge.v2
+                        break
+                    if extra_edge.v2 == edges[-1].v2 and extra_edge.v1 in [edges[0].v1, edges[0].v2]:
+                        avoid_edges.append(extra_edge)
+                        vertex = extra_edge.v1
+                        break
+        #Go around the loop of edges, adding them to the avoidance list, and adding extra edges where necessary.
+        for edge in edges:
+            if edge.v1 == vertex:
+                vertex = edge.v2
+                avoid_edges.append(edge)
+            elif edge.v2 == vertex:
+                vertex = edge.v1
+                avoid_edges.append(edge)
+            else:
+                for extra_edge in vertex.edges:
+                    if extra_edge.v1 == vertex and extra_edge.v2 == edge.v1:
+                        avoid_edges.append(extra_edge)
+                        vertex = edge.v2
+                        break
+                    elif extra_edge.v1 == vertex and extra_edge.v2 == edge.v2:
+                        avoid_edges.append(extra_edge)
+                        vertex = edge.v1
+                        break
+                    elif extra_edge.v2 == vertex and extra_edge.v1 == edge.v1:
+                        avoid_edges.append(extra_edge)
+                        vertex = edge.v2
+                        break
+                    elif extra_edge.v2 == vertex and extra_edge.v1 == edge.v2:
+                        avoid_edges.append(extra_edge)
+                        vertex = edge.v1
+                        break
                 else:
                     assert False
-                avoid_edges.append(edge)
+                    avoid_edges.append(edge)
     #Save the cut out mesh to a file
-    roughcut = self.meshes[self.draw_mesh].cloneSubVol(triangle, avoid_edges)
+    roughcut = self.mesh.cloneSubVol(triangle, avoid_edges)
     mesh.fileio.write_ply(roughcut, self.base_file + "rough.ply")
 
     #Expand cut out mesh and save that to a file called external
@@ -97,7 +105,7 @@ if __name__ == '__main__':
         meshes[name] = mesh.fileio.read_ply(filename)
 
     frame = MainWindow(meshes=meshes, 
-                       rois = {"Rough Cut": {"meshname": "Skin", "closed": True, "onSelect": OnSelect}}, 
+                       rois = {"Rough Cut": {"meshname": "Skin", "closed": True, "onSelect": OnSelect(meshes["Skin"], base_filename)}}, 
                        title = "Rough Cut")
     app.MainLoop()
     del frame

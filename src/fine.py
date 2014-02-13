@@ -3,7 +3,7 @@
 import wx
 from meshGUI import MainWindow
 from settings import *
-from mesh import makeMesh
+import mesh
 import parseply
 
 if __name__ == '__main__':
