@@ -25,7 +25,7 @@ if __name__ == '__main__':
     mesh.primitives.make_cube(m2, 100, (-48, 48, 48))
 
     c1 = mesh.Mesh()
-    mesh.primitives.make_cylinder(c1, 50, 40, 20, offset=[1,1,-10])
+    mesh.primitives.make_cylinder(c1, 50, 40, 50, offset=[1,1,-10])
     #self.meshCanvas.addMesh(m2, "cube2")
     #self.meshPanel.addMesh("cube2")
 
