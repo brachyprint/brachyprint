@@ -2,12 +2,6 @@
 from __future__ import division
 
 import mesh
-from math import pi, cos, sin
-
-import numpy as np
-from scipy.spatial import Delaunay
-
-import random
 
 
 def intersect(m1, m2):
@@ -221,9 +215,6 @@ def output_faces(face_points, include_vertex, intersections, new_vertices, m, nv
 
             # find the edge points
             edge_points = [ki for ki,x in intersections[k].items() if len(x)==1]
-            #print edge_points
-            #print "len vs", len(vs)
-            #print vs
             
             bv = [0,0,0]
             bv[0] = new_vertices[vs[1]]-new_vertices[vs[0]]
@@ -348,10 +339,10 @@ def output_faces(face_points, include_vertex, intersections, new_vertices, m, nv
             for p in ps_i:
                 if vs[1] in partitions[p]:
                     if disp[p] != (include_vertex[vs[1]] == 1):
-                        raise RuntimeError("Paritioning algorithm has a bug")
+                        raise RuntimeError("Partitioning algorithm has a bug")
                 if vs[2] in partitions[p]:
                     if disp[p] != (include_vertex[vs[2]] == 1):
-                        raise RuntimeError("Paritioning algorithm has a bug")
+                        raise RuntimeError("Partitioning algorithm has a bug")
             
             for p in range(len(partitions)):
 
@@ -363,6 +354,9 @@ def output_faces(face_points, include_vertex, intersections, new_vertices, m, nv
                 verts = []
                 for index in partitions[p]:
                     verts.append(nv[index])
+
+                if invert:
+                    verts.reverse()
 
                 m.add_face(verts)
 
