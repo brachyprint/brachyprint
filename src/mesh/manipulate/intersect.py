@@ -239,7 +239,7 @@ def output_faces(face_points, include_vertex, intersections, new_vertices, m, nv
 
             for j in range(3):
                 edges[j] = [(bv[j].dot(new_vertices[edges[j][i]]), edges[j][i]) for i in range(len(edges[j]))]
-                edges[j].sort(key=lambda t: t[1])
+                edges[j].sort(key=lambda t: t[0])
                 edges[j] = [edges[j][i][1] for i in range(len(edges[j]))]
             
             edges = edges[0] + edges[1] + edges[2]
@@ -347,7 +347,6 @@ def output_faces(face_points, include_vertex, intersections, new_vertices, m, nv
             # are set correctly according to include_vertex
             for p in ps_i:
                 if vs[1] in partitions[p]:
-                    #disp[p] = (include_vertex[vs[0]] == 1)
                     if disp[p] != (include_vertex[vs[1]] == 1):
                         raise RuntimeError("Paritioning algorithm has a bug")
                 if vs[2] in partitions[p]:
