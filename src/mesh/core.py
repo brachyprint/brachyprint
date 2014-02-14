@@ -158,23 +158,27 @@ class Mesh(object):
 
     def cloneSubVol(self, triangle, avoidEdges):
         vertex_map = {}
-        faces_copied = []
+        faces_copied = [triangle]
         to_grow = [triangle]
         newMesh = Mesh()
         i = 0
         while to_grow:
             i = i +1
+            if i % 100 == 0:
+                print i, len(to_grow), len(faces_copied), len(self.faces)
             f = to_grow.pop()
             for v in f.vertices:
                 if not vertex_map.has_key(v):
                     vertex_map[v] = newMesh.add_vertex(v.x, v.y, v.z)
             newMesh.add_face(*[vertex_map[v] for v in f.vertices])
-            faces_copied.append(f)
             for e in f.edges:
                 if e not in avoidEdges:
                     for neighbouring_face in e.faces:
-                        if neighbouring_face not in faces_copied:
+                        if (neighbouring_face is not f) and (neighbouring_face not in faces_copied):
+                            faces_copied.append(neighbouring_face)
                             to_grow.append(neighbouring_face)
+                else:
+                    print "AVOID"
         #newMesh.allocate_volumes()
         return newMesh
 
