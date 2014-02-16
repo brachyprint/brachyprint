@@ -48,11 +48,11 @@ def intersect(m1, m2):
     for v in m1.vertices:
         count = 0
         # XXX: this is going to break at some point!
-        p = [v, v + mesh.Vector(5, 5, 350)]
+        p = [v, v + mesh.Vector(1, 1, 0.5)]
         for f2 in m2.faces:
 
             vs = f2.vertices
-            s = mesh.triangle_segment_intersect(p, vs)
+            s = mesh.triangle_segment_intersect(p, vs, 1)
 
             if isinstance(s, mesh.Vector): # XXX: is this correct?
                 count += 1
@@ -66,11 +66,11 @@ def intersect(m1, m2):
     for v in m2.vertices:
         count = 0
         # XXX: this is going to break at some point!
-        p = [v, v + mesh.Vector(5, 5, 350)]
+        p = [v, v + mesh.Vector(1, 1, 0.5)]
         for f1 in m1.faces:
 
             vs = f1.vertices
-            s = mesh.triangle_segment_intersect(p, vs)
+            s = mesh.triangle_segment_intersect(p, vs, 1)
 
             if isinstance(s, mesh.Vector): # XXX: is this correct?
                 count += 1
@@ -90,6 +90,8 @@ def intersect(m1, m2):
             include_vertex[new_name[0]] = include
             r = new_name[0]
             new_name[0] += 1
+        elif len(s) > 1:
+            raise ValueError("Should be at most 1 point")
         else:
             r = s[0]
 
@@ -218,10 +220,14 @@ def output_faces(face_points, include_vertex, intersections, new_vertices, m, nv
             bv[1] = new_vertices[vs[2]]-new_vertices[vs[1]]
             bv[2] = new_vertices[vs[0]]-new_vertices[vs[2]]
 
+            #map(lambda x: print(edge_points[x]), range(len(edge_points)))
+            #for i in range(len(edge_points)):
+            #    print edge_points[i], nv[edge_points[i]]
+            
             # assign each edge point to the corresponding edge
-            # XXX: are you sure this always puts them in the correct order?
             for p in edge_points:
                 for i in range(3):
+                    #print bv[i].cross(new_vertices[p]-new_vertices[vs[i]])
                     if bv[i].cross(new_vertices[p]-new_vertices[vs[i]]) == mesh.nullVector:
                         edges[i].append(p)
 
@@ -249,6 +255,10 @@ def output_faces(face_points, include_vertex, intersections, new_vertices, m, nv
                 path[p] = ps[1:]
 
             partitions = []
+
+            #print inter
+            #print edges
+            #print edge_points
 
             for p in edge_points:
                 i = edges.index(p)
@@ -298,6 +308,7 @@ def output_faces(face_points, include_vertex, intersections, new_vertices, m, nv
                         partition_sets[j] = None
                         to_delete.append(j)
 
+            # delete in reverse order so as not to disturb the indices
             to_delete.sort(reverse=True)
 
             for i in to_delete:

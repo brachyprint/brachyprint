@@ -25,17 +25,19 @@ from math import sqrt
 #    determine the overlapping octree nodes
 
 
-def triangle_segment_intersect(p, vs):
+def triangle_segment_intersect(p, vs, intersect_type=0):
     '''
     Determine if a polygon is intersected by a segment.
     
     p -- two item list of Vectors
     vs -- three item list of Vectors
+    intersect_type -- 0 => only accept segment intersections
+                      1 => extend the segment infinitely in the positive direction
 
     Returns:
         -1: triangle degenerate
          0: no intersection
-         1: intersection
+         <Vector>: intersection point
          2: line is in the plane (i.e. parallel)
     '''
     
@@ -48,7 +50,7 @@ def triangle_segment_intersect(p, vs):
     n = u.cross(v)
     
     # check if the triangle is degenerate
-    if n[0] == 0 and n[1] == 0 and n[2] == 0:
+    if abs(n[0]) < epsilon and abs(n[1]) < epsilon and abs(n[2]) < epsilon:
         return -1 # bail out
     
     dirv = p[1] - p[0]
@@ -57,42 +59,42 @@ def triangle_segment_intersect(p, vs):
     b = n.dot(dirv)
     
     if abs(b) < epsilon:
-        if a == 0:
-            return 2 # in the plane
+        if abs(a) < epsilon:
+            r = 0.0
         else:
             return 0
-    
-    r = a/b
-    if r < 0 or r > 1: # segment behind or in front of the plane
-        return 0
-    #if r < 0 or r > 1:
-    #    print r
+    else:
+        r = a/b
+        if (r < 0.0 or r > 1.0) and intersect_type==0: # segment behind or in front of the plane
+            return 0
+        elif r < 0.0 and intersect_type==1: # segment behind the plane
+            return 0
     
     # find the intersection point of the line and the plane
-    i = p[0] + r * dirv
+    ip = p[0] + r * dirv
     
-    # determine if i is inside the triangle T
+    # determine if ip is inside the triangle T
     uu = u.dot(u)
     uv = u.dot(v)
     vv = v.dot(v)
-    w = i - vs[0]
+    w = ip - vs[0]
     wu = w.dot(u)
     wv = w.dot(v)
     
     d = uv * uv - uu * vv
     
     s = (uv * wv - vv * wu) / d
-    if s < 0.0 or s > 1.0: # I is outside T
+    if s < 0.0 or s > 1.0: # IP is outside T
         return 0
     t = (uv * wu - uu * wv) / d
-    if t < 0.0 or (s + t) > 1.0: # I is outside T
+    if t < 0.0 or (s + t) > 1.0: # IP is outside T
         return 0
     
     # on the boundary of the triangle
     #if s < epsilon or t < epsilon or s + t > 1.0 - epsilon:
     #    return 3
 
-    return i
+    return ip
     return 1 # I is in T
 
 def line_intersect():
@@ -115,8 +117,12 @@ def triangle_triangle_intersect(f1, f2):
     if isinstance(s2, int): # no intersection
         return 0
 
+    # point "intersection"
     if len(s1) < 2 or len(s2) < 2:
-        print "hmm"
+        return 0
+
+    if len(s1) > 2 or len(s2) > 2:
+        print "overlapping plane"
         return 0
 
     # given the two intersection lines, determine their overlap
@@ -244,14 +250,15 @@ def triangle_plane_intersect(f1, f2):
             front.append(f1[i])
         else:
             # f1[i] is in the plane
-            print f1[i]
+            print "in the plane", f1[i]
             intersect.append(f1[i])
             
     if len(front) == 3 or len(behind) == 3: # no intersection
         return 0
 
-    if len(intersect) == 3:
-        return -1
+    #if len(intersect) == 3:
+    #    print "all"
+    #    return -1
 
     for i in range(len(front)):
         for j in range(len(behind)):
@@ -290,6 +297,43 @@ def triangle_plane_intersect(f1, f2):
 
 
     return 0
+
+
+def polygon_clip(vertices, clip):
+    '''
+    Clip vertices against a coplanar set of clip vertices.
+    '''
+
+    epsilon = .000001
+
+    outputVertices = vertices
+
+    for i in range(len(clip)):
+        clipEdge = [clip[i-1], clip[i]]
+
+        inputVertices = outputVertices
+        outputVertices = []
+
+        s = inputVertices[-1]
+
+        # compute plane through clipEdge perpendicular to the clip plane
+        u = clipEdge[1] - clipEdge[0]
+        v = clipEdge[0] - clip[i-2]
+        n = u.cross(v)
+        v = u.cross(n)
+
+        for e in inputVertices:
+            if e.dot(v) > 0:
+                if s.dot(v) < 0:
+                    # XXX: compute intersection
+                    p = computeintersection([e,s],clipEdge)
+                    outputVertices.append(p)
+                outputVertices.append(e)
+            elif s.dot(v) > 0:
+                outputVertices.append(e)
+                
+            s = e
+        
 
 
 def polygon_plane_clip(vertices,plane):
