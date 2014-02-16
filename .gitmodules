@@ -1,0 +1,3 @@
+[submodule "src/octrees"]
+	path = src/octrees
+	url = https://github.com/jcranch/octrees
