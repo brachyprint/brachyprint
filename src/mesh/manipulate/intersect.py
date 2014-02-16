@@ -3,6 +3,8 @@ from __future__ import division
 
 import mesh
 
+from random import uniform
+
 
 def intersect(m1, m2):
     '''
@@ -47,14 +49,14 @@ def intersect(m1, m2):
     # determine if m1 vertex is inside or outside m2
     for v in m1.vertices:
         count = 0
-        # XXX: this is going to break at some point!
-        p = [v, v + mesh.Vector(1, 1, 0.5)]
+        # XXX: this is going to break at some point! Fix with octrees
+        p = [v, v.normal() + mesh.Vector(uniform(-0.1, 0.1), uniform(-0.1, 0.1), uniform(-0.1, 0.1))]
         for f2 in m2.faces:
 
             vs = f2.vertices
             s = mesh.triangle_segment_intersect(p, vs, 1)
 
-            if isinstance(s, mesh.Vector): # XXX: is this correct?
+            if isinstance(s, mesh.Vector):
                 count += 1
 
         if count % 2 == 0: # even number of crossing => outside
@@ -65,14 +67,14 @@ def intersect(m1, m2):
     # determine if m2 vertex is inside or outside m1
     for v in m2.vertices:
         count = 0
-        # XXX: this is going to break at some point!
-        p = [v, v + mesh.Vector(1, 1, 0.5)]
+        # XXX: this is going to break at some point! Fix with octrees
+        p = [v, v.normal() + mesh.Vector(uniform(-0.1, 0.1), uniform(-0.1, 0.1), uniform(-0.1, 0.1))]
         for f1 in m1.faces:
 
             vs = f1.vertices
             s = mesh.triangle_segment_intersect(p, vs, 1)
 
-            if isinstance(s, mesh.Vector): # XXX: is this correct?
+            if isinstance(s, mesh.Vector):
                 count += 1
 
         if count % 2 == 0: # even number of crossing => outside
