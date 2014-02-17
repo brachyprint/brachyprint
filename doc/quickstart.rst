@@ -4,8 +4,11 @@ Quick start
 Requirements
 ------------
 
-* pydicom -- DICOM manipulation library
-* triangle -- triangulation library
+* pydicom -- DICOM manipulation library: https://code.google.com/p/pydicom
+* triangle -- triangulation library: http://dzhelil.info/triangle/
+* PyOpenGL -- python wrapper for OpenGL: http://pyopengl.sourceforge.net
+* wxPython -- python wrapper for wxWidgets: http://wxpython.org
+
 
 
 Building

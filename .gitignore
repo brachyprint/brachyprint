@@ -1,10 +1,10 @@
 ## Unwanted Python files
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 
+# Unwanted emacs files
+*~
 
-## Unwanted vim files
+# Unwanted vim files
 *.swp
-
