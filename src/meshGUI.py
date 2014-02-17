@@ -8,7 +8,6 @@ from wx import glcanvas
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import *
-import parseply
 import mesh
 from math import pi, acos, sin, cos, ceil, floor
 from itertools import chain

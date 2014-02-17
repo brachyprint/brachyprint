@@ -2,7 +2,6 @@
 Core functionality for the mesh library.
 '''
 
-import parseply
 import struct
 from routes import *
 from heapq import heappush, heappop

@@ -4,7 +4,6 @@ import wx
 from meshGUI import MainWindow
 from settings import *
 import mesh
-import parseply
 
 if __name__ == '__main__':
     app = wx.App(False)
