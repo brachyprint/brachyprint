@@ -153,8 +153,8 @@ def expand_bounds(((xl, xu), (yl, yu), (zl, zu)), distance):
     return ((xl - distance, xu + distance), (yl - distance, yu + distance), (zl - distance, zu + distance))
 
 def expand(points, distance):
-    expanded = Octree(expand_bounds(points.bounds, distance))#expand bounds
-    points_list = points.by_distance_from_point((0,0,0)) #Points do not actually need to be ordered, perhaps they can be found more efficiently
+    expanded = Octree(expand_bounds(points.bounds, distance))
+    points_list = list(points)
     d_angle = 0.2
     max_angle = 0.600000001
     all_norm_offsets = [(0, 0, 1)]
@@ -165,7 +165,6 @@ def expand(points, distance):
         num_phis = int(round(2 * pi * sin_theta / d_angle))
         for phi in [2 * pi * j / num_phis for j in range(num_phis)]:
             all_norm_offsets.append((sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta)))
-    points_list = list(points_list)
     num_points = len(points_list) 
     print num_points
     hits = 0
