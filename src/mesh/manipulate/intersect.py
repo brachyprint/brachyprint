@@ -78,9 +78,9 @@ def intersect(m1, m2):
                 count += 1
 
         if count % 2 == 0: # even number of crossing => outside
-            m2_vertices[v.name] = 1
-        else:
             m2_vertices[v.name] = 0
+        else:
+            m2_vertices[v.name] = 1
 
     # add vertices to the new vertex list, reusing existing vertices
     # if extant
@@ -185,7 +185,7 @@ def intersect(m1, m2):
             nv.append(None)
 
     output_faces(m1_face_points, include_vertex, m1_intersections, new_vertices, m, nv)
-    output_faces(m2_face_points, include_vertex, m2_intersections, new_vertices, m, nv)
+    output_faces(m2_face_points, include_vertex, m2_intersections, new_vertices, m, nv, True)
 
     return m
 
