@@ -61,7 +61,7 @@ class BasicArithmeticTests(TestCase):
 
         # division by int
         v3 = self.v1 / 5
-        self.assertEqual(v3, Vector(1/5, 2/5, 3/5))
+        self.assertEqual(v3, Vector(0.2, 0.4, 0.6))
 
         with self.assertRaises(NotImplementedError):
             v3 = self.v1 / self.v2
@@ -143,12 +143,12 @@ class BasicArithmeticTests(TestCase):
         # infix integer division
         v = Vector(1, 2, 3)
         v /= 10
-        self.assertEqual(v, Vector(1/10, 2/10, 3/10))
+        self.assertEqual(v, Vector(0.1, 0.2, 0.3))
 
         # infix float division
         v = Vector(1, 2, 3)
         v /= 5.5
-        self.assertEqual(v, Vector(1/5.5, 2/5.5, 3/5.5))
+        self.assertEqual(v, Vector(1.0/5.5, 2.0/5.5, 3.0/5.5))
 
         # infix vector division
         v = Vector(1, 2, 3)

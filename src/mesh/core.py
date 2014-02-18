@@ -2,10 +2,14 @@
 Core functionality for the mesh library.
 '''
 
+from __future__ import division
 import struct
 from routes import *
 from heapq import heappush, heappop
 import triangle
+import matplotlib.pyplot as plt
+import triangle.plot as plot
+from numpy import array
 
 class AStar:
     def __init__(self, s1, s2, mesh):
@@ -29,19 +33,31 @@ class Mesh(object):
     '''
 
     def __init__(self):
+        self.clear()
+
+
+    def clear(self):
         self.vertices = []
         self.faces = []
         self.edges = {}
         self.maxX, self.minX = None, None
         self.maxY, self.minY = None, None
         self.maxZ, self.minZ = None, None
-        #self.volumes = {}
         self.next_vertex_name = 0
         self.next_face_name = 0
         self.next_volume_name = 0
         self.face_to_vol = {}
+        
+
 
     def add_vertex(self, x, y=None, z=None):
+        """Function to add a vertex to the mesh.
+        
+        :param x: x coordinate of the vertex, or optionally a list of coordinates.
+        :keyword y: y coordinate of the vertex.
+        :keyword z: z coordinate of the vertex.
+
+        """
         if isinstance(x, Vector):
             y = x.y
             z = x.z
@@ -65,6 +81,16 @@ class Mesh(object):
         return v
 
     def add_face(self, v1, v2=None, v3=None):
+        """Function to add a face to the mesh.
+
+        :param v1: Vertex 1 of the face or optionally a list of faces.
+        :keyword v2: Vertex 2 of the face.
+        :keyword v3: Vertex 3 of the face.
+
+        Quadrilateral faces are split simply into two triangles, and higher
+        order faces are added by constrained triangulation of the vertices.
+
+        """
         if isinstance(v1, list):
             if len(v1) == 3:
                 self.add_triangle_face(v1[0], v1[1], v1[2])
@@ -101,20 +127,48 @@ class Mesh(object):
                 for i in range(len(points)):
                     points[i] = points[i].project2d(u, v)
 
-                vertices = dict(vertices=points, segments=segments)
+                vertices = dict(vertices=array(points), segments=array(segments))
+
+                plot_it = False
+                if plot_it:
+                    print vertices
+
+                    ax1 = plt.subplot(121, aspect='equal')
+                    triangle.plot.plot(ax1, **vertices)
+
+                    #t = triangle.triangulate(box, 'pc')
+
+                    #ax2 = plt.subplot(122, sharex=ax1, sharey=ax1)
+                    #plot.plot(ax2, **t)
+
+                    plt.show()
 
                 # triangulate constraining triangulation to the segment edge
-                t = triangle.triangulate(vertices, 'pq0')
+                try:
+                    t = triangle.triangulate(vertices, 'pq0')
+                except:
+                    return
 
                 if not "triangles" in t:
                     raise ValueError("Ill-conditioned face vertices -- unable to produce a triangulation")
 
+                if len(t["triangles"]) > len(points):
+                    raise ValueError("Triangulation added additional vertices")
+
+                # add the triangular faces
                 for vertices in t["triangles"]:
                     self.add_triangle_face(v1[vertices[0]], v1[vertices[1]], v1[vertices[2]])
         else:
             self.add_triangle_face(v1, v2, v3)
 
     def add_triangle_face(self, v1, v2, v3):
+        """Function to add a trianglular face to the mesh.
+
+        :param v1: vertex 1 of the face
+        :param v2: vertex 2 of the face
+        :param v3: vertex 3 of the face
+
+        """
         f = Face(self.next_face_name, v1, v2, v3)
         self.next_face_name += 1
         self.faces.append(f)
@@ -130,6 +184,7 @@ class Mesh(object):
             f.add_edge(e)
         for v in [v1, v2, v3]:
             v.add_face(f)
+
 
     def get_path(self, s1, s2):
         s2Postion = s2[0], s2[1], s2[2]
@@ -154,6 +209,7 @@ class Mesh(object):
                     for newPath in lastPath.new_Paths():
                         new_dist = newPath.dist()
                         heappush(priority_queue, (dist + new_dist + pv.crowdist(), dist + new_dist, paths + [newPath]))
+
 
     def cloneSubVol(self, triangle, avoidEdges):
         vertex_map = {}
@@ -181,6 +237,26 @@ class Mesh(object):
         #newMesh.allocate_volumes()
         return newMesh
 
+
+    def volume(self):
+        """Calculate the volume of the mesh.
+
+        :returns: Volume of the mesh.
+
+        """
+        #XXX: check that the mesh is a single closed volume
+        volumes = [f.signed_volume() for f in self.faces]
+        return abs(sum(volumes))
+
+
+    def surface_area(self):
+        """Calculate the surface area of the mesh.
+
+        :returns: Surface area of the mesh.
+
+        """
+        raise NotImplementedError()
+        
 
 #    def allocate_volumes(self):
 #        '''Allocate each face to a particular volume.
@@ -413,6 +489,10 @@ class Face(object):
 
     def add_edge(self, edge):
         self.edges.append(edge)
+
+    def signed_volume(self):
+        v1, v2, v3 = self.vertices
+        return v1.dot(v2.cross(v3)) / 6.0
 
 
 class Edge(object):

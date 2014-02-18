@@ -14,5 +14,5 @@ Testing
 To run the tests:: 
 
    cd src
-   nosetests mesh
+   nosetests -v mesh
 
