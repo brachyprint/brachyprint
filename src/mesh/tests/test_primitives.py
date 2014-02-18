@@ -2,23 +2,43 @@
 """
 
 from unittest import TestCase, main
+
 from math import pi, sin
 
 import mesh
 
-class BasicArithmeticTests(TestCase):
+class SizeTests(TestCase):
 
     def setUp(self):
         pass
 
-    def test_volume(self):
+    def test_primitive_closed(self):
         m = mesh.Mesh()
         mesh.primitives.make_cube(m, 100)
-        self.assertAlmostEqual(m.volume(), 1000000.0)
+        self.assertTrue(m.closed())
+
+        m.clear()
+        mesh.primitives.make_cylinder(m, 10, 100, 100)
+        self.assertTrue(m.closed())
+
+        m.clear()
+        v1 = m.add_vertex(0, 0, 0)
+        v2 = m.add_vertex(10, 0, 0)
+        v3 = m.add_vertex(0, 10, 0)
+        m.add_face(v1, v2, v3)
+        self.assertFalse(m.closed())
+    
+
+    def test_primitive_volume(self):
+        m = mesh.Mesh()
+        mesh.primitives.make_cube(m, 100)
+        volume = 100.0*100.0*100.0
+        self.assertAlmostEqual(m.volume(), volume)
 
         m.clear()
         mesh.primitives.make_cube(m, 100, [10, 20, 99])
-        self.assertAlmostEqual(m.volume(), 1000000.0)
+        volume = 100.0*100.0*100.0
+        self.assertAlmostEqual(m.volume(), volume)
 
         m.clear()
         mesh.primitives.make_cylinder(m, 10, 100, 100)
@@ -29,6 +49,26 @@ class BasicArithmeticTests(TestCase):
         mesh.primitives.make_cylinder(m, 10, 100, 10000)
         volume = 0.5*10.0*10.0*sin(2.0*pi/10000.0)*10000.0*100.0
         self.assertAlmostEqual(m.volume(), volume)
+
+
+    def test_primitive_area(self):
+        m = mesh.Mesh()
+        mesh.primitives.make_cube(m, 100)
+        area = 100.0*100.0*6
+        self.assertAlmostEqual(m.surface_area(), area)
+
+        m.clear()
+        s = 4.0
+        mesh.primitives.make_cylinder(m, 10, 100, int(s))
+        area = 0.5*10.0*10.0*sin(2.0*pi/s)*s*2.0 + 2.0*10.0*sin(2.0*pi/s/2.0)*s*100.0
+        self.assertAlmostEqual(m.surface_area(), area)
+
+        m.clear()
+        s = 100.0
+        mesh.primitives.make_cylinder(m, 10, 100, int(s))
+        area = 0.5*10.0*10.0*sin(2.0*pi/s)*s*2.0 + 2.0*10.0*sin(2.0*pi/s/2.0)*s*100.0
+        self.assertAlmostEqual(m.surface_area(), area)
+
 
 if __name__ == '__main__':
     main()

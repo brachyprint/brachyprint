@@ -46,7 +46,7 @@ def make_cylinder(c, r, h, sampling, axis=[0, 0, 1], offset=[0,0,0]):
     o = add_vertex(0, 0, 0)
     o2 = add_vertex(0, 0, h)
 
-    vs = []; vs2 = []
+    vs = []
 
     hs = [0, h]
 

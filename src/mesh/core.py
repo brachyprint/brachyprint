@@ -244,9 +244,12 @@ class Mesh(object):
         :returns: Volume of the mesh.
 
         """
-        #XXX: check that the mesh is a single closed volume
+        # check that the mesh is a single closed volume
+        if not self.closed():
+            raise ValueError("Can only compute the volume of meshes containing closed surfaces.")
+
         volumes = [f.signed_volume() for f in self.faces]
-        return abs(sum(volumes))
+        return sum(volumes)
 
 
     def surface_area(self):
@@ -255,8 +258,21 @@ class Mesh(object):
         :returns: Surface area of the mesh.
 
         """
-        raise NotImplementedError()
+        areas = [f.area() for f in self.faces]
+        return sum(areas)
         
+
+    def closed(self):
+        """Checks whether the surface is closed or not, i.e. whether all edges have strictly
+        two connected faces.
+
+        :returns: True if the surface is closed.
+        """
+        for e in self.edges.values():
+            if len(e.faces) != 2:
+                return False
+        return True
+
 
 #    def allocate_volumes(self):
 #        '''Allocate each face to a particular volume.
@@ -415,8 +431,11 @@ class Vector(object):
     def dot(self, v):
         return self.x * v.x + self.y * v.y + self.z * v.z
 
+    def magnitude(self):
+        return (self.x ** 2 + self.y ** 2 + self.z ** 2) ** 0.5
+
     def normalise(self):
-        m = (self.x ** 2 + self.y ** 2 + self.z ** 2) ** 0.5
+        m = self.magnitude()
         if m == 0.0:
             return Vector(self.x, self.y, self.z)
         else:
@@ -493,6 +512,10 @@ class Face(object):
     def signed_volume(self):
         v1, v2, v3 = self.vertices
         return v1.dot(v2.cross(v3)) / 6.0
+
+    def area(self):
+        v1, v2, v3 = self.vertices
+        return (v2 - v1).cross(v3 - v1).magnitude() / 2.0
 
 
 class Edge(object):
