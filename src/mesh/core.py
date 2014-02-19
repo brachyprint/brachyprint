@@ -153,7 +153,6 @@ class Mesh(object):
                     raise ValueError("Ill-conditioned face vertices -- unable to produce a triangulation")
 
                 if len(t["triangles"]) > len(points):
-                    raise ValueError("Triangulation added additional vertices")
 
                 # add the triangular faces
                 for vertices in t["triangles"]:
@@ -302,7 +301,12 @@ class Vector(object):
     Class representing a vector.
     '''
 
-    def __init__(self, x, y, z):
+    def __init__(self, x, y=None, z=None):
+        if isinstance(x, tuple) or isinstance(x, list) or isinstance(x, Vector):
+            y = x[1]
+            z = x[2]
+            x = x[0]
+    
         self.x, self.y, self.z = x, y, z
         self.epsilon = 0.00001
 

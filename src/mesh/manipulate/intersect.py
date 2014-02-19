@@ -7,34 +7,40 @@ from random import uniform
 
 
 def intersect(m1, m2):
+    '''Compute the intersection of m1 and m2.
+
+    :returns: A new mesh with m2 cut out of m1.
     '''
-    Compute the intersection of m1 and m2.
 
-    Returns a new mesh with m2 cut out of m1.
-    '''
+    # check the algorithm assumptions are satisfied
+    if not m1.closed():
+        raise ValueError("Mesh 'm1' is not a closed surface")
 
+    if not m2.closed():
+        raise ValueError("Mesh 'm2' is not a closed surface")
 
-    # new algorithm:
+    # algorithm:
 
         # classify vertices in m1 into inside and outside m2
         # classify vertices in m2 into inside and outside m1
 
         # for each face in m1
             # for each face in m2
-                # if there is an intersection, record the end points
-            # partition and triangulate the m1 face and add extra vertices
+                # if there is an intersection, record the intersection line
 
-        # for each face in m2
+        # output all vertices
+            # where intersections exists, add extra vertices
+
+        # for each face in m1 and m2
             # if intersections are recorded
-                # triangulate the m2 face and add extra vertices
+                # partition the face along the intersection lines
+                # if a partition contains an original vertex included in the output,
+                # output the partition
+                # recursively classify paritions to output based on crossing of
+                # intersections
+            # for each partition to output
+               # output the face, triangulating if necessary
 
-        # for each face in m1
-            # if all points are outside or on the border
-                # add the face to m
-
-        # for each face in m2
-            # if all points are inside or on the border
-                # add the face to m
 
     m1_intersections = {}
     m2_intersections = {}

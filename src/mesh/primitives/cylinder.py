@@ -4,19 +4,6 @@ from __future__ import division
 import mesh
 from math import pi, cos, sin
 
-def cross(a, b):
-    c = [a[1]*b[2] - a[2]*b[1],
-         a[2]*b[0] - a[0]*b[2],
-         a[0]*b[1] - a[1]*b[0]]
-    return c
-
-def dot(a, b):
-    return sum([x * y for x, y in zip(a, b)])
-
-def normalise(a):
-    magnitude = sum([x ** 2 for x in a]) ** 0.5
-    return [x / magnitude for x in a]
-
 class transform_and_add_vertex:
     def __init__(self, mesh, offset, axis, perp1, perp2):
         self.mesh = mesh
@@ -28,17 +15,21 @@ class transform_and_add_vertex:
         return self.mesh.add_vertex(*[o + x * p1 + y * p2 + z * a 
                                       for o, p1, p2, a 
                                       in zip(self.offset, self.perp1, self.perp2, self.axis)])
-def make_cylinder(c, r, h, sampling, axis=[0, 0, 1], offset=[0,0,0]):
+
+def make_cylinder(c, r, h, sampling, axis=(0, 0, 1), offset=(0,0,0)):
     '''
     Add a cylinder of radius r and height h to the existing mesh c.
     '''
 
+    axis = mesh.Vector(axis)
+    offset = mesh.Vector(offset)
+
     #Find a normalised orthogonal set of vectors
-    axis = normalise(axis)
-    for arbitary_vector in [[0, 0, 1], [0, 1, 0], [1, 0, 0]]:
-        if dot(arbitary_vector, axis) < 0.6:  #One of the above vectors dot producted with a normalised vector must be less than 1/3 ** 1/2
-            perp1 = normalise(cross(arbitary_vector, axis))
-            perp2 = normalise(cross(axis, perp1))
+    axis = axis.normalise()
+    for arbitary_vector in [mesh.Vector(0, 0, 1), mesh.Vector(0, 1, 0), mesh.Vector(1, 0, 0)]:
+        if arbitary_vector.dot(axis) < 0.6:  #One of the above vectors dot producted with a normalised vector must be less than 1/3 ** 1/2
+            perp1 = arbitary_vector.cross(axis).normalise()
+            perp2 = axis.cross(perp1).normalise()
             break
     add_vertex = transform_and_add_vertex(c, offset, axis, perp1, perp2)
     # create end vertices
