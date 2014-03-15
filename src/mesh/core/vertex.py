@@ -1,0 +1,69 @@
+
+#    Brachyprint -- 3D printing brachtherapy moulds
+#    Copyright (C) 2013-14  Martin Green and Oliver Madge
+#
+#    This program is free software; you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation; either version 2 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License along
+#    with this program; if not, write to the Free Software Foundation, Inc.,
+#    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+
+'''
+A 3D vertex class for the ``mesh'' package.
+'''
+
+from __future__ import division
+
+from vector import Vector, nullVector
+
+class Vertex(Vector):
+    '''
+    A class representing a mesh vertex.
+    '''
+
+    def __init__(self, x, y, z, name):
+        super(Vertex, self).__init__(x, y, z)
+        self.name = name
+        self.edges = []
+        self.faces = []
+
+    def __repr__(self):
+        return "<Vertex x:%f y:%f z:%f name:%d>" % (self.x, self.y, self.z, self.name)
+
+    def __str__(self):
+        return "From str method of Vertex: x is %f, y is %f, z is %f, name is %d" % (self.x, self.y, self.z, self.name)
+
+    def add_edge(self, edge):
+        '''
+        Associate an edge with the vertex.
+        '''
+        self.edges.append(edge)
+
+    def add_face(self, face):
+        '''
+        Associate a face with the vertex.
+        '''
+        self.faces.append(face)
+
+    def normal(self):
+        '''
+        Determine a normal at the vertex by averaging its associated face normals.
+        '''
+        n = sum([f.normal for f in self.faces], nullVector)
+        return n.normalise()
+
+    def adjacent_vertices(self):
+        '''
+        Return (vertex, edge) for all adjacent vertices.
+        '''
+        return [(e.v1, e) for e in self.edges if e.v2 is self] + [(e.v2, e) for e in self.edges if e.v1 is self]
+

@@ -22,7 +22,8 @@ tests
 
 """
 
-from core import *
+from core import Mesh, Vector, nullVector, Vertex, Face, Edge
+from astar import *
 from plane import *
 
 # subpackages
