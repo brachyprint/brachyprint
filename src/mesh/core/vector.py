@@ -96,9 +96,6 @@ class Vector(object):
         else:
             raise NotImplementedError
 
-    def __rdiv__(self, other):
-        return self.__div__(other)
-
     def __truediv__(self, val):
         if isinstance(val, float) or isinstance(val, int):
             return Vector(self.x/val, self.y/val, self.z/val)

@@ -63,6 +63,15 @@ class BasicArithmeticTests(TestCase):
         v3 = self.v1 / 5
         self.assertEqual(v3, Vector(0.2, 0.4, 0.6))
 
+        #division of int by vector
+        with self.assertRaises(TypeError):
+            v3 = 5 / self.v1
+
+        #division of float by vector
+        with self.assertRaises(TypeError):
+            v3 = 0.5 / self.v1
+
+        # division of two vectors
         with self.assertRaises(NotImplementedError):
             v3 = self.v1 / self.v2
 
