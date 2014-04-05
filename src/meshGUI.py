@@ -121,7 +121,6 @@ class MeshCanvas(glcanvas.GLCanvas):
     def OnKeyPress(self, event):
         keycode = event.GetKeyCode()
         if keycode == wx.WXK_DELETE:
-            print "delete"
             mode = self.modePanel.GetMode()
             roiGUI = self.roiGUIs[mode[1]]
             if roiGUI.current_roi is not None and roiGUI.current_point_index is not None:
@@ -196,13 +195,20 @@ class MeshCanvas(glcanvas.GLCanvas):
                 sphere_hits = self.hit(self.x, self.y, opengl_list(roiGUI.sphere_list), roiGUI.sphere_list_length())
                 line_hits = self.hit(self.x, self.y, opengl_list(roiGUI.line_list), roiGUI.line_list_length())
                 if sphere_hits:
-                    roi, index =  roiGUI.pointlookup[sphere_hits[0][2][0]]
+                    sphereindex = None
+                    for sphere_hit in sphere_hits:
+                        if sphere_hit[2] != []:
+                            sphere_index = sphere_hit[2][0]
+                    roi, index =  roiGUI.pointlookup[sphere_index]
                     if roi == roiGUI.current_roi and \
                        roiGUI.current_roi.being_drawn() and \
                        ((roiGUI.current_point_index == 0 and roiGUI.current_roi.is_last(index)) or \
                         (roiGUI.current_roi.is_last(roiGUI.current_point_index) and index == 0)):
                         roiGUI.complete()
-                    roiGUI.current_roi, roiGUI.current_point_index = roi, index
+                    if roiGUI.current_roi == roi and roiGUI.current_point_index == index:
+                        roiGUI.current_roi, roiGUI.current_point_index = None, None
+                    else:
+                        roiGUI.current_roi, roiGUI.current_point_index = roi, index
                     roiGUI.update()
                 elif line_hits and roiGUI.current_point_index is None:
                     roi, index =  roiGUI.linelookup[line_hits[0][2][0]]
@@ -508,16 +514,17 @@ class ROI:
     def is_last(self, i):
         return i == len(self.points) - 1
     def remove_point(self, i):
-        print i, self.points, len(self.paths) 
-        self.points = self.points[:i] + self.points[i + 1:]
         if i > 0:
-            if i < len(self.paths) - 1:
+            if i < len(self.paths):
                 self.paths =  self.paths[:i - 1] + [None] +  self.paths[i + 1:]
             else:
                 self.paths =  self.paths[:i - 1]
         else:
-            self.paths =  self.paths[1:]
-        print i, self.points, len(self.paths)
+            if len(self.paths) == len(self.points):
+                self.paths =  self.paths[1:-1] + [None]
+            else:
+                self.paths =  self.paths[1:]
+        self.points = self.points[:i] + self.points[i + 1:]
 
 class roiGUI:
     def __init__(self, mesh, meshname, closed, onSelect=None):
