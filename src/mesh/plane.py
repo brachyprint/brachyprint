@@ -148,7 +148,7 @@ def triangle_triangle_intersect(f1, f2):
 
     if len(s1) > 2 or len(s2) > 2:
         print "overlapping plane"
-        return polygon_clip(s1, s2)
+        return polygon_clip(f1, f2)
 
     # given the two intersection lines, determine their overlap
 
