@@ -35,6 +35,9 @@ class Edge(object):
         v1.add_edge(self)
         v2.add_edge(self)
 
+    def displacement(self):
+        return self.v2 - self.v1
+
     def faces_iter(self):
         if self.lface is not None:
             yield self.lface

@@ -22,6 +22,8 @@ A 3D vector class for the ``mesh'' package.
 '''
 
 from __future__ import division
+from math import sqrt
+
 
 class Vector(object):
     '''
@@ -74,6 +76,9 @@ class Vector(object):
             return Vector(self.x + v.x, self.y + v.y, self.z + v.z)
         else:
             raise NotImplementedError
+
+    def __neg__(self):
+        return Vector(-self.x, -self.y, -self.z)
 
     def __sub__(self, v):
         if isinstance(v, Vector):
@@ -160,7 +165,7 @@ class Vector(object):
         return self.x * v.x + self.y * v.y + self.z * v.z
 
     def magnitude(self):
-        return (self.x ** 2 + self.y ** 2 + self.z ** 2) ** 0.5
+        return sqrt(self.x ** 2 + self.y ** 2 + self.z ** 2)
 
     def normalise(self):
         m = self.magnitude()
