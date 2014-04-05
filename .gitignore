@@ -1,4 +1,10 @@
-## Unwanted Python files
+# Compiled binaries
+bin/
+
+# Datasets
+data/
+
+# Unwanted Python files
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
