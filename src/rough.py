@@ -4,7 +4,7 @@ import wx
 from meshGUI import MainWindow
 from settings import *
 import mesh
-from octrees.octrees import Octree
+from octrees import Octree
 from points import expand, make_ply
 
 class OnSelect:

@@ -4,7 +4,7 @@ from os.path import isfile, join
 from subprocess import call
 import dicom
 import numpy
-from octrees.octrees import Octree
+from octrees import Octree
 import os, os.path
 from math import sin, cos, pi, asin
 import wx
