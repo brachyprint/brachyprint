@@ -119,7 +119,19 @@ class MeshCanvas(glcanvas.GLCanvas):
         self.SetFocus()
 
     def OnKeyPress(self, event):
-        print event
+        keycode = event.GetKeyCode()
+        if keycode == wx.WXK_DELETE:
+            mode = self.modePanel.GetMode()
+            roiGUI = self.roiGUIs[mode[1]]
+            if roiGUI.current_roi is not None and roiGUI.current_point_index is not None:
+                if len(roiGUI.current_roi.points) == 1:
+                    roiGUI.rois.remove(roiGUI.current_roi) 
+                else:
+                    roiGUI.current_roi.remove_point(roiGUI.current_point_index)
+                roiGUI.current_roi = None
+                roiGUI.current_point_index = None
+                roiGUI.update()
+                self.Refresh(False)
 
     def addMesh(self, mesh, name):
         self.meshes.add_mesh(mesh)
@@ -183,13 +195,20 @@ class MeshCanvas(glcanvas.GLCanvas):
                 sphere_hits = self.hit(self.x, self.y, opengl_list(roiGUI.sphere_list), roiGUI.sphere_list_length())
                 line_hits = self.hit(self.x, self.y, opengl_list(roiGUI.line_list), roiGUI.line_list_length())
                 if sphere_hits:
-                    roi, index =  roiGUI.pointlookup[sphere_hits[0][2][0]]
+                    sphereindex = None
+                    for sphere_hit in sphere_hits:
+                        if sphere_hit[2] != []:
+                            sphere_index = sphere_hit[2][0]
+                    roi, index =  roiGUI.pointlookup[sphere_index]
                     if roi == roiGUI.current_roi and \
                        roiGUI.current_roi.being_drawn() and \
                        ((roiGUI.current_point_index == 0 and roiGUI.current_roi.is_last(index)) or \
                         (roiGUI.current_roi.is_last(roiGUI.current_point_index) and index == 0)):
                         roiGUI.complete()
-                    roiGUI.current_roi, roiGUI.current_point_index = roi, index
+                    if roiGUI.current_roi == roi and roiGUI.current_point_index == index:
+                        roiGUI.current_roi, roiGUI.current_point_index = None, None
+                    else:
+                        roiGUI.current_roi, roiGUI.current_point_index = roi, index
                     roiGUI.update()
                 elif line_hits and roiGUI.current_point_index is None:
                     roi, index =  roiGUI.linelookup[line_hits[0][2][0]]
@@ -494,6 +513,18 @@ class ROI:
         return len(self.points) == 0
     def is_last(self, i):
         return i == len(self.points) - 1
+    def remove_point(self, i):
+        if i > 0:
+            if i < len(self.paths):
+                self.paths =  self.paths[:i - 1] + [None] +  self.paths[i + 1:]
+            else:
+                self.paths =  self.paths[:i - 1]
+        else:
+            if len(self.paths) == len(self.points):
+                self.paths =  self.paths[1:-1] + [None]
+            else:
+                self.paths =  self.paths[1:]
+        self.points = self.points[:i] + self.points[i + 1:]
 
 class roiGUI:
     def __init__(self, mesh, meshname, closed, onSelect=None):
