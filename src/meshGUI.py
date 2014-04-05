@@ -112,6 +112,14 @@ class MeshCanvas(glcanvas.GLCanvas):
         self.Bind(wx.EVT_RIGHT_UP, self.OnMouseUp)
         self.Bind(wx.EVT_MOTION, self.OnMouseMotion)
         self.Bind(wx.EVT_MOUSEWHEEL, self.OnMouseWheel)
+        self.Bind(wx.EVT_CHAR, self.OnKeyPress)
+
+        # hog the key focus
+        self.Bind(wx.EVT_KILL_FOCUS, lambda evt: self.SetFocus())
+        self.SetFocus()
+
+    def OnKeyPress(self, event):
+        print event
 
     def addMesh(self, mesh, name):
         self.meshes.add_mesh(mesh)
