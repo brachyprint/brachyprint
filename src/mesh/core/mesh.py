@@ -1,5 +1,5 @@
 
-#    Brachyprint -- 3D printing brachtherapy moulds
+#    Brachyprint -- 3D printing brachytherapy moulds
 #    Copyright (C) 2013-14  Martin Green and Oliver Madge
 #
 #    This program is free software; you can redistribute it and/or modify
@@ -169,7 +169,7 @@ class Mesh(object):
             self.add_triangle_face(v1, v2, v3)
 
     def add_triangle_face(self, v1, v2, v3):
-        """Function to add a trianglular face to the mesh.
+        """Function to add a triangular face to the mesh.
 
         :param v1: vertex 1 of the face
         :param v2: vertex 2 of the face
