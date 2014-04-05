@@ -181,13 +181,16 @@ class Mesh(object):
         self.faces.append(f)
         for vs, ve in [(v1, v2), (v2, v3), (v3, v1)]:
             if self.edges.has_key((vs, ve)):
+                isleft = True
                 e = self.edges[(vs, ve)]
             elif self.edges.has_key((ve, vs)):
+                isleft = False
                 e = self.edges[(ve, vs)]
             else:
+                isleft = True
                 e = Edge(vs, ve)
                 self.edges[(vs, ve)] = e
-            e.add_face(f)
+            e.add_face(f,isleft)
             f.add_edge(e)
         for v in [v1, v2, v3]:
             v.add_face(f)
@@ -235,7 +238,7 @@ class Mesh(object):
             newMesh.add_face(*[vertex_map[v] for v in f.vertices])
             for e in f.edges:
                 if e not in avoidEdges:
-                    for neighbouring_face in e.faces:
+                    for neighbouring_face in e.faces():
                         if (neighbouring_face is not f) and (neighbouring_face not in faces_copied):
                             faces_copied.append(neighbouring_face)
                             to_grow.append(neighbouring_face)
@@ -275,8 +278,8 @@ class Mesh(object):
 
         :returns: True if the surface is closed.
         """
-        for e in self.edges.values():
-            if len(e.faces) != 2:
+        for e in self.edges.itervalues():
+            if e.lface is None or e.rface is None:
                 return False
         return True
 
@@ -296,7 +299,7 @@ class Mesh(object):
 #                while to_grow:
 #                    f = to_grow.pop()
 #                    for e in f.edges:
-#                        for new_face in e.faces:
+#                        for new_face in e.faces():
 #                            if new_face.volume is None:
 #                                new_face.volume = face.volume
 #                                self.face_to_vol[new_face.name] = face.volume

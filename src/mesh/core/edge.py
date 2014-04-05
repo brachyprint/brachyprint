@@ -30,10 +30,33 @@ class Edge(object):
 
     def __init__(self, v1, v2):
         self.v1, self.v2 = v1, v2
-        self.faces = []
+        self.lface = None
+        self.rface = None
         v1.add_edge(self)
         v2.add_edge(self)
 
-    def add_face(self, face):
-        self.faces.append(face)
+    def faces_iter(self):
+        if self.lface is not None:
+            yield self.lface
+        if self.rface is not None:
+            yield self.rface
+
+    def faces(self):
+        return list(self.faces_iter())
+
+    def add_face(self, face, isleft=None):
+        if isleft is None:
+            v = (self.v1, self.v2)
+            (u1,u2,u3) = face.vertices
+            isleft = (v == (u1,u2)) or (v == (u2,u3)) or (v == (u3,u1))
+        if isleft:
+            if self.lface is None:
+                self.lface = face
+            else:
+                raise ValueError("Edge already has an associated left face")
+        else:
+            if self.rface is None:
+                self.rface = face
+            else:
+                raise ValueError("Edge already has an associated right face")
     
