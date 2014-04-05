@@ -9,6 +9,12 @@ Requirements
 * PyOpenGL -- python wrapper for OpenGL: http://pyopengl.sourceforge.net
 * wxPython -- python wrapper for wxWidgets: http://wxpython.org
 
+Under Debian/Ubuntu, one author has had some success running the
+following as a superuser:
+
+  aptitude install python-pip python-dev
+  pip install Cython
+  pip install triangle
 
 
 Building
