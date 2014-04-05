@@ -388,7 +388,9 @@ def polygon_clip(vertices, clip):
         if not outputVertices:
             return []
 
-    #if len(outputVertices) == 1:
+    if len(outputVertices) == 1:
+        return []
+
     return outputVertices
 
 
