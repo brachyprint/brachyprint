@@ -119,7 +119,20 @@ class MeshCanvas(glcanvas.GLCanvas):
         self.SetFocus()
 
     def OnKeyPress(self, event):
-        print event
+        keycode = event.GetKeyCode()
+        if keycode == wx.WXK_DELETE:
+            print "delete"
+            mode = self.modePanel.GetMode()
+            roiGUI = self.roiGUIs[mode[1]]
+            if roiGUI.current_roi is not None and roiGUI.current_point_index is not None:
+                if len(roiGUI.current_roi.points) == 1:
+                    roiGUI.rois.remove(roiGUI.current_roi) 
+                else:
+                    roiGUI.current_roi.remove_point(roiGUI.current_point_index)
+                roiGUI.current_roi = None
+                roiGUI.current_point_index = None
+                roiGUI.update()
+                self.Refresh(False)
 
     def addMesh(self, mesh, name):
         self.meshes.add_mesh(mesh)
@@ -494,6 +507,17 @@ class ROI:
         return len(self.points) == 0
     def is_last(self, i):
         return i == len(self.points) - 1
+    def remove_point(self, i):
+        print i, self.points, len(self.paths) 
+        self.points = self.points[:i] + self.points[i + 1:]
+        if i > 0:
+            if i < len(self.paths) - 1:
+                self.paths =  self.paths[:i - 1] + [None] +  self.paths[i + 1:]
+            else:
+                self.paths =  self.paths[:i - 1]
+        else:
+            self.paths =  self.paths[1:]
+        print i, self.points, len(self.paths)
 
 class roiGUI:
     def __init__(self, mesh, meshname, closed, onSelect=None):
