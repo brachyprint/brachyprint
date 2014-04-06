@@ -154,15 +154,13 @@ def copy_point_cloud_excluding(points, excluding_points, distance):
 def expand_bounds(((xl, xu), (yl, yu), (zl, zu)), distance):
     return ((xl - distance, xu + distance), (yl - distance, yu + distance), (zl - distance, zu + distance))
 
-BASIS_VECTORS = [Vector(0,0,1), Vector(0,1,0), Vector(1,0,0)]
-
 def expand(points, distance):
     expanded = Octree(expand_bounds(points.bounds, distance))
     points_list = list(points)
     d_angle = 0.2
     max_angle = 0.600000001
     all_norm_offsets = [(0, 0, 1)]
-    distance_slightly_reduced = 0.99 * distance
+    distance_slightly_reduced = 0.9999 * distance
     for theta in [d_angle * (i + 1) for i in range(int(max_angle / d_angle))]:
         sin_theta = sin(theta)
         cos_theta = cos(theta)
@@ -174,7 +172,14 @@ def expand(points, distance):
     for i, (point, normal) in enumerate(points_list):
         if i % 100 == 0:
             print "%0.2f%% complete of %i hits from %i starting points" % ((100.0 * i) / num_points, hits, i)
-
-        new_point = [p + n * distance for p, n in zip(point, normal)]
-        expanded.insert(new_point, normal)
+        n = Vector(*normal)
+        nn = n.normalise()
+        a, b = nn.get_orthogonal_vectors()
+        for oa, ob, on in all_norm_offsets:
+            new_point = [pc + on * nc * distance + oa * ac * distance + ob * bc * distance for pc, nc, ac, bc in zip(point, n, a, b)]
+            try:
+                points.by_distance_from_point(new_point, distance_slightly_reduced).next()
+            except StopIteration:
+                expanded.insert(new_point, normal)
+                hits += 1
     return expanded
