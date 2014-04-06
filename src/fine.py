@@ -5,6 +5,16 @@ from meshGUI import MainWindow
 from settings import *
 import mesh
 
+class OnSelect:
+  def __init__(self, outer_mesh, inner_mesh, base_file):
+    self.outer_mesh = outer_mesh
+    self.inner_mesh = inner_mesh
+    self.base_file = base_file
+  def __call__(self, roiGUI, triangle):
+    avoid_edges = roiGUI.get_avoidance_edges()
+    #Save the cut out mesh to a file
+    roughcut = self.mesh.cloneSubVol(triangle, avoid_edges)
+
 if __name__ == '__main__':
     app = wx.App(False)
     #app = wx.PySimpleApp()        
@@ -21,10 +31,21 @@ if __name__ == '__main__':
         meshes[name] = mesh.fileio.read_ply(filename)
 
     frame = MainWindow(meshes=meshes, 
-                       rois = {"Catheters": {"meshname": "Rough Outer", "closed": False}, 
-                               "Bridges": {"meshname": "Rough Outer", "closed": False}, 
-                               "Extent": {"meshname": "Rough Outer", "closed": True}}, 
+                       rois = {"Catheters": {"meshname": "Rough Outer", 
+                                             "closed": False,
+                                             "colour": "red", 
+                                             "thickness": 1}, 
+                               "Bridges": {"meshname": "Rough Outer", 
+                                           "closed": False,
+                                           "colour": "blue", 
+                                           "thickness": 0.5 }, 
+                               "Extent": {"meshname": "Rough Outer", 
+                                          "closed": True,
+                                          "colour": "green", 
+                                          "thickness": 1,
+                                          "onSelect": OnSelect(meshes["Rough Outer"], meshes["Rough Inner"], base_filename)}}, 
                        title = "Fine Cut")
+
     app.MainLoop()
     del frame
     del app
