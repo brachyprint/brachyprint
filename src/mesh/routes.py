@@ -1,3 +1,5 @@
+from math import sqrt
+
 class point_to_point:
     def __init__(self, s, e, endPoint = None, endFace = None):
         self.s, self.e = s,e 
@@ -11,9 +13,9 @@ class point_to_vertex:
         self.sx, self.sy, self.sz, self.e = sx, sy, sz, e
         self.endPoint, self.endFace = endPoint, endFace
     def dist(self):
-        return ((self.sx - self.e.x) ** 2 + (self.sy - self.e.y) ** 2 + (self.sz - self.e.z) ** 2) ** 0.5
+        return sqrt((self.sx - self.e.x) ** 2 + (self.sy - self.e.y) ** 2 + (self.sz - self.e.z) ** 2) 
     def crowdist(self):
-        return ((self.e.x - self.endPoint[0]) ** 2 + (self.e.y - self.endPoint[1]) ** 2 + (self.e.z - self.endPoint[2]) ** 2) ** 0.5
+        return sqrt((self.e.x - self.endPoint[0]) ** 2 + (self.e.y - self.endPoint[1]) ** 2 + (self.e.z - self.endPoint[2]) ** 2)
     def end(self):
         return self.e
     def points(self):
@@ -36,7 +38,7 @@ class follow_edge:
         self.endPoint, self.endFace = endPoint, endFace
         self.edge = edge
     def dist(self):
-        return ((self.s.x - self.e.x) ** 2 + (self.s.y - self.e.y) ** 2 + (self.s.z - self.e.z) ** 2) ** 0.5
+        return sqrt((self.s.x - self.e.x) ** 2 + (self.s.y - self.e.y) ** 2 + (self.s.z - self.e.z) ** 2)
     def end(self):
         return self.e
     def points(self):
@@ -49,7 +51,7 @@ class follow_edge:
     def finished(self):
         return False
     def crowdist(self):
-        return ((self.e.x - self.endPoint[0]) ** 2 + (self.e.y - self.endPoint[1]) ** 2 + (self.e.z - self.endPoint[2]) ** 2) ** 0.5
+        return sqrt((self.e.x - self.endPoint[0]) ** 2 + (self.e.y - self.endPoint[1]) ** 2 + (self.e.z - self.endPoint[2]) ** 2)
     def get_edges(self):
         return [self.edge]
 
@@ -57,7 +59,7 @@ class vertex_to_point:
     def __init__(self, s, (ex, ey, ez)):
         self.s, self.ex, self.ey, self.ez = s, ex, ey, ez
     def dist(self):
-        return ((self.s.x - self.ex) ** 2 + (self.s.y - self.ey) ** 2 + (self.s.z - self.ez) ** 2) ** 0.5
+        return sqrt((self.s.x - self.ex) ** 2 + (self.s.y - self.ey) ** 2 + (self.s.z - self.ez) ** 2)
     def finished(self):
         return True
     def points(self):
@@ -66,3 +68,19 @@ class vertex_to_point:
         return "Finished!!!"
     def get_edges(self):
         return []
+    def crowdist(self):
+        return 0
+
+class follow_edge_vertex_path:
+    def __init__(self, start, end, edge, destination):
+        self.start, self.end = start, end
+        self.edge = edge
+        self.destination = destination
+    def dist(self):
+        return sqrt((self.start.x - self.end.x) ** 2 + (self.start.y - self.end.y) ** 2 + (self.start.z - self.end.z) ** 2)
+    def new_Paths(self):
+        return  [follow_edge_vertex_path(self.end, v, edge, self.destination) for v, edge in self.end.adjacent_vertices()] 
+    def finished(self):
+        return (self.end == self.destination)
+    def crowdist(self):
+        return sqrt((self.end.x - self.destination.x) ** 2 + (self.end.y - self.destination.y) ** 2 + (self.end.z - self.destination.z) ** 2)
