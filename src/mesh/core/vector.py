@@ -178,6 +178,16 @@ class Vector(object):
         '''
         return [self.dot(u), self.dot(v)]
 
+    def get_orthogonal_vectors(self):
+        '''
+        Returns two orthogonal vectors
+        '''
+        for bv in BASIS_VECTORS:
+            p = self.cross(bv)
+            if p.magnitude() > 0.1:
+                return p.normalise(), self.cross(p).normalise()
 
+
+BASIS_VECTORS = [Vector(0,0,1), Vector(0,1,0), Vector(1,0,0)]
 nullVector = Vector(0, 0, 0)
 

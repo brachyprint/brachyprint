@@ -187,6 +187,18 @@ class VectorManipulationTests(TestCase):
         self.assertEqual(v1.dot(self.v1), 0)
         self.assertEqual(v1.dot(self.v2), 0)
 
+class PerpendicularVectorTests(TestCase):
+
+    def test_get_orthogonal_vectors(self):
+        vs = [Vector(1, 2, 3), Vector(-1, 2, 4)]
+        for v in vs:
+            a, b = v.get_orthogonal_vectors()
+            self.assertAlmostEqual(v.dot(a), 0)
+            self.assertAlmostEqual(v.dot(b), 0)
+            self.assertAlmostEqual(a.dot(b), 0)
+            self.assertAlmostEqual(a.magnitude(), 1)
+            self.assertAlmostEqual(b.magnitude(), 1)
+
 
 if __name__ == '__main__':
     main()
