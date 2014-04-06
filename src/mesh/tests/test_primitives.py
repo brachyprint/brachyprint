@@ -1,9 +1,11 @@
 """Unit testing for the Vector class
 """
 
+from __future__ import division
+
 from unittest import TestCase, main
 
-from math import pi, sin
+from math import pi, sin, sqrt
 
 import mesh
 
@@ -19,6 +21,10 @@ class SizeTests(TestCase):
 
         m.clear()
         mesh.primitives.make_cylinder(m, 10, 100, 100)
+        self.assertTrue(m.closed())
+
+        m.clear()
+        mesh.primitives.add_sphere(m, 1.0)
         self.assertTrue(m.closed())
 
         m.clear()
@@ -49,6 +55,22 @@ class SizeTests(TestCase):
         mesh.primitives.make_cylinder(m, 10, 100, 10000)
         volume = 0.5*10.0*10.0*sin(2.0*pi/10000.0)*10000.0*100.0
         self.assertAlmostEqual(m.volume(), volume)
+
+        m.clear()
+        mesh.primitives.add_sphere(m, 1.0, detail_level=1)
+
+        e = m.edges.itervalues().next()
+
+        volume = sqrt(2)/3*(e.v2-e.v1).magnitude()**3
+        self.assertAlmostEqual(volume, m.volume())
+
+        m.clear()
+        mesh.primitives.add_sphere(m, 1.0, detail_level=2)
+        e = m.edges.itervalues().next()
+        # XXX: this should really be calculated
+        volume = 2.942809041582063
+
+        self.assertAlmostEqual(volume, m.volume())
 
 
     def test_primitive_area(self):
