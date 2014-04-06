@@ -53,7 +53,17 @@ class Mesh(object):
         self.next_face_name = 0
         self.next_volume_name = 0
         self.face_to_vol = {}
-        
+
+
+
+    def get_edge(self, v1, v2):
+        if self.edges.has_key((v1,v2)):
+            return self.edges[(v1,v2)]
+        elif self.edges.has_key((v2,v1)):
+            return self.edges[(v2,v1)]
+        else:
+            raise KeyError
+
 
 
     def add_vertex(self, x, y=None, z=None):
