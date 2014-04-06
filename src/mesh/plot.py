@@ -11,10 +11,10 @@ import matplotlib.patches as patches
 
 def add_patch(ax, verts):
 
-    if isinstance(verts[0], Vector):
-        verts = [(v.x, v.y) for v in verts]
-    elif isinstance(verts, Face):
+    if isinstance(verts, Face):
         verts = [(v.x, v.y) for v in verts.vertices]
+    elif isinstance(verts[0], Vector):
+        verts = [(v.x, v.y) for v in verts]
 
     codes = [Path.MOVETO] + [Path.LINETO]*(len(verts)-1) + [Path.CLOSEPOLY]
 
