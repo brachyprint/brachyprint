@@ -171,7 +171,7 @@ def write_stl(m, filename, name="mesh", fileformat=STL_FORMAT_ASCII):
     Example:
         import mesh
         m = mesh.Mesh()
-        mesh.primitives.make_cylinder(m, 10, 100, 10)
+        mesh.primitives.add_cylinder(m, 10, 100, 10)
         mesh.fileio.write_stl(m, "cylinder.stl", fileformat=mesh.fileio.STL_FORMAT_BINARY)
     '''
     StlWriter(fileformat).write(m, name, filename)

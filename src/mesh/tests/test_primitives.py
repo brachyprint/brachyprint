@@ -16,11 +16,11 @@ class SizeTests(TestCase):
 
     def test_primitive_closed(self):
         m = mesh.Mesh()
-        mesh.primitives.make_cube(m, 100)
+        mesh.primitives.add_cube(m, 100)
         self.assertTrue(m.closed())
 
         m.clear()
-        mesh.primitives.make_cylinder(m, 10, 100, 100)
+        mesh.primitives.add_cylinder(m, 10, 100, 100)
         self.assertTrue(m.closed())
 
         m.clear()
@@ -37,22 +37,22 @@ class SizeTests(TestCase):
 
     def test_primitive_volume(self):
         m = mesh.Mesh()
-        mesh.primitives.make_cube(m, 100)
+        mesh.primitives.add_cube(m, 100)
         volume = 100.0*100.0*100.0
         self.assertAlmostEqual(m.volume(), volume)
 
         m.clear()
-        mesh.primitives.make_cube(m, 100, [10, 20, 99])
+        mesh.primitives.add_cube(m, 100, [10, 20, 99])
         volume = 100.0*100.0*100.0
         self.assertAlmostEqual(m.volume(), volume)
 
         m.clear()
-        mesh.primitives.make_cylinder(m, 10, 100, 100)
+        mesh.primitives.add_cylinder(m, 10, 100, 100)
         volume = 0.5*10.0*10.0*sin(2.0*pi/100.0)*100.0*100.0
         self.assertAlmostEqual(m.volume(), volume)
 
         m.clear()
-        mesh.primitives.make_cylinder(m, 10, 100, 10000)
+        mesh.primitives.add_cylinder(m, 10, 100, 10000)
         volume = 0.5*10.0*10.0*sin(2.0*pi/10000.0)*10000.0*100.0
         self.assertAlmostEqual(m.volume(), volume)
 
@@ -75,21 +75,29 @@ class SizeTests(TestCase):
 
     def test_primitive_area(self):
         m = mesh.Mesh()
-        mesh.primitives.make_cube(m, 100)
+        mesh.primitives.add_cube(m, 100)
         area = 100.0*100.0*6
         self.assertAlmostEqual(m.surface_area(), area)
 
         m.clear()
         s = 4.0
-        mesh.primitives.make_cylinder(m, 10, 100, int(s))
+        mesh.primitives.add_cylinder(m, 10, 100, int(s))
         area = 0.5*10.0*10.0*sin(2.0*pi/s)*s*2.0 + 2.0*10.0*sin(2.0*pi/s/2.0)*s*100.0
         self.assertAlmostEqual(m.surface_area(), area)
 
         m.clear()
         s = 100.0
-        mesh.primitives.make_cylinder(m, 10, 100, int(s))
+        mesh.primitives.add_cylinder(m, 10, 100, int(s))
         area = 0.5*10.0*10.0*sin(2.0*pi/s)*s*2.0 + 2.0*10.0*sin(2.0*pi/s/2.0)*s*100.0
         self.assertAlmostEqual(m.surface_area(), area)
+
+        m.clear()
+        mesh.primitives.add_sphere(m, 1.0, detail_level=1)
+
+        e = m.edges.itervalues().next()
+
+        area = 2*sqrt(3)*(e.v2-e.v1).magnitude()**2
+        self.assertAlmostEqual(area, m.surface_area())
 
 
 if __name__ == '__main__':
