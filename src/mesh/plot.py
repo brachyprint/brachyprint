@@ -10,12 +10,13 @@ import matplotlib.patches as patches
 
 
 def add_patch(ax, verts):
-    codes = [Path.MOVETO] + [Path.LINETO]*(len(verts)-1) + [Path.CLOSEPOLY]
 
     if isinstance(verts[0], Vector):
         verts = [(v.x, v.y) for v in verts]
     elif isinstance(verts, Face):
         verts = [(v.x, v.y) for v in verts.vertices]
+
+    codes = [Path.MOVETO] + [Path.LINETO]*(len(verts)-1) + [Path.CLOSEPOLY]
 
     minx = min([x for (x,y) in verts])
     maxx = max([x for (x,y) in verts])
