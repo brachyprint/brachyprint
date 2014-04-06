@@ -195,6 +195,8 @@ class Mesh(object):
         for v in [v1, v2, v3]:
             v.add_face(f)
 
+        return f
+
 
     def get_path(self, s1, s2):
         s2Postion = s2[0], s2[1], s2[2]
