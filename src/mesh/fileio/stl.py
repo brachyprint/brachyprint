@@ -85,7 +85,7 @@ class StlReader(object):
     '''
 
     def __init__(self):
-        pass
+        self.strict = False
 
     def read(self, m, filename):
         with open(filename, 'rb') as fp:
@@ -99,15 +99,65 @@ class StlReader(object):
             if fileContent[0:4] == "80sI":
                 self.decode_binary(m, fileContent)
             elif fileContent[0:5] == "solid":
-                self.decode_ascii(m, fileContent)
+                self.decode_ascii(m, fileContent.splitlines())
             else:
                 raise IOError("Invalid STL file")
 
-    def decode_ascii(self, m, data):
-        #while i < len(data)
-            # read a line
-            
-        raise NotImplementedError()
+    def decode_ascii(self, m, lines):
+        mode = 0
+        vs = []
+        solid_name = lines[0].strip().split(' ')[1]
+        for i in range(1, len(lines)): # in lines:
+            words = lines[i].strip().split(' ')
+            if len(words) == 1 and words[0] == '':
+                continue
+
+            if mode == 0:
+                if len(words) >= 2 and words[0] == "endsolid":
+                    if words[1] != solid_name and self.strict:
+                        raise IOError("Invalid STL file -- expecting 'endsolid %s' on line %i" % (solid_name, i))
+                    return
+                if len(words) < 2 or words[0] != "facet" or words[1] != "normal" :
+                    raise IOError("Invalid STL file -- expecting 'facet normal' on line %i" % (i))
+                else:
+                    mode = 1
+                    continue
+            elif mode == 1:
+                if len(words) < 2 or words[0] != "outer" or words[1] != "loop":
+                    raise IOError("Invalid STL file -- expecting 'outer loop' on line %i" % (i))
+                else:
+                    mode = 2
+                    continue
+            elif mode == 2 or mode == 3 or mode == 4:
+                if len(words) < 4 or words[0] != "vertex":
+                    raise IOError("Invalid STL file -- expecting 'vertex' on line %i" % (i))
+                v = Vector([float(w) for w in words[1:4]])
+                vs.append(v)
+                if mode == 4:
+                    # check if the vertices already exist in the mesh
+                    fv = []
+                    for v in vs:
+                        v_e = m.get_vertex(v)
+                        if v_e is None:
+                            fv.append(m.add_vertex(v))
+                        else:
+                            fv.append(v_e)
+
+                    # create face
+                    m.add_face(fv)
+                    vs = []
+                mode += 1
+            elif mode == 5:
+                if len(words) < 1 or words[0] != "endloop":
+                    raise IOError("Invalid STL file -- expecting 'endloop' on line %i" % (i))
+                mode = 6
+            elif mode == 6:
+                if len(words) < 1 or words[0] != "endfacet":
+                    raise IOError("Invalid STL file -- expecting 'endfacet' on line %i" % (i))
+                mode = 0
+
+        raise IOError("Invalid STL file -- unexpectedly reached end of file")
+
 
     def decode_binary(self, m, data):
         raise NotImplementedError()
