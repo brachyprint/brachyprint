@@ -9,8 +9,9 @@ Supported output formats:
     STL (ASCII only)
 '''
 
-__all__ = ["ply", "stl"]
+__all__ = ["ply", "stl", "plt"]
 
 from ply import *
+from plt import *
 from stl import *
 
