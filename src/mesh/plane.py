@@ -21,8 +21,9 @@
 Algorithms to compute geometrical intersections.
 '''
 
-
 from __future__ import division
+
+from mesh.plot import plot_verts
 
 from math import sqrt
 
@@ -148,7 +149,7 @@ def triangle_triangle_intersect(f1, f2):
 
     if len(s1) > 2 or len(s2) > 2:
         print "overlapping plane"
-        return polygon_clip(f1, f2)
+        return polygon_clip(f2, f1)
 
     # given the two intersection lines, determine their overlap
 
@@ -344,7 +345,19 @@ def compute_line_intersection(points, clipEdge):
     n = da.cross(db).z
     s = dc.cross(db).z/n
 
-    #if s >= 0.0 and s <= 1.0:
+    ip = points[0] + da * s
+
+    return ip
+
+def compute_line_intersection3d(points, clipEdge):
+
+    da = points[1] - points[0]
+    db = clipEdge[1] - clipEdge[0]
+    dc = clipEdge[0] - points[0]
+
+    n = da.cross(db).dot(da.cross(db))
+    s = dc.cross(db).dot(da.cross(db))/n
+
     ip = points[0] + da * s
 
     return ip
@@ -357,10 +370,11 @@ def polygon_clip(vertices, clip):
     Uses the Sutherland-Hodgman algorithm. Polygons must be defined as a
     set of anti-clockwise vertices.
     '''
-
+    
     epsilon = .000001
 
     outputVertices = vertices
+    n = (clip[2]-clip[0]).cross(clip[1]-clip[0]) + clip[0]
 
     for i in range(len(clip)):
         clipEdge = [clip[i-1], clip[i]]
@@ -372,16 +386,18 @@ def polygon_clip(vertices, clip):
 
         u = clipEdge[1] - clipEdge[0]
 
+        inside = lambda p: (p-n).dot((clipEdge[1]-n).cross(clipEdge[0]-n))
+
         for e in inputVertices:
-            if abs((e-clipEdge[0]).cross(u).z) < epsilon:
+            if abs(inside(e)) < epsilon:
                 outputVertices.append(e)
-            elif (e-clipEdge[0]).cross(u).z < -epsilon:
-                if (s-clipEdge[0]).cross(u).z > 0:
-                    p = compute_line_intersection([s,e],clipEdge)
+            elif (inside(e)) < -epsilon:
+                if inside(s) > 0:
+                    p = compute_line_intersection3d([s,e],clipEdge)
                     outputVertices.append(p)
                 outputVertices.append(e)
-            elif (s-clipEdge[0]).cross(u).z < 0:
-                p = compute_line_intersection([s,e],clipEdge)
+            elif inside(s) < 0:
+                p = compute_line_intersection3d([s,e],clipEdge)
                 outputVertices.append(p)
             s = e
 

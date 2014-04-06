@@ -53,7 +53,17 @@ class Mesh(object):
         self.next_face_name = 0
         self.next_volume_name = 0
         self.face_to_vol = {}
-        
+
+
+
+    def get_edge(self, v1, v2):
+        if self.edges.has_key((v1,v2)):
+            return self.edges[(v1,v2)]
+        elif self.edges.has_key((v2,v1)):
+            return self.edges[(v2,v1)]
+        else:
+            raise KeyError
+
 
 
     def add_vertex(self, x, y=None, z=None):
@@ -318,6 +328,25 @@ class Mesh(object):
             else:
                 self.add_triangle_face(*vertices)
         
+
+    def get_vertex(self, x, y=None, z=None):
+        """Function to get a vertex from the mesh, if extant.
+        
+        :param x: x coordinate of the vertex, or optionally a list of coordinates.
+        :keyword y: y coordinate of the vertex.
+        :keyword z: z coordinate of the vertex.
+
+        XXX: this is currently very slow!
+        """
+        if not isinstance(x, Vector):
+            x = Vector(x, y, z)
+
+        for v in self.vertices:
+            if v == x:
+                return v
+
+        return None
+
 
 #    def allocate_volumes(self):
 #        '''Allocate each face to a particular volume.

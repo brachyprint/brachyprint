@@ -63,3 +63,17 @@ class Edge(object):
             else:
                 raise ValueError("Edge already has an associated right face")
     
+    def to_ratio(self, v):
+        """
+        (Assuming v lies on this edge), how far of the way along does
+        it lie? Calling this on v1 yields 0.0, and calling it on v2
+        yields 1.0.
+        """
+        d = self.displacement()
+        return (v-self.v1).dot(d) / d.magnitude()
+
+    def from_ratio(self, i):
+        """
+        Return a vector i of the way from v1 to v2.
+        """
+        return self.v2*i + self.v1*(1-i)
