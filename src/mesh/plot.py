@@ -2,7 +2,7 @@
 Functions to plot 2d geometry.
 """
 
-from mesh import Vector
+from mesh import Vector, Face
 
 import matplotlib.pyplot as plt
 from matplotlib.path import Path
@@ -14,6 +14,8 @@ def add_patch(ax, verts):
 
     if isinstance(verts[0], Vector):
         verts = [(v.x, v.y) for v in verts]
+    elif isinstance(verts, Face):
+        verts = [(v.x, v.y) for v in verts.vertices]
 
     minx = min([x for (x,y) in verts])
     maxx = max([x for (x,y) in verts])
