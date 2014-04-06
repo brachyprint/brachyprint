@@ -1,4 +1,27 @@
 
+#    Brachyprint -- 3D printing brachytherapy moulds
+#    Copyright (C) 2013-14  Martin Green and Oliver Madge
+#
+#    This program is free software; you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation; either version 2 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License along
+#    with this program; if not, write to the Free Software Foundation, Inc.,
+#    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+
+'''
+Algorithms to compute geometrical intersections.
+'''
+
+
 from __future__ import division
 
 from math import sqrt
@@ -27,7 +50,7 @@ from math import sqrt
 
 def triangle_segment_intersect(p, vs, intersect_type=0):
     '''
-    Determine if a polygon is intersected by a segment.
+    Determine if a triangle is intersected by a segment.
     
     p -- two item list of Vectors
     vs -- three item list of Vectors
@@ -40,24 +63,24 @@ def triangle_segment_intersect(p, vs, intersect_type=0):
          <Vector>: intersection point
          2: line is in the plane (i.e. parallel)
     '''
-    
+
     epsilon = .000001
-    
+
     # check for the intersection of the ray and the plane
 
     u = vs[1] - vs[0]
     v = vs[2] - vs[0]
     n = u.cross(v)
-    
+
     # check if the triangle is degenerate
     if abs(n[0]) < epsilon and abs(n[1]) < epsilon and abs(n[2]) < epsilon:
         return -1 # bail out
-    
+
     dirv = p[1] - p[0]
     w0 = p[0] - vs[0]
     a = -n.dot(w0)
     b = n.dot(dirv)
-    
+
     if abs(b) < epsilon:
         if abs(a) < epsilon:
             r = 0.0
@@ -69,10 +92,10 @@ def triangle_segment_intersect(p, vs, intersect_type=0):
             return 0
         elif r < 0.0 and intersect_type==1: # segment behind the plane
             return 0
-    
+
     # find the intersection point of the line and the plane
     ip = p[0] + r * dirv
-    
+
     # determine if ip is inside the triangle T
     uu = u.dot(u)
     uv = u.dot(v)
@@ -80,30 +103,32 @@ def triangle_segment_intersect(p, vs, intersect_type=0):
     w = ip - vs[0]
     wu = w.dot(u)
     wv = w.dot(v)
-    
+
     d = uv * uv - uu * vv
-    
+
     s = (uv * wv - vv * wu) / d
     if s < 0.0 or s > 1.0: # IP is outside T
         return 0
     t = (uv * wu - uu * wv) / d
     if t < 0.0 or (s + t) > 1.0: # IP is outside T
         return 0
-    
+
     # on the boundary of the triangle
     #if s < epsilon or t < epsilon or s + t > 1.0 - epsilon:
     #    return 3
 
     return ip
-    return 1 # I is in T
-
-def line_intersect():
-
-    return model.Vector(1,1,1)
-
 
 
 def triangle_triangle_intersect(f1, f2):
+    '''
+    Determine the intersection between two triangles.
+
+    f1 -- a list of the 3 triangle vertices
+    f2 -- a list of the 3 triangle vertices
+
+    :returns:
+    '''
     
     # intersect f1 with the plane of f2
     s1 = triangle_plane_intersect(f1, f2)
@@ -123,7 +148,7 @@ def triangle_triangle_intersect(f1, f2):
 
     if len(s1) > 2 or len(s2) > 2:
         print "overlapping plane"
-        return 0
+        return polygon_clip(f1, f2)
 
     # given the two intersection lines, determine their overlap
 
@@ -140,10 +165,10 @@ def triangle_triangle_intersect(f1, f2):
     d2[1] = b.dot(s2[1] - s1[0])
 
     epsilon = .00001
-    if abs(s1[1].cross(s1[0]).dot(s2[0])) > epsilon:
-        print "ijkhkj"
-    if abs(s1[1].cross(s1[0]).dot(s2[1])) > epsilon:
-        print "ijkhkj2"
+    #if abs(s1[1].cross(s1[0].dot(s2[0]))) > epsilon:
+    #    print "ijkhkj"
+    #if abs(s1[1].cross(s1[0].dot(s2[1]))) > epsilon:
+    #    print "ijkhkj2"
 
     #b = s2[1] - s2[0] # basis vector in axis transformation
 
@@ -299,9 +324,38 @@ def triangle_plane_intersect(f1, f2):
     return 0
 
 
+def clip_triangle_triangle(t1, t2):
+    
+    for i in range(len(t1)):
+        da = t1[i-1], t[i]
+
+        
+
+
+def compute_line_intersection(points, clipEdge):
+    '''
+    Computes the intersection point of two lines. This function assumes an
+    intersection exists.
+    '''
+    da = points[1] - points[0]
+    db = clipEdge[1] - clipEdge[0]
+    dc = clipEdge[0] - points[0]
+
+    n = da.cross(db).z
+    s = dc.cross(db).z/n
+
+    #if s >= 0.0 and s <= 1.0:
+    ip = points[0] + da * s
+
+    return ip
+
+
 def polygon_clip(vertices, clip):
     '''
     Clip vertices against a coplanar set of clip vertices.
+
+    Uses the Sutherland-Hodgman algorithm. Polygons must be defined as a
+    set of anti-clockwise vertices.
     '''
 
     epsilon = .000001
@@ -316,24 +370,28 @@ def polygon_clip(vertices, clip):
 
         s = inputVertices[-1]
 
-        # compute plane through clipEdge perpendicular to the clip plane
         u = clipEdge[1] - clipEdge[0]
-        v = clipEdge[0] - clip[i-2]
-        n = u.cross(v)
-        v = u.cross(n)
 
         for e in inputVertices:
-            if e.dot(v) > 0:
-                if s.dot(v) < 0:
-                    # XXX: compute intersection
-                    p = computeintersection([e,s],clipEdge)
+            if abs((e-clipEdge[0]).cross(u).z) < epsilon:
+                outputVertices.append(e)
+            elif (e-clipEdge[0]).cross(u).z < -epsilon:
+                if (s-clipEdge[0]).cross(u).z > 0:
+                    p = compute_line_intersection([s,e],clipEdge)
                     outputVertices.append(p)
                 outputVertices.append(e)
-            elif s.dot(v) > 0:
-                outputVertices.append(e)
-                
+            elif (s-clipEdge[0]).cross(u).z < 0:
+                p = compute_line_intersection([s,e],clipEdge)
+                outputVertices.append(p)
             s = e
-        
+
+        if not outputVertices:
+            return []
+
+    if len(outputVertices) == 1:
+        return []
+
+    return outputVertices
 
 
 def polygon_plane_clip(vertices,plane):

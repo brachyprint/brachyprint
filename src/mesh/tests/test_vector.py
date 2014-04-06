@@ -47,8 +47,16 @@ class BasicArithmeticTests(TestCase):
         v3 = self.v1 * 2.1
         self.assertEqual(v3, Vector(1*2.1, 2*2.1, 3*2.1)) # hack
 
+        # ... and rmul
+        v3 = 2.1 * self.v1
+        self.assertEqual(v3, Vector(1*2.1, 2*2.1, 3*2.1)) # hack
+
         # multiplication by int
         v3 = self.v1 * 2
+        self.assertEqual(v3, Vector(2, 4, 6))
+
+        # ... and rmul
+        v3 = 2 * self.v1
         self.assertEqual(v3, Vector(2, 4, 6))
 
         with self.assertRaises(NotImplementedError):
@@ -63,6 +71,15 @@ class BasicArithmeticTests(TestCase):
         v3 = self.v1 / 5
         self.assertEqual(v3, Vector(0.2, 0.4, 0.6))
 
+        #division of int by vector
+        with self.assertRaises(TypeError):
+            v3 = 5 / self.v1
+
+        #division of float by vector
+        with self.assertRaises(TypeError):
+            v3 = 0.5 / self.v1
+
+        # division of two vectors
         with self.assertRaises(NotImplementedError):
             v3 = self.v1 / self.v2
 
