@@ -9,6 +9,7 @@ import os, os.path
 from math import sin, cos, pi, asin
 import wx
 from settings import *
+from mesh import Vector
 
 def makepoints(t, zpositions, posX, posY, spacingX, spacingY, level):
     t = t.astype(numpy.int16)
@@ -73,7 +74,7 @@ def makepoints(t, zpositions, posX, posY, spacingX, spacingY, level):
 
 def points_to_string(points):
     r = ""
-    for ignore, point, normal in points.near_point((0,0,0), 1000):
+    for ignore, point, normal in points.by_distance_from_point((0,0,0), 1000):
         r = r + "%f %f %f %f %f %f\n" % (point[0], point[1], point[2], normal[0], normal[1], normal[2])
     return r
 
@@ -144,7 +145,7 @@ def copy_point_cloud_excluding(points, excluding_points, distance):
     points_list = points.by_distance_from_point((0,0,0)) #Points do not actually need to be ordered, perhaps they can be found more efficiently
     for ignore, point, normal in points_list:
         try:
-            excluding_points.near_point(point, distance).next()
+            excluding_points.by_distance_from_point(point, distance).next()
         except StopIteration:
             clean_skin.insert(point, normal)
     return clean_skin
@@ -152,13 +153,15 @@ def copy_point_cloud_excluding(points, excluding_points, distance):
 def expand_bounds(((xl, xu), (yl, yu), (zl, zu)), distance):
     return ((xl - distance, xu + distance), (yl - distance, yu + distance), (zl - distance, zu + distance))
 
+BASIS_VECTORS = [Vector(0,0,1), Vector(0,1,0), Vector(1,0,0)]
+
 def expand(points, distance):
     expanded = Octree(expand_bounds(points.bounds, distance))
     points_list = list(points)
     d_angle = 0.2
     max_angle = 0.600000001
     all_norm_offsets = [(0, 0, 1)]
-    distance_slightly_reduced = 0.99999 * distance
+    distance_slightly_reduced = 0.99 * distance
     for theta in [d_angle * (i + 1) for i in range(int(max_angle / d_angle))]:
         sin_theta = sin(theta)
         cos_theta = cos(theta)
@@ -166,32 +169,11 @@ def expand(points, distance):
         for phi in [2 * pi * j / num_phis for j in range(num_phis)]:
             all_norm_offsets.append((sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta)))
     num_points = len(points_list) 
-    print num_points
     hits = 0
-    for i, (ignore, point, normal) in enumerate(points_list):
+    for i, (point, normal) in enumerate(points_list):
         if i % 100 == 0:
             print "%0.2f%% complete of %i hits from %i starting points" % ((100.0 * i) / num_points, hits, i)
-        #Determine transform to rotate norm offsets on actual norms
-        #Need to rotate by angle around the vector(u, v, 0)
-        sin_angle = (normal[0] ** 2 + normal[1] ** 2) ** 0.5
-        try:
-            angle = asin(sin_angle)
-        except:
-            angle = asin(1)
-        cos_angle = cos(angle)
-        one_minus_cos_angle = 1 - cos_angle
-        u = -normal[1] / sin_angle
-        v = normal[0] / sin_angle 
-        for x, y, z in all_norm_offsets:
-            ux_plus_vy = (u * x + v * y)
-            nx = u * ux_plus_vy * one_minus_cos_angle + x * cos_angle + v * z * sin_angle
-            ny = v * ux_plus_vy * one_minus_cos_angle + y * cos_angle - u * z * sin_angle
-            nz = z * cos_angle + (-v * x + u * y) * sin_angle
-            normal = nx, ny, nz
-            new_point = [p + n * distance for p, n in zip(point, normal)]
-            try:
-                points.near_point(new_point, distance_slightly_reduced).next()
-            except StopIteration:
-                expanded.insert(new_point, normal)
-                hits += 1
+
+        new_point = [p + n * distance for p, n in zip(point, normal)]
+        expanded.insert(new_point, normal)
     return expanded
