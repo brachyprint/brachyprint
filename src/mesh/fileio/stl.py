@@ -9,6 +9,7 @@ write_stl(mesh, filename)
 '''
 
 from mesh import *
+import struct
 
 STL_FORMAT_ASCII = 1
 STL_FORMAT_BINARY = 2
