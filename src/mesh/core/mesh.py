@@ -220,7 +220,28 @@ class Mesh(object):
                     visited[end] = True
                     for newPath in lastPath.new_Paths():
                         new_dist = newPath.dist()
-                        heappush(priority_queue, (dist + new_dist + pv.crowdist(), dist + new_dist, paths + [newPath]))
+                        heappush(priority_queue, (dist + new_dist + newPath.crowdist(), dist + new_dist, paths + [newPath]))
+
+    def get_vertex_path(self, v1, v2):
+        priority_queue = []
+        visited = {}
+        for vertex, edge in v1.adjacent_vertices():
+            fe = follow_edge_vertex_path(v1, vertex, edge, v2)
+            heappush(priority_queue, (fe.dist() + fe.crowdist(), fe.dist(), [fe]))	
+        while (len(priority_queue) > 0):
+            dist_plus_crow, dist, paths = heappop(priority_queue)
+            lastPath = paths[-1]
+            end = lastPath.end
+            if end not in visited:
+                if lastPath.finished():
+                    #Finished!
+                    return paths
+                else:
+                    visited[end] = True
+                    for newPath in lastPath.new_Paths():
+                        new_dist = newPath.dist()
+                        heappush(priority_queue, (dist + new_dist + newPath.crowdist(), dist + new_dist, paths + [newPath]))
+
 
 
     def cloneSubVol(self, triangle, avoidEdges):
@@ -285,6 +306,18 @@ class Mesh(object):
                 return False
         return True
 
+    def add_mesh(self, mesh, invert = False):
+        """Add all verticies and faces from the argument mesh"""
+        vertex_map = {}
+        for vertex in mesh.vertices:
+            vertex_map[vertex] = self.add_vertex(vertex.x, vertex.y, vertex.z)
+        for face in mesh.faces:
+            vertices = [vertex_map[vertex] for vertex in face.vertices]
+            if invert:
+                self.add_triangle_face(vertices[0], vertices[2], vertices[1])
+            else:
+                self.add_triangle_face(*vertices)
+        
 
 #    def allocate_volumes(self):
 #        '''Allocate each face to a particular volume.
