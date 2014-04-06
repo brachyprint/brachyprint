@@ -39,6 +39,13 @@ class BasicMeshTests(TestCase):
         self.assertTrue(m.edges.has_key((v2, v3)))
         self.assertTrue(m.edges.has_key((v3, v1)))
 
+        # check that vertices are al present in the mesh
+        self.assertEqual(m.get_vertex(v1), v1)
+        self.assertEqual(m.get_vertex(v2), v2)
+        self.assertEqual(m.get_vertex(v3), v3)
+        v4 = Vector(-17,3,-3)
+        self.assertEqual(m.get_vertex(v4), None)
+
         # check max and min are being calculated correctly
         self.assertTrue(m.minX==-1)
         self.assertTrue(m.maxX==5)

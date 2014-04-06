@@ -286,6 +286,25 @@ class Mesh(object):
         return True
 
 
+    def get_vertex(self, x, y=None, z=None):
+        """Function to get a vertex from the mesh, if extant.
+        
+        :param x: x coordinate of the vertex, or optionally a list of coordinates.
+        :keyword y: y coordinate of the vertex.
+        :keyword z: z coordinate of the vertex.
+
+        XXX: this is currently very slow!
+        """
+        if not isinstance(x, Vector):
+            x = Vector(x, y, z)
+
+        for v in self.vertices:
+            if v == x:
+                return v
+
+        return None
+
+
 #    def allocate_volumes(self):
 #        '''Allocate each face to a particular volume.
 #
