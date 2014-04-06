@@ -9,7 +9,7 @@ from matplotlib.path import Path
 import matplotlib.patches as patches
 
 
-def add_patch(ax, verts):
+def add_patch(ax, verts, plot_points):
 
     if isinstance(verts, Face):
         verts = [(v.x, v.y) for v in verts.vertices]
@@ -30,10 +30,13 @@ def add_patch(ax, verts):
     patch = patches.PathPatch(path, facecolor='orange', lw=2, alpha=0.5)
     ax.add_patch(patch)
 
+    if plot_points:
+        ax.plot(*zip(*verts), marker='o', color='r', ls='')
+
     return [(minx, maxx), (miny, maxy)]
     
 
-def plot_verts(verts, plot3d=False):
+def plot_verts(verts, plot_points=True, plot3d=False):
     fig = plt.figure()
     ax = fig.add_subplot(111)
     minx = float('inf')
@@ -42,7 +45,7 @@ def plot_verts(verts, plot3d=False):
     maxy = -float('inf')
 
     for vs in verts:
-        [(minx2, maxx2), (miny2, maxy2)] = add_patch(ax, vs)
+        [(minx2, maxx2), (miny2, maxy2)] = add_patch(ax, vs, plot_points)
         maxx = max(maxx, maxx2)
         minx = min(minx, minx2)
         maxy = max(maxy, maxy2)
