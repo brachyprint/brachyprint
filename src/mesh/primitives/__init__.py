@@ -1,7 +1,7 @@
 
-__all__ = ["cylinder", "cube", "sphere"]
+__all__ = ["cylinder", "cube", "sphere", "torus"]
 
 from cylinder import *
 from cube import *
 from sphere import *
-
+from torus import *

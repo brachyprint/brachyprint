@@ -27,6 +27,11 @@ class SizeTests(TestCase):
         mesh.primitives.add_sphere(m, 1.0)
         self.assertTrue(m.closed())
 
+    def test_torus_closed(self):
+        m = mesh.Mesh()
+        mesh.primitives.add_torus(m, 3, 1, 100, 100)
+        self.assertTrue(m.closed())
+
     def test_something_not_closed(self):
         m = mesh.Mesh()
         v1 = m.add_vertex(0, 0, 0)
@@ -95,6 +100,21 @@ class SizeTests(TestCase):
         self.assertAlmostEqual(centroid2.y, centroid0.y)
         self.assertAlmostEqual(centroid2.z, centroid0.z)
   
+    def test_cylinder_centroids(self):
+        for (r,h,n) in [(10,100,50)]:
+            m = mesh.Mesh()
+            mesh.primitives.add_cylinder(m, r, h, n)
+            v = mesh.core.Vector(0,0,h/2)
+            self.assertAlmostEqualVector(m.surface_centroid(), v)
+            self.assertAlmostEqualVector(m.cylinder_centroid(), v)
+
+    def test_sphere_centroids(self):
+        m = mesh.Mesh()
+        v = mesh.core.Vector(23,45,67)
+        mesh.primitives.add_sphere(m,2.0,origin=v,detail_level=3)
+        self.assertAlmostEqualVector(m.solid_centroid(), v)
+        self.assertAlmostEqualVector(m.surface_centroid(), v)
+
     def test_cube_area(self):
         m = mesh.Mesh()
         mesh.primitives.add_cube(m, 100)
