@@ -82,6 +82,19 @@ class SizeTests(TestCase):
         volume = 2.942809041582063
         self.assertAlmostEqual(m.volume(), volume)
 
+    def test_cube_centroids(self):
+        m = mesh.Mesh()
+        mesh.primitives.add_cube(m, 100)
+        centroid0 = mesh.core.Vector(50.0,50.0,50.0)
+        centroid1 = m.solid_centroid()
+        centroid2 = m.surface_centroid()
+        self.assertAlmostEqual(centroid1.x, centroid0.x)
+        self.assertAlmostEqual(centroid1.y, centroid0.y)
+        self.assertAlmostEqual(centroid1.z, centroid0.z)
+        self.assertAlmostEqual(centroid2.x, centroid0.x)
+        self.assertAlmostEqual(centroid2.y, centroid0.y)
+        self.assertAlmostEqual(centroid2.z, centroid0.z)
+  
     def test_cube_area(self):
         m = mesh.Mesh()
         mesh.primitives.add_cube(m, 100)

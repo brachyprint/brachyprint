@@ -291,8 +291,43 @@ class Mesh(object):
         if not self.closed():
             raise ValueError("Can only compute the volume of meshes containing closed surfaces.")
 
-        volumes = [f.signed_volume() for f in self.faces]
-        return sum(volumes)
+        return sum(f.signed_volume() for f in self.faces)
+
+
+    def solid_centroid(self):
+        """
+        Calculate the centre of mass of the mesh, regarded as the
+        boundary of a uniform solid object.
+
+        :returns: Vector representing centre of mass.
+        """
+        if not self.closed():
+            raise ValueError("Can only compute the centroid of meshes representing closed surfaces")
+
+        vol = 0
+        pos = Vector(0,0,0)
+        for f in self.faces:
+            v = f.signed_volume()
+            vol += v
+            pos += f.centroid()*v
+        return pos*(3/(vol*4))
+
+
+    def surface_centroid(self):
+        """
+        Calculate the centre of mass of the mesh, regarded as a
+        uniform lamina.
+
+        :returns: Vector representing centre of mass.
+        """
+
+        area = 0
+        pos = Vector(0,0,0)
+        for f in self.faces:
+            a = f.area()
+            area += a
+            pos += f.centroid()*a
+        return pos/area
 
 
     def surface_area(self):
