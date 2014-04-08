@@ -12,6 +12,11 @@ import mesh
 
 class SizeTests(TestCase):
 
+    def assertAlmostEqualVector(self,u,v):
+        self.assertAlmostEqual(u.x,v.x)
+        self.assertAlmostEqual(u.y,v.y)
+        self.assertAlmostEqual(u.z,v.z)
+
     def test_cube_closed(self):
         m = mesh.Mesh()
         mesh.primitives.add_cube(m, 100)
@@ -59,17 +64,11 @@ class SizeTests(TestCase):
     def expected_cylinder_volume(self,r,h,n):
         return 0.5*r*r*sin(2*pi/n)*n*h
 
-    def test_cylinder_volume(self):
-        m = mesh.Mesh()
-        r,h,n = 10,100,100
-        mesh.primitives.add_cylinder(m,r,h,n)
-        self.assertAlmostEqual(m.volume(), self.expected_cylinder_volume(r,h,n))
-
-    def test_cylinder2_volume(self):
-        m = mesh.Mesh()
-        r,h,n = 10,100,10000
-        mesh.primitives.add_cylinder(m,r,h,n)
-        self.assertAlmostEqual(m.volume(), self.expected_cylinder_volume(r,h,n))
+    def test_cylinder_volumes(self):
+        for (r,h,n) in [(10,100,100),(10,100,250)]:
+            m = mesh.Mesh()
+            mesh.primitives.add_cylinder(m,r,h,n)
+            self.assertAlmostEqual(m.volume(), self.expected_cylinder_volume(r,h,n))
 
     def expected_octahedron_volume(self,r):
         return 4/3 * r**3
@@ -93,25 +92,28 @@ class SizeTests(TestCase):
         centroid0 = mesh.core.Vector(50.0,50.0,50.0)
         centroid1 = m.solid_centroid()
         centroid2 = m.surface_centroid()
-        self.assertAlmostEqual(centroid1.x, centroid0.x)
-        self.assertAlmostEqual(centroid1.y, centroid0.y)
-        self.assertAlmostEqual(centroid1.z, centroid0.z)
-        self.assertAlmostEqual(centroid2.x, centroid0.x)
-        self.assertAlmostEqual(centroid2.y, centroid0.y)
-        self.assertAlmostEqual(centroid2.z, centroid0.z)
+        self.assertAlmostEqualVector(centroid1, centroid0)
+        self.assertAlmostEqualVector(centroid2, centroid0)
   
     def test_cylinder_centroids(self):
         for (r,h,n) in [(10,100,50)]:
             m = mesh.Mesh()
             mesh.primitives.add_cylinder(m, r, h, n)
             v = mesh.core.Vector(0,0,h/2)
+            self.assertAlmostEqualVector(m.solid_centroid(), v)
             self.assertAlmostEqualVector(m.surface_centroid(), v)
-            self.assertAlmostEqualVector(m.cylinder_centroid(), v)
 
     def test_sphere_centroids(self):
         m = mesh.Mesh()
         v = mesh.core.Vector(23,45,67)
         mesh.primitives.add_sphere(m,2.0,origin=v,detail_level=3)
+        self.assertAlmostEqualVector(m.solid_centroid(), v)
+        self.assertAlmostEqualVector(m.surface_centroid(), v)        
+
+    def test_torus_centroids(self):
+        m = mesh.Mesh()
+        v = mesh.core.Vector(1,2,3)
+        mesh.primitives.add_torus(m, 3, 1, 20, 20, offset=v)
         self.assertAlmostEqualVector(m.solid_centroid(), v)
         self.assertAlmostEqualVector(m.surface_centroid(), v)
 
