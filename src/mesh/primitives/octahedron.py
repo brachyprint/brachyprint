@@ -18,17 +18,16 @@
 
 
 '''
-A sphere primitive.
+An octahedron primitive.
 '''
 
 from __future__ import division
 
 from mesh import Vector
-from math import sqrt
 
-def add_sphere(m, r, origin=Vector(0,0,0), detail_level=3):
+def add_octahedron(m, r, origin=Vector(0,0,0), detail_level=3):
     '''
-    Add a sphere to an existing mesh.
+    Add a cube to an existing mesh.
 
     Adapted from https://sites.google.com/site/dlampetest/python/triangulating-a-sphere-recursively
 
@@ -36,37 +35,23 @@ def add_sphere(m, r, origin=Vector(0,0,0), detail_level=3):
     :param: r -- radius
     '''
 
-    psi = (1.0 + sqrt(5))/2
-
-    icosahedron_vertices = [ 
-        Vector(-1.0, 0.0, psi), # 0
-        Vector( 1.0, 0.0, psi), # 1
-        Vector(-1.0, 0.0,-psi), # 2
-        Vector( 1.0, 0.0,-psi), # 3
-
-        Vector( 0.0, psi, 1.0), # 4
-        Vector( 0.0, psi,-1.0), # 5
-        Vector( 0.0,-psi, 1.0), # 6
-        Vector( 0.0,-psi,-1.0), # 7
-
-        Vector( psi, 1.0, 0.0), # 8
-        Vector(-psi, 1.0, 0.0), # 9
-        Vector( psi,-1.0, 0.0), # 10
-        Vector(-psi,-1.0, 0.0)  # 11
+    octahedron_vertices = [ 
+        Vector( 1.0, 0.0, 0.0), # 0 
+        Vector(-1.0, 0.0, 0.0), # 1
+        Vector( 0.0, 1.0, 0.0), # 2 
+        Vector( 0.0,-1.0, 0.0), # 3
+        Vector( 0.0, 0.0, 1.0), # 4 
+        Vector( 0.0, 0.0,-1.0)  # 5                                
         ]
-
-    for i in range(len(icosahedron_vertices)):
-        icosahedron_vertices[i] = icosahedron_vertices[i].normalise()
-
-    icosahedron_triangles = [ 
-        #[0,4,1],  [0,9,4],  [9,5,4],  [4,5,8],  [4,8,1],    
-        [0,1,4],  [0,4,9],  [9,4,5],  [4,8,5],  [4,1,8],    
-        #[8,10,1], [8,3,10], [5,3,8],  [5,2,3],  [2,7,3],    
-        [8,1,10], [8,10,3], [5,8,3],  [5,3,2],  [2,3,7],    
-        #[7,10,3], [7,6,10], [7,11,6], [11,0,6], [0,1,6], 
-        [7,3,10], [7,10,6], [7,6,11], [11,6,0], [0,6,1], 
-        #[6,1,10], [9,0,11], [9,11,2], [9,2,5],  [7,2,11]]
-        [6,10,1], [9,11,0], [9,2,11], [9,5,2],  [7,11,2]]
+    octahedron_triangles = [ 
+        [ 0, 2, 4 ],
+        [ 2, 1, 4 ],
+        [ 1, 3, 4 ],
+        [ 3, 0, 4 ],
+        [ 0, 5, 2 ],
+        [ 2, 5, 1 ],
+        [ 1, 5, 3 ],
+        [ 3, 5, 0 ]]
 
     def divide_all( vertices, triangles ):    
         # Subdivide each triangle in the old approximation and normalize
@@ -116,7 +101,7 @@ def add_sphere(m, r, origin=Vector(0,0,0), detail_level=3):
         return v_new, faces
 
 
-    vertices, faces = icosahedron_vertices, icosahedron_triangles
+    vertices, faces = octahedron_vertices, octahedron_triangles
     for i in range(detail_level - 1):
         vertices, faces = divide_all(vertices, faces)
 

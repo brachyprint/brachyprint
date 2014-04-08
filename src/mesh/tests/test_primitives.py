@@ -1,4 +1,4 @@
-"""Unit testing for the Vector class
+"""Unit testing for the mesh primitives class
 """
 
 from __future__ import division
@@ -20,6 +20,11 @@ class SizeTests(TestCase):
     def test_cube_closed(self):
         m = mesh.Mesh()
         mesh.primitives.add_cube(m, 100)
+        self.assertTrue(m.closed())
+
+    def test_octrahedron_closed(self):
+        m = mesh.Mesh()
+        mesh.primitives.add_octahedron(m, 1.0)
         self.assertTrue(m.closed())
 
     def test_cylinder_closed(self):
@@ -54,7 +59,7 @@ class SizeTests(TestCase):
         mesh.primitives.add_cube(m, l)
         self.assertAlmostEqual(m.volume(), self.expected_cube_volume(l))
 
-    def test_cube1_volume(self):
+    def test_cube2_volume(self):
         m = mesh.Mesh()
         l = 100
         o = [10, 20, 99]
@@ -76,20 +81,31 @@ class SizeTests(TestCase):
     def test_octahedron_volume(self):
         m = mesh.Mesh()
         r = 1
-        mesh.primitives.add_sphere(m, r, detail_level=1)
+        mesh.primitives.add_octahedron(m, r, detail_level=1)
         self.assertAlmostEqual(m.volume(), self.expected_octahedron_volume(r))
 
-    def test_sphere_volume(self):
+    def test_octahedron2_volume(self):
         m = mesh.Mesh()
-        mesh.primitives.add_sphere(m, 1.0, detail_level=2)
+        v = mesh.Vector(-9, 7, 22)
+        mesh.primitives.add_octahedron(m, 1.0, origin=v, detail_level=2)
         # XXX: this should really be calculated
         volume = 2.942809041582063
         self.assertAlmostEqual(m.volume(), volume)
 
+    def expected_icosahedron_volume(self,r):
+        # XXX: can this be simplified?
+        return 5/12 * (3 + sqrt(5)) * (r * 4 / sqrt(10 + 2 * sqrt(5)))**3
+
+    def test_icosahedron_volume(self):
+        m = mesh.Mesh()
+        r = 1
+        mesh.primitives.add_sphere(m, r, detail_level=1)
+        self.assertAlmostEqual(m.volume(), self.expected_icosahedron_volume(r))
+
     def test_cube_centroids(self):
         m = mesh.Mesh()
         mesh.primitives.add_cube(m, 100)
-        centroid0 = mesh.core.Vector(50.0,50.0,50.0)
+        centroid0 = mesh.Vector(50.0,50.0,50.0)
         centroid1 = m.solid_centroid()
         centroid2 = m.surface_centroid()
         self.assertAlmostEqualVector(centroid1, centroid0)
@@ -99,20 +115,20 @@ class SizeTests(TestCase):
         for (r,h,n) in [(10,100,50)]:
             m = mesh.Mesh()
             mesh.primitives.add_cylinder(m, r, h, n)
-            v = mesh.core.Vector(0,0,h/2)
+            v = mesh.Vector(0,0,h/2)
             self.assertAlmostEqualVector(m.solid_centroid(), v)
             self.assertAlmostEqualVector(m.surface_centroid(), v)
 
     def test_sphere_centroids(self):
         m = mesh.Mesh()
-        v = mesh.core.Vector(23,45,67)
+        v = mesh.Vector(23,45,67)
         mesh.primitives.add_sphere(m,2.0,origin=v,detail_level=3)
         self.assertAlmostEqualVector(m.solid_centroid(), v)
-        self.assertAlmostEqualVector(m.surface_centroid(), v)        
+        self.assertAlmostEqualVector(m.surface_centroid(), v)
 
     def test_torus_centroids(self):
         m = mesh.Mesh()
-        v = mesh.core.Vector(1,2,3)
+        v = mesh.Vector(1,2,3)
         mesh.primitives.add_torus(m, 3, 1, 20, 20, offset=v)
         self.assertAlmostEqualVector(m.solid_centroid(), v)
         self.assertAlmostEqualVector(m.surface_centroid(), v)
@@ -144,9 +160,18 @@ class SizeTests(TestCase):
     def test_octahedron_area(self):
         m = mesh.Mesh()
         r = 1
-        mesh.primitives.add_sphere(m, r, detail_level=1)
+        mesh.primitives.add_octahedron(m, r, detail_level=1)
         self.assertAlmostEqual(m.surface_area(), self.expected_octahedron_area(r))
 
+    def expected_icosahedron_area(self,r):
+        # XXX: can this be simplified?
+        return 5*sqrt(3)*(r * 4 / sqrt(10 + 2*sqrt(5)))**2
+
+    def test_icosahedron_area(self):
+        m = mesh.Mesh()
+        r = 1
+        mesh.primitives.add_sphere(m, r, detail_level=1)
+        self.assertAlmostEqual(m.surface_area(), self.expected_icosahedron_area(r))
 
 if __name__ == '__main__':
     main()
