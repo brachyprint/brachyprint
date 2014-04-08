@@ -105,11 +105,15 @@ def add_sphere(m, r, origin=Vector(0,0,0), detail_level=3):
     for i in range(detail_level - 1):
         vertices, faces = divide_all(vertices, faces)
 
+    # apply a translation to the vertices
+    for i in range(len(vertices)):
+        vertices[i] = vertices[i]*r + origin
+
     # create all the vertices
     for i in range(len(vertices)):
         v_e = m.get_vertex(vertices[i])
         if v_e is None:
-            vertices[i] = m.add_vertex(vertices[i]*r + origin)
+            vertices[i] = m.add_vertex(vertices[i])
         else:
             vertices[i] = v_e
 
