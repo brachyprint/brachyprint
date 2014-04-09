@@ -4,5 +4,5 @@ GUI
 
 """
 
-from thread_dispatcher import ThreadDispatcher
+from thread_runner import ThreadRunner
 
