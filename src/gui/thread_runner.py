@@ -79,3 +79,47 @@ class ThreadRunner(wx.EvtHandler):
     def stop(self):
         self._stopped = True
 
+
+class ThreadProgressDialog(ThreadRunner):
+    '''
+    Example usage:
+
+    wx.Window()...
+        self.thread = ThreadProgressDialog(self, work)
+        self.thread.start()
+    '''
+
+    def __init__(self, parent, generator):
+        super(ThreadProgressDialog, self).__init__(generator, self.destroy_dialog, self.display_progress)
+
+        self.dlg = None
+        self.parent = parent
+
+
+    def display_progress(self, ret):
+        if self.dlg:
+            (tocontinue, skip) = self.dlg.Update(ret[0])
+            if not tocontinue:
+                self.stop()
+
+    def destroy_dialog(self):
+        self.dlg.Destroy()
+        self.dlg = None
+
+    def start(self, *args, **kwargs):
+        self.dlg = wx.ProgressDialog("Please wait...",
+                               "",
+                               maximum = 10,
+                               parent=self.parent,
+                               style = 0
+                                | wx.PD_APP_MODAL
+                                | wx.PD_CAN_ABORT
+                                #| wx.PD_CAN_SKIP
+                                #| wx.PD_ELAPSED_TIME
+                                | wx.PD_ESTIMATED_TIME
+                                | wx.PD_REMAINING_TIME
+                                #| wx.PD_AUTO_HIDE
+                                )
+
+        super(ThreadProgressDialog, self).start(*args, **kwargs)
+
