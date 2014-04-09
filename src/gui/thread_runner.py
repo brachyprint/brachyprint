@@ -4,6 +4,9 @@ import wx.lib.newevent
 
 from threading import Thread, current_thread
 
+import time
+
+
 class ThreadRunner(wx.EvtHandler):
     '''
     A thread runner.
@@ -36,7 +39,6 @@ class ThreadRunner(wx.EvtHandler):
             event.args = {}
         if not hasattr(event, 'kwargs'):
             event.kwargs = {}
-        print current_thread()
         event.func(*event.args, **event.kwargs)
 
 
@@ -53,12 +55,13 @@ class ThreadRunner(wx.EvtHandler):
     def _start(self, *args, **kwargs):
         self._stopped = False
         for ret in self.generator(*args, **kwargs):
-            print current_thread()
             if self._stopped:
                 break
                 #thread.exit()
             if self.loop_callback is not None:
                 self._loop(ret)
+        # XXX: hack to stop wxProgressDialog from misordering Update() and Destroy(). Sigh.
+        time.sleep(0.1)
         if self.callback is not None:
             wx.PostEvent(self.evt_handler, self.ThreadedResultEvent(func=self.callback))
 
