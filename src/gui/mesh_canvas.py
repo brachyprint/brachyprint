@@ -46,8 +46,7 @@ class MeshCanvas(glcanvas.GLCanvas):
         glcanvas.GLCanvas.__init__(self, parent, -1, attribList=(glcanvas.WX_GL_DOUBLEBUFFER, ))
         self.init = False
 
-        #self.triangleList = {}
-        #self.vertexList = {}
+        self.displayObjects = None
 
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
         self.Bind(wx.EVT_SIZE, self.OnSize)
@@ -68,9 +67,6 @@ class MeshCanvas(glcanvas.GLCanvas):
         '''Set the controller class for the view (MVC pattern).
         '''
         self.controller = controller
-
-    #def updateViewPort(self, viewport):
-    #    self.viewport = viewport
 
     def OnKeyPress(self, event):
         '''Propagate KeyPress events to the controller.
@@ -172,15 +168,8 @@ class MeshCanvas(glcanvas.GLCanvas):
             
             if visible:
                 glCallList(obj["list"])
-        if False:
-            glMatrixMode(GL_MODELVIEW)
-            for name in self.meshes.keys():
-                if self.meshPanel.getShowVertices(name): 
-                    glCallList(self.vertexList[name])
-            for roiGUI in self.roiGUIs.values():
-                glCallList(roiGUI.sphere_list)
-                glCallList(roiGUI.line_list)
 
+        # TODO:
         #if self.parent.showgrid.GetValue():
         #    self.drawXAxisGrid()
         #    self.drawYAxisGrid()
