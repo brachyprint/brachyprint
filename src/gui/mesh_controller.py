@@ -29,6 +29,8 @@ import mesh
 from gui import RoiGUI
 from settings import *
 
+from mesh_display import MeshCollectionDisplay
+
 # TODO:
 import wx
 
@@ -55,69 +57,6 @@ class renderOneBlock:
                 glVertex(v.x, v.y, v.z)
             glEnd()
             glPopName()
-
-
-class Range3d(object):
-    def __init__(self, maxX, minX, maxY, minY, maxZ, minZ):
-        self.max_X = maxX
-        self.min_X = minX
-        self.max_Y = maxY
-        self.min_Y = minY
-        self.max_Z = maxZ
-        self.min_Z = minZ
-
-    def rangex(self):
-        return self.max_X - self.min_X
-
-    def rangey(self):
-        return self.max_Y - self.min_Y
-
-    def rangez(self):
-        return self.max_Z - self.min_Z
-
-    def meanx(self):
-        return (self.max_X + self.min_X) / 2
-
-    def meany(self):
-        return (self.max_Y + self.min_Y) / 2
-
-    def meanz(self):
-        return (self.max_Z + self.min_Z) / 2
-
-    def range_max(self):
-        return (self.rangex() ** 2 + self.rangey() ** 2 + self.rangez() ** 2) ** 0.5
-
-
-class MeshCollection(Range3d):
-    def __init__(self, d={}):
-        self.meshes = d
-
-        max_X = max([m.maxX for m in self.meshes.values()])
-        min_X = min([m.minX for m in self.meshes.values()])
-        max_Y = max([m.maxY for m in self.meshes.values()])
-        min_Y = min([m.minY for m in self.meshes.values()])
-        max_Z = max([m.maxZ for m in self.meshes.values()])
-        min_Z = min([m.minZ for m in self.meshes.values()])
-
-        super(MeshCollection, self).__init__(min_X, max_X, min_Y, max_Y, min_Z, max_Z)
-
-    def items(self):
-        return self.meshes.items()
-    
-    def keys(self):
-        return self.meshes.keys()
-
-    def add_mesh(self, m, name):
-        self.meshes[name] = m
-        self.max_X = max(self.max_X, m.maxX)
-        self.min_X = min(self.min_X, m.minX)
-        self.max_Y = max(self.max_Y, m.maxY)
-        self.min_Y = min(self.min_Y, m.minY)
-        self.max_Z = max(self.max_Z, m.maxZ)
-        self.min_Z = min(self.min_Z, m.minZ)
-
-    def __getitem__(self, it):
-        return self.meshes[it]
 
 
 class ViewPort(object):
@@ -150,7 +89,7 @@ class ViewPort(object):
             return self.scale
         else:
             return self.scale * self.height / self.width
-    
+
 
 class MeshController(object):
 
@@ -164,10 +103,11 @@ class MeshController(object):
         self.meshPanel = meshPanel
 
         # the associated mesh objects (`model')
-        self.meshes = MeshCollection(meshes)
+        self.meshes = MeshCollectionDisplay(meshes)
 
-        self.mainList = {}
-        self.vertexList = {}
+        self.tools = {}
+        self.currentTool = None
+
         self.roiGUIs = {}
         for roiname, roi in rois.items():
             self.roiGUIs[roiname] = RoiGUI(mesh = self.meshes[roi["meshname"]], **roi)
@@ -189,9 +129,6 @@ class MeshController(object):
         self.viewport.range_max = self.meshes.range_max()
 
     def InitGL(self):
-        for key, mesh in self.meshes.items():
-            self.mainList[key] = self.faceListInit(mesh)
-            self.vertexList[key] = self.vertexListInit(mesh)
 
         # TODO: push into tools
         for roiname, roigui in self.roiGUIs.items():
@@ -204,19 +141,11 @@ class MeshController(object):
 
     def draw(self):
 
-        objs = {}
+        objs = self.meshes.get_display_objects()
 
-        for key, mesh in self.meshes.items():
-            objs[key] = {}
-            objs[key]["matrix_mode"] = GL_PROJECTION
-            objs[key]["style"] = "Red"
-            objs[key]["visible"] = True
-            objs[key]["list"] = self.mainList[key]
-            objs[key+"_vertices"] = {}
-            objs[key+"_vertices"]["matrix_mode"] = GL_PROJECTION
-            objs[key+"_vertices"]["style"] = "Red"
-            objs[key+"_vertices"]["visible"] = True
-            objs[key+"_vertices"]["list"] = self.vertexList[key]
+        #for tool in self.tools:
+        #    obj = tool.get_display_objects()
+        #    objs.update(obj)
 
         i = 0
         for roiGUI in self.roiGUIs.values():
@@ -232,19 +161,15 @@ class MeshController(object):
             objs[key+"_lines"]["style"] = "Red"
             objs[key+"_lines"]["visible"] = True
             objs[key+"_lines"]["list"] = roiGUI.line_list
-        #    glCallList(roiGUI.sphere_list)
-        #    glCallList(roiGUI.line_list)
 
         self.objs = objs
 
         self.view.displayObjects = objs
-        #self.view.OnPaint(None)
-        #for roiname, roigui in self.roiGUIs.items():
-        #    roigui.InitGL()
-        
+
     def hit_location(self, meshname):
         #Find block
-        hits = self.view.hit(self.x, self.y, opengl_list(self.mainList[meshname]), self.mainNumNames)
+        mainList = self.view.displayObjects[meshname]["list"]
+        hits = self.view.hit(self.x, self.y, opengl_list(mainList), self.meshes.mainNumNames)
         if hits:
             x, y, z = gluUnProject(self.x, self.viewport.height - self.y, hits[0][0])
             #Find triangle
@@ -261,13 +186,22 @@ class MeshController(object):
         self.view.displayObjects = self.objs
         self.view.Refresh()
 
-    def addTool(self, tool):
-        pass
+    def addTool(self, name, tool):
+        self.tools[name] = tool
+
+    def selectTool(self, name):
+        self.currentTool = self.tools[name]
 
     def OnKeyPress(self, event):
         '''Receive keypress events from the view.
         '''
         keycode = event.GetKeyCode()
+
+        if self.currentTool:
+            try:
+                self.currentTool.OnKeyPress(keycode, event)
+            except AttributeError:
+                pass
 
         # TODO: split this into the tool classes
         if keycode == wx.WXK_DELETE:
@@ -296,7 +230,6 @@ class MeshController(object):
         self.viewport.setSize(size)
 
         self.view.updateViewPort()
-        
 
     def updateView(self):
         self.view.updateViewPort()
@@ -313,6 +246,14 @@ class MeshController(object):
 
         self.x, self.y = self.lastx, self.lasty = event.GetPosition()
 
+        if self.currentTool:
+            try:
+                self.currentTool.OnMouseDown(self.x, self.y, self.lastx, self.lasty, event)
+            except AttributeError:
+                pass
+
+
+        # TODO:
         mode = self.modePanel.GetMode()
         if event.LeftIsDown():
             if mode[0] == "Edit":
@@ -373,6 +314,12 @@ class MeshController(object):
 
     def OnMouseUp(self, event):
 
+        if self.currentTool:
+            try:
+                self.currentTool.OnMouseUp(event)
+            except AttributeError:
+                pass
+
         mode = self.modePanel.GetMode()
         if mode == "Rubber Band" and self.sphere_selection is not None:
             self.placeSphere(int(self.sphere_selection))
@@ -381,9 +328,15 @@ class MeshController(object):
             return True
 
     def OnMouseMotion(self, event):
+        self.lastx, self.lasty = self.x, self.y
+        self.x, self.y = event.GetPosition()
+        if self.currentTool:
+            try:
+                self.currentTool.OnMouseMotion(self.x, self.y, self.lastx, self.lasty, event)
+            except AttributeError:
+                pass
+
         if event.Dragging() and event.LeftIsDown():
-            self.lastx, self.lasty = self.x, self.y
-            self.x, self.y = event.GetPosition()
             mode = self.modePanel.GetMode()
             if mode == "Rotate":
                 self.viewport.theta += 0.1 * (self.y - self.lasty)
@@ -395,42 +348,5 @@ class MeshController(object):
                 self.placeSphere(int(self.sphere_selection))
                 self.compile_band()
             return True
-
-    def faceListInit(self, mesh):
-        faceList = glGenLists(1)
-        glNewList(faceList, GL_COMPILE)
-        blocks = range(int(1 + len(mesh.faces) / BLOCKSIZE))
-        for name, subvol in [(n, mesh.faces[n * BLOCKSIZE: (n+1) * BLOCKSIZE]) for n in blocks]:
-            glPushName(name)
-            glBegin(GL_TRIANGLES)
-            for f in subvol:
-                n = f.normal.normalise()
-                glNormal3f(n.x, n.y, n.z)
-                assert len(f.vertices) == 3
-                for v in f.vertices:
-                    #n = v.normal()
-                    #glNormal3f(n.x, n.y, n.z)
-                    glVertex(v.x, v.y, v.z)
-            glEnd()
-            glPopName()
-        glEndList()
-        self.mainNumNames = len(blocks)
-        return faceList
-
-    def vertexListInit(self, mesh):
-        vertexList = glGenLists(1)
-        glNewList(vertexList, GL_COMPILE)
-        glMatrixMode(GL_MODELVIEW)
-        for i, v in enumerate(mesh.vertices):
-            glPushMatrix()
-            glPushName(i)
-            glTranslatef(v[0], v[1], v[2])
-            glColor3f(0.2,1,0.2)
-            glutSolidSphere(3, 10, 10)
-            glPopName()
-            glPopMatrix()
-        glEndList()
-
-        return vertexList
 
 
