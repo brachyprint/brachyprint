@@ -1,8 +1,14 @@
 # Compiled binaries
 bin/
 
+# Compiled documentation
+doc/_build/
+
 # Datasets
 data/
+
+# Output data
+output/
 
 # Unwanted Python files
 # Byte-compiled / optimized / DLL files
@@ -14,3 +20,7 @@ __pycache__/
 
 # Unwanted vim files
 *.swp
+
+# Screenshots
+screenshot.jpg
+
