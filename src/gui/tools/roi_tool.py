@@ -53,7 +53,6 @@ class RoiTool(GuiTool):
         else:
             return ["Edit " + self.name]
 
-
     def select(self, subtool):
         self.mode = subtool
 
@@ -118,14 +117,14 @@ class RoiTool(GuiTool):
                     roiGUI.update()
                 elif line_hits and roiGUI.current_point_index is None:
                     roi, index =  roiGUI.linelookup[line_hits[0][2][0]]
-                    face_hit = self.controller.hit_location(roiGUI.meshname) 
+                    face_hit = self.controller.hit_location(roiGUI.meshname)
                     if face_hit:
                         x, y, z, triangle_name = face_hit
                         roiGUI.current_roi = roi
-                        roiGUI.new_point(x, y, z, triangle_name, index = index)  
+                        roiGUI.new_point(x, y, z, triangle_name, index = index)
                         roiGUI.update()
                 else:
-                    face_hit = self.controller.hit_location(roiGUI.meshname)           
+                    face_hit = self.controller.hit_location(roiGUI.meshname)
                     if face_hit:
                         x, y, z, triangle_name = face_hit
                         if roiGUI.current_roi is None:
