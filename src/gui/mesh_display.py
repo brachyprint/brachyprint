@@ -103,8 +103,24 @@ class MeshCollectionDisplay(MeshCollection):
         super(MeshCollectionDisplay, self).__init__(d)
         self.displayObjects = None
 
+        # OpenGL display lists
+        self.mainList = {}
+        self.vertexList = {}
+
+        # display styles
+        self.style = {}
+        self.visible = {}
+        self.vertices = {}
+        for name in d.keys():
+            self.style[name] = "Red"
+            self.visible[name] = True
+            self.vertices[name] = False
+
     def add_mesh(self, m, name):
         super(MeshCollectionDisplay, self).add_mesh(m, name)
+        self.style[name] = "Red"
+        self.visible[name] = True
+        self.vertices[name] = False
 
     def get_display_objects(self):
         if self.displayObjects is None:
@@ -114,22 +130,22 @@ class MeshCollectionDisplay(MeshCollection):
     def _build_display_objects(self):
         '''Build a list of display objects based on the meshes in the collection.
         '''
-        self.mainList = {}
-        self.vertexList = {}
         for key, mesh in self.meshes.items():
-            self.mainList[key] = self.faceListInit(mesh)
-            self.vertexList[key] = self.vertexListInit(mesh)
+            if not key in self.mainList:
+                self.mainList[key] = self.faceListInit(mesh)
+            if not key in self.vertexList:
+                self.vertexList[key] = self.vertexListInit(mesh)
         objs = {}
         for key, mesh in self.meshes.items():
             objs[key] = {}
             objs[key]["matrix_mode"] = GL_PROJECTION
-            objs[key]["style"] = "Red"
-            objs[key]["visible"] = True
+            objs[key]["style"] = self.style[key]
+            objs[key]["visible"] = self.visible[key]
             objs[key]["list"] = self.mainList[key]
             objs[key+"_vertices"] = {}
             objs[key+"_vertices"]["matrix_mode"] = GL_PROJECTION
             objs[key+"_vertices"]["style"] = "Red"
-            objs[key+"_vertices"]["visible"] = True
+            objs[key+"_vertices"]["visible"] = self.vertices[key]
             objs[key+"_vertices"]["list"] = self.vertexList[key]
 
         self.displayObjects = objs
@@ -168,4 +184,16 @@ class MeshCollectionDisplay(MeshCollection):
         glEndList()
 
         return vertexList
+
+    def setStyle(self, name, style):
+        self.style[name] = style
+        self.displayObjects = None
+
+    def setVisible(self, name, visible):
+        self.visible[name] = visible
+        self.displayObjects = None
+
+    def setVerticesVisible(self, name, vertices):
+        self.vertices[name] = vertices
+        self.displayObjects = None
 

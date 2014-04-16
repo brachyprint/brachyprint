@@ -11,58 +11,62 @@ from math import pi, acos, sin, cos, ceil, floor
 from itertools import chain
 from settings import *
 from copy import copy
+import re
 
 from gui import MeshCanvas
 from gui import MeshController
 
+from gui.tools import RotateTool, ZoomTool, EditRoiTool
 
 class ModePanel(wx.Panel):
-           
-    def __init__(self, parent, rois, *args, **kw):
+    """A class to select the current tool.
+    """
+    def __init__(self, parent, controller, tools, *args, **kw):
         super(ModePanel, self).__init__(parent, *args, **kw) 
-        self.rois = rois
-        self.InitUI()
-        
-    def InitUI(self):
-        box = wx.BoxSizer(wx.VERTICAL)   
-        self.rb_rotate = wx.RadioButton(self, label='Rotate',  style=wx.RB_GROUP)
-        self.rb_zoom = wx.RadioButton(self, label='Zoom')
-        self.rb_edits = {}
-        self.rb_selects = {}
-        box.Add(self.rb_rotate, 0.5, wx.EXPAND)
-        box.Add(self.rb_zoom, 0.5, wx.EXPAND)
-        for roiname, roi in self.rois.items():
-            self.rb_edits[roiname] = wx.RadioButton(self, label='Edit %s' % roiname)
-            box.Add(self.rb_edits[roiname], 0.5, wx.EXPAND)
-            if roi.has_key("onSelect"):
-                self.rb_selects[roiname] = wx.RadioButton(self, label='Select %s' % roiname)
-                box.Add(self.rb_selects[roiname], 0.5, wx.EXPAND)
+        self.controller = controller
+        self.tools = tools
+        self._initUI()
+
+    def getOnChangedHandler(self, tool, subtool):
+        def OnChanged(event):
+            self.controller.selectTool(tool, subtool)
+        return OnChanged
+
+    def _initUI(self):
+        box = wx.BoxSizer(wx.VERTICAL)
+        self.rb = {}
+        style = wx.RB_GROUP
+        for i in range(len(self.tools)):
+            name = self.tools[i].name
+            subtools = self.tools[i].getSubTools()
+            for j in range(len(subtools)):
+                label = subtools[j]
+                self.rb[label] = wx.RadioButton(self, label=label, style=style, name=name)
+                style = 0 # only apply the RB_GROUP style to the first RadioButton
+                box.Add(self.rb[label], 0.5, wx.EXPAND)
+                self.rb[label].Bind(wx.EVT_RADIOBUTTON, self.getOnChangedHandler(name, j))
+
         self.SetAutoLayout(True)
         self.SetSizer(box)
         self.Layout()
 
-    def GetMode(self):
-        if self.rb_rotate.GetValue():  return "Rotate"
-        if self.rb_zoom.GetValue(): return "Zoom"  
-        for roiname, rb in self.rb_edits.items(): 
-            if rb.GetValue(): return "Edit", roiname  
-        for roiname, rb in self.rb_selects.items(): 
-            if rb.GetValue(): return "Select", roiname
+        self.controller.selectTool(self.tools[0].name)
+
 
 class MeshPanel(wx.Panel):
-    '''
-        MeshPanel -- display a panel of information about the loaded meshes
-    '''
-    def __init__(self, parent, meshnames, *args, **kw):
+    """MeshPanel -- display a panel of information about the loaded meshes
+    """
+    def __init__(self, parent, controller, meshnames, *args, **kw):
         self.parent = parent
+        self.controller = controller
         self.meshnames = meshnames
         self.cbs = {}
         self.visible = {}
         self.vertices = {}
-        super(MeshPanel, self).__init__(parent, *args, **kw) 
-        self.InitUI()
+        super(MeshPanel, self).__init__(parent, *args, **kw)
+        self._initUI()
         
-    def InitUI(self):   
+    def _initUI(self):   
         self.box = wx.GridBagSizer(3, 10)
 
         titles = ["Name", "Show?", "Vertices?", "Colour"]
@@ -85,15 +89,15 @@ class MeshPanel(wx.Panel):
     def addMesh(self, meshname):
         styles = ["Red", "Blue"]
 
-        self.cbs[meshname] = wx.ComboBox(self, -1, choices=styles, style=wx.CB_READONLY)
+        self.cbs[meshname] = wx.ComboBox(self, -1, choices=styles, style=wx.CB_READONLY, name=meshname+"_style")
         width, height = self.cbs[meshname].GetSize()
         dc = wx.ClientDC (self.cbs[meshname])
         tsize = max ( (dc.GetTextExtent (c)[0] for c in styles) )
         self.cbs[meshname].SetMinSize((tsize+50, height))
         self.cbs[meshname].SetStringSelection(styles[0])
-        self.visible[meshname] = wx.CheckBox(self, -1, "")
+        self.visible[meshname] = wx.CheckBox(self, -1, "", name=meshname+"_visible")
         self.visible[meshname].SetValue(True)
-        self.vertices[meshname] = wx.CheckBox(self, -1, "")
+        self.vertices[meshname] = wx.CheckBox(self, -1, "", name=meshname+"_vertices")
         self.vertices[meshname].SetValue(False)
         self.box.Add(wx.StaticText(self, -1, meshname), wx.GBPosition(self.cols, 0), flag=wx.ALIGN_CENTER_VERTICAL)
         self.box.Add(self.visible[meshname], wx.GBPosition(self.cols, 1), flag=wx.ALIGN_CENTER_VERTICAL)
@@ -101,34 +105,54 @@ class MeshPanel(wx.Panel):
         self.box.Add(self.cbs[meshname], wx.GBPosition(self.cols, 3), flag=wx.ALIGN_CENTER_VERTICAL)
         self.cols += 1
 
-    def getStyle(self, meshname):
-        return self.cbs[meshname].GetValue()
-
-    def getVisible(self, meshname):
-        return self.visible[meshname].GetValue()
-
-    def getShowVertices(self, meshname):
-        return self.vertices[meshname].GetValue()
+        # enact defaults
+        self.controller.setVisible(meshname, True)
+        self.controller.setVerticesVisible(meshname, False)
+        self.controller.setStyle(meshname, styles[0])
 
     def OnChange(self, event):
-        #self.parent.Refresh()
-        self.parent.meshPanelChange()
+        obj = event.GetEventObject()
+        name = obj.GetName()
+        if re.match(".*_visible$", name):
+            name = re.sub("_visible$", "", name)
+            self.controller.setVisible(name, obj.GetValue())
+        elif re.match(".*_vertices$", name):
+            name = re.sub("_vertices$", "", name)
+            self.controller.setVerticesVisible(name, obj.GetValue())
+        elif re.match(".*_style$", name):
+            name = re.sub("_style$", "", name)
+            self.controller.setStyle(name, obj.GetValue())
+        else:
+            return
+        self.controller.Refresh()
 
 
 class MainWindow(wx.Frame):
-    def __init__(self, parent = None, id = -1, title = "Brachyprint mould viewer", rois = [], meshes={}):
+    def __init__(self, parent = None, id = -1, title = "Brachyprint mould viewer", rois = [], meshes={}, tools=[RotateTool("Rotate"), ZoomTool("Zoom")]):
         # Init
         wx.Frame.__init__(
                 self, parent, id, title, size = (400,300),
                 style = wx.DEFAULT_FRAME_STYLE | wx.NO_FULL_REPAINT_ON_RESIZE
         )
 
-        # TextCtrl
-        # self.control = wx.TextCtrl(self, -1, style = wx.TE_MULTILINE)
+        i=0
+        for name, roi in rois.items():
+            i+=1
+            tools.append(EditRoiTool(name, roi))
 
-        #self.control = ConeCanvas(self)
-        self.modePanel = ModePanel(self, rois)
-        self.meshPanel = MeshPanel(self, meshes.keys(), style=wx.SUNKEN_BORDER)
+        # create the mesh view widget and controller
+        self.meshes = meshes
+        self.meshCanvas = MeshCanvas(self)
+        self.meshController = MeshController(self.meshCanvas, self.meshes)
+        self.meshCanvas.setController(self.meshController)
+
+        # add the GUI tools to the controller
+        for tool in tools:
+            self.meshController.addTool(tool)
+
+        # create the panels to select the mesh options and the GUI tool
+        self.meshPanel = MeshPanel(self, self.meshController, meshes.keys(), style=wx.SUNKEN_BORDER)
+        self.modePanel = ModePanel(self, self.meshController, tools)
 
         vbox = wx.BoxSizer(wx.VERTICAL)
         box = wx.BoxSizer(wx.HORIZONTAL)
@@ -143,11 +167,6 @@ class MainWindow(wx.Frame):
 
         box.Add(vbox, 0.5, wx.EXPAND)
 
-        # create the meshes
-        self.meshes = meshes
-        self.meshCanvas = MeshCanvas(self)
-        self.meshController = MeshController(self.meshCanvas, self.meshes, rois, self.modePanel, self.meshPanel)
-        self.meshCanvas.setController(self.meshController)
         box.Add(self.meshCanvas, 1, wx.EXPAND)
 
         self.meshPanel.parent = self.meshController

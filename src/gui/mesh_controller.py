@@ -31,15 +31,13 @@ from settings import *
 
 from mesh_display import MeshCollectionDisplay
 
-# TODO:
-import wx
-
 
 class opengl_list:
     def __init__(self, list_):
         self.list = list_
     def __call__(self):
         glCallList(self.list)
+
 
 class renderOneBlock:
     """A volume is split into multiple blocks, each containing BLOCKSIZE triangles"""
@@ -93,14 +91,10 @@ class ViewPort(object):
 
 class MeshController(object):
 
-    def __init__(self, view, meshes, rois, modePanel, meshPanel):
+    def __init__(self, view, meshes):
 
         # the associated MeshCanvas widget (`view')
         self.view = view
-
-        # TODO: push into tools?
-        self.modePanel = modePanel
-        self.meshPanel = meshPanel
 
         # the associated mesh objects (`model')
         self.meshes = MeshCollectionDisplay(meshes)
@@ -108,9 +102,6 @@ class MeshController(object):
         self.tools = {}
         self.currentTool = None
 
-        self.roiGUIs = {}
-        for roiname, roi in rois.items():
-            self.roiGUIs[roiname] = RoiGUI(mesh = self.meshes[roi["meshname"]], **roi)
         self.band = []
 
         # initial mouse position
@@ -121,46 +112,26 @@ class MeshController(object):
         self.view.viewport = self.viewport
         self.viewport.range_max = self.meshes.range_max()
 
-        #self.meshPanel.Bind(wx.EVT_COMBOBOX, self.meshPanelChange)
-        #self.meshPanel.Bind(wx.EVT_CHECKBOX, self.meshPanelChange)
-
     def addMesh(self, mesh, name):
         self.meshes.add_mesh(mesh)
         self.viewport.range_max = self.meshes.range_max()
 
     def InitGL(self):
 
-        # TODO: push into tools
-        for roiname, roigui in self.roiGUIs.items():
-            roigui.InitGL()
+        for tool in self.tools.values():
+            tool.initDisplay()
 
         self.viewport.tx, self.viewport.ty, self.viewport.tz = -self.meshes.meanx(), -self.meshes.meany(), -self.meshes.meanz()
 
-        self.draw()
-        self.meshPanelChange()
+        self.Refresh()
 
     def draw(self):
 
         objs = self.meshes.get_display_objects()
 
-        #for tool in self.tools:
-        #    obj = tool.get_display_objects()
-        #    objs.update(obj)
-
-        i = 0
-        for roiGUI in self.roiGUIs.values():
-            i+=1
-            key = str(i)
-            objs[key+"_spheres"] = {}
-            objs[key+"_spheres"]["matrix_mode"] = GL_MODELVIEW
-            objs[key+"_spheres"]["style"] = "Red"
-            objs[key+"_spheres"]["visible"] = True
-            objs[key+"_spheres"]["list"] = roiGUI.sphere_list
-            objs[key+"_lines"] = {}
-            objs[key+"_lines"]["matrix_mode"] = GL_MODELVIEW
-            objs[key+"_lines"]["style"] = "Red"
-            objs[key+"_lines"]["visible"] = True
-            objs[key+"_lines"]["list"] = roiGUI.line_list
+        for tool in self.tools.values():
+            obj = tool.getDisplayObjects()
+            objs.update(obj)
 
         self.objs = objs
 
@@ -176,54 +147,43 @@ class MeshController(object):
             hits = self.view.hit(self.x, self.y, renderOneBlock(hits[0][2][0], self.meshes[meshname]), BLOCKSIZE)
             return x, y, z, hits[0][2][0]
 
-    def meshPanelChange(self):
-        for k, v in self.meshPanel.visible.items():
-            self.objs[k]["visible"] = v.GetValue()
-        for k, v in self.meshPanel.vertices.items():
-            self.objs[k+"_vertices"]["visible"] = v.GetValue()
-        for k, v in self.meshPanel.cbs.items():
-            self.objs[k]["style"] = v.GetValue()
-        self.view.displayObjects = self.objs
+    def setVisible(self, name, value):
+        self.meshes.setVisible(name, value)
+
+    def setVerticesVisible(self, name, value):
+        self.meshes.setVerticesVisible(name, value)
+
+    def setStyle(self, name, value):
+        self.meshes.setStyle(name, value)
+
+    def Refresh(self):
+        self.draw()
         self.view.Refresh()
 
-    def addTool(self, name, tool):
+    def addTool(self, tool):
+        name = tool.name
         self.tools[name] = tool
+        tool.setController(self)
 
-    def selectTool(self, name):
+    def selectTool(self, name, subtool=0):
+        if self.currentTool:
+            self.currentTool.deselect()
         self.currentTool = self.tools[name]
+        self.currentTool.select(subtool)
+
+    def getToolList(self):
+        return self.tools.keys()
 
     def OnKeyPress(self, event):
-        '''Receive keypress events from the view.
-        '''
+        """Receive keypress events from the view.
+        """
         keycode = event.GetKeyCode()
 
         if self.currentTool:
             try:
-                self.currentTool.OnKeyPress(keycode, event)
+                return self.currentTool.OnKeyPress(keycode, event)
             except AttributeError:
                 pass
-
-        # TODO: split this into the tool classes
-        if keycode == wx.WXK_DELETE:
-            mode = self.modePanel.GetMode()
-            roiGUI = self.roiGUIs[mode[1]]
-            if roiGUI.current_roi is not None and roiGUI.current_point_index is not None:
-                if len(roiGUI.current_roi.points) == 1:
-                    roiGUI.rois.remove(roiGUI.current_roi) 
-                else:
-                    roiGUI.current_roi.remove_point(roiGUI.current_point_index)
-                roiGUI.current_roi = None
-                roiGUI.current_point_index = None
-                roiGUI.update()
-                return True
-        if keycode == wx.WXK_ESCAPE:
-            mode = self.modePanel.GetMode()
-            roiGUI = self.roiGUIs[mode[1]]
-            roiGUI.current_roi = None
-            roiGUI.current_point_index = None
-            roiGUI.update()
-            return True
-        return False
 
     def OnSize(self, event):
         size = self.view.GetClientSize()
@@ -235,6 +195,8 @@ class MeshController(object):
         self.view.updateViewPort()
 
     def OnMouseWheel(self, event):
+        """Receive mousewheel events from the view.
+        """
         if event.GetWheelRotation() < 0:
             self.viewport.scale *= 1.1 # = self.scale * 1.1 # ** (self.y - self.lasty)
         else:
@@ -248,79 +210,20 @@ class MeshController(object):
 
         if self.currentTool:
             try:
-                self.currentTool.OnMouseDown(self.x, self.y, self.lastx, self.lasty, event)
+                return self.currentTool.OnMouseDown(self.x, self.y, self.lastx, self.lasty, event)
             except AttributeError:
                 pass
-
-
-        # TODO:
-        mode = self.modePanel.GetMode()
-        if event.LeftIsDown():
-            if mode[0] == "Edit":
-                roiGUI = self.roiGUIs[mode[1]]
-                sphere_hits = self.view.hit(self.x, self.y, opengl_list(roiGUI.sphere_list), roiGUI.sphere_list_length())
-                line_hits = self.view.hit(self.x, self.y, opengl_list(roiGUI.line_list), roiGUI.line_list_length())
-                if sphere_hits:
-                    sphereindex = None
-                    for sphere_hit in sphere_hits:
-                        if sphere_hit[2] != []:
-                            sphere_index = sphere_hit[2][0]
-                    roi, index =  roiGUI.pointlookup[sphere_index]
-                    if roi == roiGUI.current_roi and \
-                       roiGUI.current_roi.being_drawn() and \
-                       ((roiGUI.current_point_index == 0 and roiGUI.current_roi.is_last(index)) or \
-                        (roiGUI.current_roi.is_last(roiGUI.current_point_index) and index == 0)):
-                        roiGUI.complete()
-                    if roiGUI.current_roi == roi and roiGUI.current_point_index == index:
-                        roiGUI.current_roi, roiGUI.current_point_index = None, None
-                    else:
-                        roiGUI.current_roi, roiGUI.current_point_index = roi, index
-                    roiGUI.update()
-                elif line_hits and roiGUI.current_point_index is None:
-                    roi, index =  roiGUI.linelookup[line_hits[0][2][0]]
-                    face_hit = self.hit_location(roiGUI.meshname) 
-                    if face_hit:
-                        x, y, z, triangle_name = face_hit
-                        roiGUI.current_roi = roi
-                        roiGUI.new_point(x, y, z, triangle_name, index = index)  
-                        roiGUI.update()
-                else:
-                    face_hit = self.hit_location(roiGUI.meshname)           
-                    if face_hit:
-                        x, y, z, triangle_name = face_hit
-                        if roiGUI.current_roi is None:
-                            roiGUI.current_roi = roiGUI.new_roi()
-                        if roiGUI.current_roi.being_drawn() and \
-                           (roiGUI.current_roi.is_last(roiGUI.current_point_index) or roiGUI.current_roi.is_empty()):
-                            roiGUI.new_point(x, y, z, triangle_name)
-                        elif roiGUI.current_roi.being_drawn() and \
-                             roiGUI.current_point_index == 0:
-                            roiGUI.new_point(x, y, z, triangle_name, end = False)
-                        elif roiGUI.current_point_index is not None:
-                            roiGUI.move_point(roiGUI.current_point_index, x, y, z, triangle_name)
-                    else:
-                        roiGUI.current_point_index = None
-                        roiGUI.current_roi = None
-                    roiGUI.update()
-                return True
-            elif mode[0] == "Select":
-                roiGUI = self.roiGUIs[mode[1]]
-                face_hit = self.hit_location(roiGUI.meshname)
-                if face_hit:
-                    x, y, z, triangle_name = face_hit
-                    triangle = self.meshes[roiGUI.meshname].faces[triangle_name]
-                    roiGUI.onSelect(roiGUI, triangle)
-        return False
 
     def OnMouseUp(self, event):
 
         if self.currentTool:
             try:
-                self.currentTool.OnMouseUp(event)
+                return self.currentTool.OnMouseUp(event)
             except AttributeError:
                 pass
 
-        mode = self.modePanel.GetMode()
+        # TODO:
+        mode = ("", "")
         if mode == "Rubber Band" and self.sphere_selection is not None:
             self.placeSphere(int(self.sphere_selection))
             self.compile_band()
@@ -332,18 +235,13 @@ class MeshController(object):
         self.x, self.y = event.GetPosition()
         if self.currentTool:
             try:
-                self.currentTool.OnMouseMotion(self.x, self.y, self.lastx, self.lasty, event)
+                return self.currentTool.OnMouseMotion(self.x, self.y, self.lastx, self.lasty, event)
             except AttributeError:
                 pass
 
         if event.Dragging() and event.LeftIsDown():
-            mode = self.modePanel.GetMode()
-            if mode == "Rotate":
-                self.viewport.theta += 0.1 * (self.y - self.lasty)
-                self.viewport.phi += - 0.1 * (self.x - self.lastx)
-            elif mode == "Zoom":
-                self.viewport.scale = self.viewport.scale * 1.01 ** (self.y - self.lasty)
-                self.updateView()
+            # TODO
+            mode = ("", "")
             if mode == "Rubber Band" and self.sphere_selection is not None:
                 self.placeSphere(int(self.sphere_selection))
                 self.compile_band()

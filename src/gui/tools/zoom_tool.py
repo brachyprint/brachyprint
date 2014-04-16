@@ -1,16 +1,15 @@
 
 from gui_tool import GuiTool
 
-class RotateTool(GuiTool):
+class ZoomTool(GuiTool):
 
     def __init__(self, name):
-        super(RotateTool, self).__init__(name)
+        super(ZoomTool, self).__init__(name)
 
     def OnMouseMotion(self, x, y, lastx, lasty, event):
 
         if event.Dragging() and event.LeftIsDown():
-            self.controller.viewport.theta += 0.1 * (y - lasty)
-            self.controller.viewport.phi += - 0.1 * (x - lastx)
+            self.controller.viewport.scale = self.controller.viewport.scale * 1.01 ** (y - lasty)
             self.controller.updateView()
             return True
         return False
