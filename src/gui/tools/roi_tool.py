@@ -35,10 +35,10 @@ class opengl_list:
         glCallList(self.list)
 
 
-class EditRoiTool(GuiTool):
+class RoiTool(GuiTool):
 
     def __init__(self, name, roi):
-        super(EditRoiTool, self).__init__(name)
+        super(RoiTool, self).__init__(name)
 
         self.roi = roi
 

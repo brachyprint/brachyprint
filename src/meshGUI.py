@@ -16,7 +16,7 @@ import re
 from gui import MeshCanvas
 from gui import MeshController
 
-from gui.tools import RotateTool, ZoomTool, EditRoiTool
+from gui.tools import RotateTool, ZoomTool, RoiTool
 
 class ModePanel(wx.Panel):
     """A class to select the current tool.
@@ -138,7 +138,7 @@ class MainWindow(wx.Frame):
         i=0
         for name, roi in rois.items():
             i+=1
-            tools.append(EditRoiTool(name, roi))
+            tools.append(RoiTool(name, roi))
 
         # create the mesh view widget and controller
         self.meshes = meshes
