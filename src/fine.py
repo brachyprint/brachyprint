@@ -6,15 +6,36 @@ from settings import *
 import mesh
 from octrees import Octree
 
+def list_vertices(mesh, first_vertex, edges):
+    current_vertex = first_vertex
+    r = [current_vertex]
+    for edge in edges:
+        if edge.v1 == current_vertex:
+           current_vertex = edge.v2
+        elif edge.v2 == current_vertex:
+           current_vertex = edge.v1
+        else:
+           raise Exception("edges not connected")
+        looked_up_vertex = find_vertex(mesh, current_vertex)
+        if looked_up_vertex is not None:
+            r.append(looked_up_vertex)
+    return r
+            
+
+def find_vertex(mesh, vertex):
+    for v in mesh.vertices:
+        if v == vertex:
+            return v
+    else:
+        print "Missed"
+
 class OnSelect:
   def __init__(self, outer_mesh, inner_mesh, base_file):
     self.outer_mesh = outer_mesh
     self.inner_mesh = inner_mesh
     self.base_file = base_file
   def __call__(self, outerROI, triangle):
-    outer_avoid_edges = outerROI.get_avoidance_edges()
-    #Save the cut out mesh to a file
-    outerMesh = self.outer_mesh.cloneSubVol(triangle, outer_avoid_edges)
+
 
     #Create an Octree from inner surface
     minx = min([v.x for v in self.inner_mesh.vertices]) - 0.01
@@ -29,21 +50,48 @@ class OnSelect:
 
     #Copy extend to inner surface
     inner_avoid_edges = []
+    outer_avoid_edges = []
+    join_strip = []
     for roi in outerROI.rois:
         for start_outer, end_outer in zip(roi.points, roi.points[1:] + [roi.points[0]]):
-            start_distance, start_coords, start_inner = points.by_distance_from_point(start_outer[:3]).next()
-            end_distance, end_coords, end_inner = points.by_distance_from_point(end_outer[:3]).next()
-            inner_avoid_edges = inner_avoid_edges + [x.edge for x in self.inner_mesh.get_vertex_path(start_inner, end_inner)]
+            start_outer_vertex = outerROI.mesh.faces[start_outer[3]].nearest_vertex(*start_outer[:3])
+            end_outer_vertex = outerROI.mesh.faces[end_outer[3]].nearest_vertex(*end_outer[:3])
+            start_distance, start_coords, start_inner = points.by_distance_from_point((start_outer_vertex.x, 
+                                                                                       start_outer_vertex.y, 
+                                                                                       start_outer_vertex.z)).next()
+            end_distance, end_coords, end_inner = points.by_distance_from_point((end_outer_vertex.x,
+                                                                                 end_outer_vertex.y, 
+                                                                                 end_outer_vertex.z)).next()
+            inner_strip = [x.edge for x in self.inner_mesh.get_vertex_path(start_inner, end_inner)]
+            outer_strip = [x.edge for x in self.outer_mesh.get_vertex_path(start_outer_vertex,end_outer_vertex)]
+            inner_avoid_edges = inner_avoid_edges + inner_strip
+            outer_avoid_edges = outer_avoid_edges + outer_strip
+            join_strip = join_strip + [(start_inner, inner_strip, start_outer_vertex, outer_strip)]          
     
     triangle_distance, triangle_coords, triangle_vertex_inner = points.by_distance_from_point(triangle.vertices[0]).next()
     start_triangle = triangle_vertex_inner.faces[0]
-    print inner_avoid_edges, start_triangle, start_triangle in self.inner_mesh.faces
-    
     innerMesh = self.inner_mesh.cloneSubVol(start_triangle, inner_avoid_edges) 
+    print outer_avoid_edges
+    outerMesh = self.outer_mesh.cloneSubVol(triangle, outer_avoid_edges)
+
 
     newMesh = mesh.Mesh()
     newMesh.add_mesh(outerMesh)
     newMesh.add_mesh(innerMesh, invert = True)
+    for current_inner, inner_strip, current_outer, outer_strip in join_strip:
+       inner_list = list_vertices(newMesh, current_inner, inner_strip)
+       outer_list = list_vertices(newMesh, current_outer, outer_strip)
+       while len(inner_list) > 1 or len(outer_list) > 1:
+           if len(outer_list) == 1 or (len(inner_list) > 1 and (inner_list[0] - outer_list[1]).magnitude() > (inner_list[1] - outer_list[0]).magnitude()):
+               newMesh.add_face(inner_list[0], inner_list[1], outer_list[0])
+               inner_list = inner_list[1:]
+           else:
+               newMesh.add_face(inner_list[0], outer_list[1], outer_list[0])
+               outer_list = outer_list[1:]
+    for edge in newMesh.edges.values():
+        if edge.lface is None or edge.rface is None:
+            print edge
+    print newMesh.closed()
     stlwriter = mesh.fileio.StlWriter(mesh.fileio.STL_FORMAT_BINARY)
     stlwriter.write(newMesh, "Mould", self.base_file + "mould.stl")
 
