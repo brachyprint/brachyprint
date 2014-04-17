@@ -57,3 +57,7 @@ class Face(object):
                 (min(v.y for v in self.vertices),
                  max(v.y for v in self.vertices)))
 
+    def nearest_vertex(self, x, y, z):
+        return min([((v.x - x) ** 2 + (v.y - y) ** 2 + (v.z - z) ** 2, v) for v in self.vertices])[1]
+        
+
