@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: iso-8859-1 -*-
 import wx
-from meshGUI import MainWindow, roiGUI
+from meshGUI import MainWindow
 from settings import *
 import mesh
 from octrees import Octree

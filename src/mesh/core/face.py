@@ -47,7 +47,7 @@ class Face(object):
         return (v2 - v1).cross(v3 - v1).magnitude() / 2.0
 
     def centroid(self):
-        return sum(self.vertices) / 3
+        return reduce((lambda x,y:x+y), self.vertices) / 3
 
     def bounding_box(self):
         return ((min(v.x for v in self.vertices),

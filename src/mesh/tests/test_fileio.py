@@ -41,7 +41,7 @@ class StlFormatTests(TestCase):
         filename_ref = path + "/cube.stl"
 
         m = Mesh()
-        primitives.make_cube(m, 100)
+        primitives.add_cube(m, 100)
 
         try:
             fileio.write_stl(m, filename, "Cube")

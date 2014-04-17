@@ -18,31 +18,43 @@
 
 
 '''
-A cube primitive.
+A base class to extend for GUI tools.
 '''
 
-from __future__ import division
 
-def add_cube(c, d, offset=[0,0,0]):
-    '''
-    Add a cube to an existing mesh.
-    '''
+class GuiTool(object):
 
-    # create the 8 corner vertices
-    vs = [(0,0,0), (0,0,d), (d,0,0), (d,0,d), (d,d,0), (d,d,d), (0,d,0), (0,d,d)]
-    vertices = [c.add_vertex(x+offset[0], y+offset[1], z+offset[2]) for x,y,z in vs]
+    def __init__(self, name):
+        self.controller = None
+        self.name = name
 
-    # create side faces
-    for i in range(len(vertices)):
-        if i % 2 == 1:
-            c.add_face(vertices[i-2], vertices[i-1], vertices[i])
-        else:
-            c.add_face(vertices[i-1], vertices[i-2], vertices[i])
+    def setController(self, controller):
+        self.controller = controller
 
-    # create end faces
-    for i in [0, 1, 4, 5]:
-        if i % 2 == 1:
-            c.add_face(vertices[i-2], vertices[i], vertices[i+2])
-        else:
-            c.add_face(vertices[i+2], vertices[i], vertices[i-2])
+    def initDisplay(self):
+        pass
+
+    def getSubTools(self):
+        return [self.name]
+
+    def select(self, subtool):
+        pass
+
+    def deselect(self):
+        pass
+
+    def getDisplayObjects(self):
+        return {}
+
+    def OnKeyPress(self, keycode, event):
+        raise AttributeError()
+
+    def OnMouseDown(self, x, y, lastx, lasty, event):
+        raise AttributeError()
+
+    def OnMouseUp(self, event):
+        raise AttributeError()
+
+    def OnMouseMotion(self, x, y, lastx, lasty, event):
+        raise AttributeError()
 

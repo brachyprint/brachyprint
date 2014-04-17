@@ -18,31 +18,23 @@
 
 
 '''
-A cube primitive.
+A GUI tool for rotating the view.
 '''
 
-from __future__ import division
 
-def add_cube(c, d, offset=[0,0,0]):
-    '''
-    Add a cube to an existing mesh.
-    '''
+from gui_tool import GuiTool
 
-    # create the 8 corner vertices
-    vs = [(0,0,0), (0,0,d), (d,0,0), (d,0,d), (d,d,0), (d,d,d), (0,d,0), (0,d,d)]
-    vertices = [c.add_vertex(x+offset[0], y+offset[1], z+offset[2]) for x,y,z in vs]
+class RotateTool(GuiTool):
 
-    # create side faces
-    for i in range(len(vertices)):
-        if i % 2 == 1:
-            c.add_face(vertices[i-2], vertices[i-1], vertices[i])
-        else:
-            c.add_face(vertices[i-1], vertices[i-2], vertices[i])
+    def __init__(self, name):
+        super(RotateTool, self).__init__(name)
 
-    # create end faces
-    for i in [0, 1, 4, 5]:
-        if i % 2 == 1:
-            c.add_face(vertices[i-2], vertices[i], vertices[i+2])
-        else:
-            c.add_face(vertices[i+2], vertices[i], vertices[i-2])
+    def OnMouseMotion(self, x, y, lastx, lasty, event):
+
+        if event.Dragging() and event.LeftIsDown():
+            self.controller.viewport.theta += 0.1 * (y - lasty)
+            self.controller.viewport.phi += - 0.1 * (x - lastx)
+            self.controller.updateView()
+            return True
+        return False
 

@@ -41,7 +41,6 @@ class Mesh(object):
     def __init__(self):
         self.clear()
 
-
     def clear(self):
         self.vertices = []
         self.faces = []
@@ -54,8 +53,6 @@ class Mesh(object):
         self.next_volume_name = 0
         self.face_to_vol = {}
 
-
-
     def get_edge(self, v1, v2):
         if self.edges.has_key((v1,v2)):
             return self.edges[(v1,v2)]
@@ -64,15 +61,12 @@ class Mesh(object):
         else:
             raise KeyError
 
-
-
     def add_vertex(self, x, y=None, z=None):
-        """Function to add a vertex to the mesh.
+        """Add a vertex to the mesh.
         
         :param x: x coordinate of the vertex, or optionally a list of coordinates.
         :keyword y: y coordinate of the vertex.
         :keyword z: z coordinate of the vertex.
-
         """
         if isinstance(x, Vector):
             y = x.y
@@ -97,15 +91,15 @@ class Mesh(object):
         return v
 
     def add_face(self, v1, v2=None, v3=None):
-        """Function to add a face to the mesh.
+        """Add a face to the mesh.
 
         :param v1: Vertex 1 of the face or optionally a list of faces.
         :keyword v2: Vertex 2 of the face.
         :keyword v3: Vertex 3 of the face.
 
         Quadrilateral faces are split simply into two triangles, and higher
-        order faces are added by constrained triangulation of the vertices.
-
+        order faces are added by constrained Delauney triangulation of the
+        vertices.
         """
         if isinstance(v1, list):
             if len(v1) == 3:
@@ -179,12 +173,11 @@ class Mesh(object):
             self.add_triangle_face(v1, v2, v3)
 
     def add_triangle_face(self, v1, v2, v3):
-        """Function to add a triangular face to the mesh.
+        """Add a triangular face to the mesh.
 
         :param v1: vertex 1 of the face
         :param v2: vertex 2 of the face
         :param v3: vertex 3 of the face
-
         """
         f = Face(self.next_face_name, v1, v2, v3)
         self.next_face_name += 1
@@ -206,7 +199,6 @@ class Mesh(object):
             v.add_face(f)
 
         return f
-
 
     def get_path(self, s1, s2):
         s2Postion = s2[0], s2[1], s2[2]
@@ -252,8 +244,6 @@ class Mesh(object):
                         new_dist = newPath.dist()
                         heappush(priority_queue, (dist + new_dist + newPath.crowdist(), dist + new_dist, paths + [newPath]))
 
-
-
     def cloneSubVol(self, triangle, avoidEdges):
         vertex_map = {}
         faces_copied = [triangle]
@@ -285,29 +275,64 @@ class Mesh(object):
         """Calculate the volume of the mesh.
 
         :returns: Volume of the mesh.
-
         """
         # check that the mesh is a single closed volume
         if not self.closed():
             raise ValueError("Can only compute the volume of meshes containing closed surfaces.")
 
-        volumes = [f.signed_volume() for f in self.faces]
-        return sum(volumes)
+        return sum(f.signed_volume() for f in self.faces)
+
+
+    def solid_centroid(self):
+        """Calculate the centre of mass of the mesh.
+
+        The mesh is regarded as the boundary of a uniform solid object.
+
+        :returns: Vector() representing centre of mass.
+        """
+        if not self.closed():
+            raise ValueError("Can only compute the centroid of meshes representing closed surfaces")
+
+        vol = 0
+        pos = Vector(0,0,0)
+        for f in self.faces:
+            v = f.signed_volume()
+            vol += v
+            pos += f.centroid()*v
+        return pos*(3/(vol*4))
+
+
+    def surface_centroid(self):
+        """Calculate the centre of mass of the mesh.
+
+        The mesh is regarded as a uniform lamina for the purposes of the
+        calculation.
+
+        :returns: Vector() representing centre of mass.
+        """
+
+        area = 0
+        pos = Vector(0,0,0)
+        for f in self.faces:
+            a = f.area()
+            area += a
+            pos += f.centroid()*a
+        return pos/area
 
 
     def surface_area(self):
         """Calculate the surface area of the mesh.
 
         :returns: Surface area of the mesh.
-
         """
         areas = [f.area() for f in self.faces]
         return sum(areas)
-        
 
     def closed(self):
-        """Checks whether the surface is closed or not, i.e. whether all edges have strictly
-        two connected faces.
+        """Checks whether the mesh contains only closed surfaces.
+
+        More specifically, check whether all edges have strictly two connected
+        faces.
 
         :returns: True if the surface is closed.
         """
@@ -317,7 +342,11 @@ class Mesh(object):
         return True
 
     def add_mesh(self, mesh, invert = False):
-        """Add all verticies and faces from the argument mesh"""
+        """Copy all vertices and faces from another mesh to this one.
+
+        :param mesh: the other mesh to add.
+        :keyword invert: invert every face if True, i.e. turn the added mesh inside out.
+        """
         vertex_map = {}
         for vertex in mesh.vertices:
             vertex_map[vertex] = self.add_vertex(vertex.x, vertex.y, vertex.z)
@@ -330,7 +359,7 @@ class Mesh(object):
         
 
     def get_vertex(self, x, y=None, z=None):
-        """Function to get a vertex from the mesh, if extant.
+        """Get a vertex from the mesh, if extant.
         
         :param x: x coordinate of the vertex, or optionally a list of coordinates.
         :keyword y: y coordinate of the vertex.
