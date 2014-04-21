@@ -54,10 +54,21 @@ class Face(object):
                  max(v.x for v in self.vertices)),
                 (min(v.y for v in self.vertices),
                  max(v.y for v in self.vertices)),
-                (min(v.y for v in self.vertices),
-                 max(v.y for v in self.vertices)))
+                (min(v.z for v in self.vertices),
+                 max(v.z for v in self.vertices)))
 
     def nearest_vertex(self, x, y, z):
         return min([((v.x - x) ** 2 + (v.y - y) ** 2 + (v.z - z) ** 2, v) for v in self.vertices])[1]
         
+    def project2d(self):
+        # form basis vectors
+        a = (self.vertices[1]-self.vertices[0]).normalise()
+        b = (self.vertices[2]-self.vertices[0]).normalise()
+        n = a.cross(b)
+        u = n.cross(a)
+        v = n.cross(u)
+
+        fun = lambda vs: [vec.x*u+vec.y*v for vec in vs]
+
+        return ([f.project2dvector(u,v) for f in self.vertices], fun)
 
