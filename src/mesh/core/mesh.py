@@ -280,7 +280,7 @@ class Mesh(object):
         if not self.closed():
             raise ValueError("Can only compute the volume of meshes containing closed surfaces.")
 
-        return sum(f.signed_volume() for f in self.faces)
+        return abs(sum(f.signed_volume() for f in self.faces))
 
 
     def solid_centroid(self):

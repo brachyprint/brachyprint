@@ -10,7 +10,7 @@ from math import pi, sin, sqrt
 import mesh
 
 
-class SizeTests(TestCase):
+class PrimitiveTests(TestCase):
 
     def assertAlmostEqualVector(self,u,v):
         self.assertAlmostEqual(u.x,v.x)
@@ -75,25 +75,19 @@ class SizeTests(TestCase):
             mesh.primitives.add_cylinder(m,r,h,n)
             self.assertAlmostEqual(m.volume(), self.expected_cylinder_volume(r,h,n))
 
+    def expected_sphere_volume(self,r):
+        return 4/3 * pi * r**3
+
     def expected_octahedron_volume(self,r):
         return 4/3 * r**3
 
     def test_octahedron_volume(self):
         m = mesh.Mesh()
-        r = 1
-        mesh.primitives.add_octahedron(m, r, detail_level=1)
+        r = 0.8
+        mesh.primitives.add_sphere(m, r, model="octa", detail_level=1)
         self.assertAlmostEqual(m.volume(), self.expected_octahedron_volume(r))
 
-    def test_octahedron2_volume(self):
-        m = mesh.Mesh()
-        v = mesh.Vector(-9, 7, 22)
-        mesh.primitives.add_octahedron(m, 1.0, origin=v, detail_level=2)
-        # XXX: this should really be calculated
-        volume = 2.942809041582063
-        self.assertAlmostEqual(m.volume(), volume)
-
     def expected_icosahedron_volume(self,r):
-        # XXX: can this be simplified?
         return 5/12 * (3 + sqrt(5)) * (r * 4 / sqrt(10 + 2 * sqrt(5)))**3
 
     def test_icosahedron_volume(self):
@@ -101,6 +95,13 @@ class SizeTests(TestCase):
         r = 1
         mesh.primitives.add_sphere(m, r, detail_level=1)
         self.assertAlmostEqual(m.volume(), self.expected_icosahedron_volume(r))
+
+    def test_sphere_volume(self):
+        r = 0.8
+        for model in ["icosa","octa"]:
+            m = mesh.Mesh()
+            mesh.primitives.add_sphere(m, r, model=model, detail_level=25)
+            self.assertAlmostEqual(m.volume(), self.expected_sphere_volume(r), places=1)
 
     def test_cube_centroids(self):
         m = mesh.Mesh()
@@ -122,7 +123,7 @@ class SizeTests(TestCase):
     def test_sphere_centroids(self):
         m = mesh.Mesh()
         v = mesh.Vector(23,45,67)
-        mesh.primitives.add_sphere(m,2.0,origin=v,detail_level=3)
+        mesh.primitives.add_sphere(m,2.0,origin=v,model="octa",detail_level=3)
         self.assertAlmostEqualVector(m.solid_centroid(), v)
         self.assertAlmostEqualVector(m.surface_centroid(), v)
 
@@ -159,8 +160,8 @@ class SizeTests(TestCase):
 
     def test_octahedron_area(self):
         m = mesh.Mesh()
-        r = 1
-        mesh.primitives.add_octahedron(m, r, detail_level=1)
+        r = 0.8
+        mesh.primitives.add_sphere(m, r, model="octa", detail_level=1)
         self.assertAlmostEqual(m.surface_area(), self.expected_octahedron_area(r))
 
     def expected_icosahedron_area(self,r):
@@ -169,8 +170,8 @@ class SizeTests(TestCase):
 
     def test_icosahedron_area(self):
         m = mesh.Mesh()
-        r = 1
-        mesh.primitives.add_sphere(m, r, detail_level=1)
+        r = 0.9
+        mesh.primitives.add_sphere(m, r, model="icosa", detail_level=1)
         self.assertAlmostEqual(m.surface_area(), self.expected_icosahedron_area(r))
 
 if __name__ == '__main__':

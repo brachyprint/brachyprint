@@ -26,113 +26,112 @@ from __future__ import division
 from mesh import Vector
 from math import sqrt
 
-def add_sphere(m, r, origin=Vector(0,0,0), detail_level=3):
+
+def add_sphere(mesh, radius, origin=Vector(0,0,0), model="icosa", detail_level=3):
     '''
     Add a sphere to an existing mesh.
 
-    Adapted from https://sites.google.com/site/dlampetest/python/triangulating-a-sphere-recursively
-
     :param: m -- Mesh() object
     :param: r -- radius
+    :param: origin -- centre of sphere
+    :param: detail_level -- number of subdivisions
     '''
 
-    psi = (1.0 + sqrt(5))/2
+    def adjust(v):
+        return v.normalise()*radius + origin
 
-    icosahedron_vertices = [ 
-        Vector(-1.0, 0.0, psi), # 0
-        Vector( 1.0, 0.0, psi), # 1
-        Vector(-1.0, 0.0,-psi), # 2
-        Vector( 1.0, 0.0,-psi), # 3
+    if model=="icosa":
 
-        Vector( 0.0, psi, 1.0), # 4
-        Vector( 0.0, psi,-1.0), # 5
-        Vector( 0.0,-psi, 1.0), # 6
-        Vector( 0.0,-psi,-1.0), # 7
+        tau = (1.0 + sqrt(5))/2
 
-        Vector( psi, 1.0, 0.0), # 8
-        Vector(-psi, 1.0, 0.0), # 9
-        Vector( psi,-1.0, 0.0), # 10
-        Vector(-psi,-1.0, 0.0)  # 11
-        ]
+        model_vertices = [ 
+            Vector(-1.0, 0.0, tau), # 0
+            Vector( 1.0, 0.0, tau), # 1
+            Vector(-1.0, 0.0,-tau), # 2
+            Vector( 1.0, 0.0,-tau), # 3
 
-    for i in range(len(icosahedron_vertices)):
-        icosahedron_vertices[i] = icosahedron_vertices[i].normalise()
+            Vector( 0.0, tau, 1.0), # 4
+            Vector( 0.0, tau,-1.0), # 5
+            Vector( 0.0,-tau, 1.0), # 6
+            Vector( 0.0,-tau,-1.0), # 7
 
-    icosahedron_triangles = [ 
-        #[0,4,1],  [0,9,4],  [9,5,4],  [4,5,8],  [4,8,1],    
-        [0,1,4],  [0,4,9],  [9,4,5],  [4,8,5],  [4,1,8],    
-        #[8,10,1], [8,3,10], [5,3,8],  [5,2,3],  [2,7,3],    
-        [8,1,10], [8,10,3], [5,8,3],  [5,3,2],  [2,3,7],    
-        #[7,10,3], [7,6,10], [7,11,6], [11,0,6], [0,1,6], 
-        [7,3,10], [7,10,6], [7,6,11], [11,6,0], [0,6,1], 
-        #[6,1,10], [9,0,11], [9,11,2], [9,2,5],  [7,2,11]]
-        [6,10,1], [9,11,0], [9,2,11], [9,5,2],  [7,11,2]]
+            Vector( tau, 1.0, 0.0), # 8
+            Vector(-tau, 1.0, 0.0), # 9
+            Vector( tau,-1.0, 0.0), # 10
+            Vector(-tau,-1.0, 0.0)  # 11
+            ]
 
-    def divide_all( vertices, triangles ):    
-        # Subdivide each triangle in the old approximation and normalize
-        #  the new points thus generated to lie on the surface of the unit
-        #  sphere.
-        # Each input triangle with vertices labelled [0,1,2] as shown
-        #  below will be turned into four new triangles:
-        #
-        #            Make new points
-        #                 a = (0+2)/2
-        #                 b = (0+1)/2
-        #                 c = (1+2)/2
-        #        1
-        #       /\        Normalize a, b, c
-        #      /  \
-        #    b/____\ c    Construct new triangles
-        #    /\    /\       t1 [0,b,a]
-        #   /  \  /  \      t2 [b,1,c]
-        #  /____\/____\     t3 [a,b,c]
-        # 0      a     2    t4 [a,c,2]    
+        model_triangles = [ 
+            [0,1,4],  [0,4,9],  [9,4,5],  [4,8,5],  [4,1,8],    
+            [8,1,10], [8,10,3], [5,8,3],  [5,3,2],  [2,3,7],    
+            [7,3,10], [7,10,6], [7,6,11], [11,6,0], [0,6,1], 
+            [6,10,1], [9,11,0], [9,2,11], [9,5,2],  [7,11,2]]
 
-        v_new = vertices
-        faces = []
-        for f in triangles:
-            # extract vertices
-            v0 = vertices[f[0]]
-            v1 = vertices[f[1]]
-            v2 = vertices[f[2]]
+    elif model=="octa":
 
-            # construct new vertices
-            a = (v0 + v2) * 0.5
-            b = (v0 + v1) * 0.5
-            c = (v1 + v2) * 0.5
-            a = a.normalise()
-            b = b.normalise()
-            c = c.normalise()
-            v_new.append(a); a_i = len(v_new)-1
-            v_new.append(b); b_i = len(v_new)-1
-            v_new.append(c); c_i = len(v_new)-1
+        model_vertices = [
+            Vector(-1.0, 0.0, 0.0), #0
+            Vector( 1.0, 0.0, 0.0), #1
+            Vector( 0.0,-1.0, 0.0), #2
+            Vector( 0.0, 1.0, 0.0), #3
+            Vector( 0.0, 0.0,-1.0), #4
+            Vector( 0.0, 0.0, 1.0), #5
+            ]
 
-            # construct the 4 new faces
-            faces.append([f[0], b_i, a_i])
-            faces.append([b_i, f[1], c_i])
-            faces.append([a_i, b_i, c_i])
-            faces.append([a_i, c_i, f[2]])
+        model_triangles = [(0,2,4),(0,5,2),(0,4,3),(0,3,5),(1,4,2),(1,2,5),(1,3,4),(1,5,3)]
 
-        return v_new, faces
+    else:
 
+        raise ValueError("Unrecognised model")
 
-    vertices, faces = icosahedron_vertices, icosahedron_triangles
-    for i in range(detail_level - 1):
-        vertices, faces = divide_all(vertices, faces)
+    # vertices associated to a vertex of the model
+    vvertices = [mesh.add_vertex(adjust(v)) for v in model_vertices]
 
-    # apply a translation to the vertices
-    for i in range(len(vertices)):
-        vertices[i] = vertices[i]*r + origin
+    # vertices associated to an edge of the model
+    evertices = {}
+    for (i,j,k) in model_triangles:
+        for (m,n) in [(i,j),(j,k),(k,i)]:
+            if (n,m,detail_level-1,1) in evertices:
+                continue
+            for r in xrange(1,detail_level):
+                s = detail_level - r
+                evertices[(m,n,r,s)] = mesh.add_vertex(adjust(model_vertices[m]*r + model_vertices[n]*s))
 
-    # create all the vertices
-    for i in range(len(vertices)):
-        v_e = m.get_vertex(vertices[i])
-        if v_e is None:
-            vertices[i] = m.add_vertex(vertices[i])
-        else:
-            vertices[i] = v_e
+    # vertices associated to a face, and finally the faces themselves
+    for (i,j,k) in model_triangles:
 
-    # create all the faces
-    for face in faces:
-        m.add_face([vertices[index] for index in face])
+        fvertices = {}
+        for r in xrange(1,detail_level-1):
+            for s in xrange(1,detail_level-r):
+                t = detail_level - r - s
+                fvertices[(r,s,t)] = mesh.add_vertex(adjust(model_vertices[i]*r + model_vertices[j]*s + model_vertices[k]*t))
+        for r in xrange(1,detail_level):
+            s = detail_level - r
+            if (i,j,r,s) in evertices:
+                fvertices[(r,s,0)] = evertices[(i,j,r,s)]
+            else:
+                fvertices[(r,s,0)] = evertices[(j,i,s,r)]
+            if (j,k,r,s) in evertices:
+                fvertices[(0,r,s)] = evertices[(j,k,r,s)]
+            else:
+                fvertices[(0,r,s)] = evertices[(k,j,s,r)]
+            if (k,i,r,s) in evertices:
+                fvertices[(s,0,r)] = evertices[(k,i,r,s)]
+            else:
+                fvertices[(s,0,r)] = evertices[(i,k,s,r)]
+        fvertices[(detail_level,0,0)] = vvertices[i]
+        fvertices[(0,detail_level,0)] = vvertices[j]
+        fvertices[(0,0,detail_level)] = vvertices[k]
 
+        for r in xrange(0,detail_level):
+            for s in xrange(0,detail_level-r):
+                t = detail_level-r-s-1
+                mesh.add_face(fvertices[(r+1,s,t)],fvertices[(r,s+1,t)],fvertices[(r,s,t+1)])
+
+        for r in xrange(0,detail_level-1):
+            for s in xrange(0,detail_level-r-1):
+                t = detail_level-r-s-2
+                mesh.add_face(fvertices[(r,s+1,t+1)],fvertices[(r+1,s,t+1)],fvertices[(r+1,s+1,t)])
+
+    for v in mesh.vertices:
+        print v
