@@ -24,7 +24,7 @@ class PrimitiveTests(TestCase):
 
     def test_octrahedron_closed(self):
         m = mesh.Mesh()
-        mesh.primitives.add_octahedron(m, 1.0)
+        mesh.primitives.add_sphere(m, 1.0, model="octa")
         self.assertTrue(m.closed())
 
     def test_cylinder_closed(self):
