@@ -22,7 +22,7 @@ tests
 
 """
 
-from core import Mesh, Vector, nullVector, Vertex, Face, Edge
+from core import Mesh, Vector, nullVector, Vertex, Face, Edge, Vector2d, nullVector2d
 from astar import *
 from plane import *
 

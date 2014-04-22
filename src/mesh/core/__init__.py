@@ -20,11 +20,12 @@
 Core functionality for the mesh library.
 '''
 
-__all__ = ["vector", "vertex", "face", "edge", "mesh"]
+__all__ = ["vector", "vertex", "face", "edge", "mesh", "vector2d"]
 
 from vector import *
 from vertex import *
 from face import *
 from edge import *
 from mesh import *
+from vector2d import *
 
