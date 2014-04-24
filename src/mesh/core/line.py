@@ -25,7 +25,7 @@ from __future__ import division
 
 class Line(object):
     '''
-    A class representing a 2D line.
+    A class representing a 2D line segment.
     '''
 
     def __init__(self, name, v1, v2):
@@ -33,39 +33,40 @@ class Line(object):
         self.v1, self.v2 = v1, v2
 
     def length(self):
+        """Returns the length of the line segment.
+        """
         return (self.v2 - self.v1).magnitude()
 
     def contains(self, v):
         """Returns True if the vector `v' lies on the line.
         """
-        # XXX: do something sensible!
-        return False
+        try:
+            tx = (v.x - self.v1.x)/(self.v2.x - self.v1.x)
+        except ZeroDivisionError:
+            if v.x != self.v1.x: # vertical line, but x coordinate doesn't match
+                return False
+            tx = None
+        try:
+            ty = (v.y - self.v1.y)/(self.v2.y - self.v1.y)
+        except ZeroDivisionError:
+            if v.y != self.v1.y: # horizontal line, but y coordinate doesn't match
+                return False
+            ty = None
 
-    def faces_iter(self):
-        if self.lface is not None:
-            yield self.lface
-        if self.rface is not None:
-            yield self.rface
-
-    def faces(self):
-        return list(self.faces_iter())
-
-    def add_face(self, face, isleft=None):
-        if isleft is None:
-            v = (self.v1, self.v2)
-            (u1,u2,u3) = face.vertices
-            isleft = (v == (u1,u2)) or (v == (u2,u3)) or (v == (u3,u1))
-        if isleft:
-            if self.lface is None:
-                self.lface = face
-            else:
-                raise ValueError("Edge already has an associated left face")
+        if tx is None:
+            t = ty
+        elif ty is None:
+            t = tx
+        elif tx != ty:
+            return False
         else:
-            if self.rface is None:
-                self.rface = face
-            else:
-                raise ValueError("Edge already has an associated right face")
-    
+            t = tx
+
+        if t <= 0 or t >= 1: # outside the line segment
+            return False
+
+        return True
+
     def to_ratio(self, v):
         """
         (Assuming v lies on this edge), how far of the way along does
@@ -80,3 +81,4 @@ class Line(object):
         Return a vector i of the way from v1 to v2.
         """
         return self.v2*i + self.v1*(1-i)
+

@@ -38,6 +38,28 @@ class BasicPolygonTests(TestCase):
         self.assertEqual(len(p.lines), 3)
         self.assertTrue(p.closed())
 
+    def test_split_lines(self):
+        p = Polygon()
+
+        v1 = p.add_vertex(0,0)
+        v2 = p.add_vertex(0,1)
+        v3 = p.add_vertex(1,0)
+
+        p.add_line(v1, v2)
+        p.add_line(v2, v3)
+        p.add_line(v3, v1)
+
+        self.assertEqual(len(p.vertices), 3)
+        self.assertEqual(len(p.lines), 3)
+        self.assertTrue(p.closed())
+
+        v4 = p.add_vertex(0,0.5)
+
+        self.assertEqual(len(p.vertices), 4)
+        self.assertEqual(len(p.lines), 4)
+        self.assertTrue(p.closed())
+        
+
 class PartitionPolygonTests(TestCase):
 
     def setUp(self):
