@@ -32,8 +32,15 @@ class Polygon(object):
     A class representing a 2D polygon.
     '''
 
-    def __init__(self):
+    def __init__(self, graph=None):
         self.clear()
+        if graph is not None:
+            v, l = graph[0], graph[1]
+            vs = []
+            for i in range(len(v)):
+                vs.append(self.add_vertex(v[i]))
+            for i in range(len(l)):
+                self.add_line(vs[l[i][0]], vs[l[i][1]])
 
     def clear(self):
         self.vertices = []
@@ -87,7 +94,7 @@ class Polygon(object):
         return True
 
     def get_vertex(self, x, y=None):
-        """Get a vertex from the mesh, if extant.
+        """Get a vertex from the polygon, if extant.
         
         :param x: x coordinate of the vertex, or optionally a list of coordinates.
         :keyword y: y coordinate of the vertex.
@@ -104,6 +111,10 @@ class Polygon(object):
         return None
 
     def partition(self):
+        """Partition the polygon into regions.
+
+        This algorithm assumes the polygon has no overlapping regions.
+        """
 
         # create bidirectional line segments from the polygon's lines
         lines = []
@@ -165,6 +176,87 @@ class Polygon(object):
                 path.append(w[0])
                 #print "<v%i,v%i,v%i>" % (w[0].name+1, w[1].name+1, w[2].name+1)
             paths.append(path)
+
+
+        def within(p, poly):
+
+            x, y = p.x, p.y
+            n = len(poly)
+            inside = False
+            xints = x
+
+            p1x,p1y = poly[0]
+            for i in range(n+1):
+                p2x,p2y = poly[i % n]
+                if y >= min(p1y,p2y):
+                    if y <= max(p1y,p2y):
+                        if x <= max(p1x,p2x):
+                            if p1y != p2y:
+                                xints = (y-p1y)*(p2x-p1x)/(p2y-p1y)+p1x
+                            if p1x == p2x or x <= xints:
+                                inside = not inside
+                p1x,p1y = p2x,p2y
+
+            return inside
+
+        def contains(path1, path2):
+            # regions are always concave, so just consider if all points
+            # path2 lie within path1
+
+            poly = []
+            for i in range(len(path1)):
+                poly.append((path1[i].x, path1[i].y))
+
+            for p in path2:
+                if within(p, poly):
+                    return True
+            return False
+
+        def area(path):
+            p = []
+            for i in range(len(path)):
+                p.append((path[i].x, path[i].y))
+            return 0.5 * abs(sum(x0*y1 - x1*y0
+                                 for ((x0, y0), (x1, y1)) in segments(p)))
+
+        def segments(p):
+            return zip(p, p[1:] + [p[0]])
+
+        # calculate the area of each region
+        areas = [area(p) for p in paths]
+
+        # remove the region with the largest area (the outside region)
+        max_area = max(areas)
+        paths.pop(areas.index(max_area))
+
+        # determine if any regions are wholly contained within other regions,
+        # i.e. whether the polygon is simply connected. This is equivalent to
+        # checking that the area of all other regions sums to the area of the
+        # outside region.
+        if sum(areas) != 2*max_area:
+            raise ValueError("Polygon is not simply connected")
+
+            # TODO: cope with this case!
+
+            heirarchy = [[] for x in range(len(paths))]
+            for i in range(len(paths)):
+                for j in range(i+1, len(paths)):
+                    print i, j
+                    if i==j:
+                        continue
+                    if contains(paths[i], paths[j]): # every point in j within i
+                        # i > i+j
+                        heirarchy[i].append(j)
+                    elif contains(paths[j], paths[i]):
+                        #i = i+j
+                        #j = 0
+                        heirarchy[j].append(i)
+                    else:
+                        pass
+                        # disjoint, so neither can be the outside
+                    #i = i+j+1
+                    #j = 0
+                #j += 1
 
         return paths
 

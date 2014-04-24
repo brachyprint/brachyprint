@@ -38,7 +38,8 @@ class Line(object):
     def contains(self, v):
         """Returns True if the vector `v' lies on the line.
         """
-        return True
+        # XXX: do something sensible!
+        return False
 
     def faces_iter(self):
         if self.lface is not None:
