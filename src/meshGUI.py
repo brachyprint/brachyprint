@@ -3,14 +3,7 @@
 
 from __future__ import division
 import wx
-import sys
-from OpenGL.GL import *
-from OpenGL.GLU import *
-from OpenGL.GLUT import *
-from math import pi, acos, sin, cos, ceil, floor
-from itertools import chain
 from settings import *
-from copy import copy
 import re
 
 from gui import MeshCanvas

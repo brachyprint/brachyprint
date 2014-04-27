@@ -26,6 +26,8 @@ from OpenGL.GLU import *
 from OpenGL.GLUT import *
 
 import mesh
+from mesh import Vector
+
 from gui import RoiGUI
 from settings import *
 
@@ -138,14 +140,38 @@ class MeshController(object):
         self.view.displayObjects = objs
 
     def hit_location(self, meshname):
-        #Find block
-        mainList = self.view.displayObjects[meshname]["list"]
-        hits = self.view.hit(self.x, self.y, opengl_list(mainList), self.meshes.mainNumNames)
-        if hits:
-            x, y, z = gluUnProject(self.x, self.viewport.height - self.y, hits[0][0])
-            #Find triangle
-            hits = self.view.hit(self.x, self.y, renderOneBlock(hits[0][2][0], self.meshes[meshname]), BLOCKSIZE)
-            return x, y, z, hits[0][2][0]
+        winX = self.x
+        winY = self.viewport.height - self.y
+
+        projection = glGetDoublev(GL_PROJECTION_MATRIX)
+        modelview = glGetDoublev(GL_MODELVIEW_MATRIX)
+        viewport = glGetIntegerv(GL_VIEWPORT)
+
+        # find the projection of the mouse point at the front of the viewport...
+        x, y, z = gluUnProject(winX, winY, 0.0, modelview, projection, viewport)
+        # ...and the back of the viewport
+        x2, y2, z2 = gluUnProject(winX, winY, 1.0, modelview, projection, viewport)
+
+        p = [Vector(x,y,z), Vector(x2,y2,z2)]
+
+        intersects = []
+        
+        # XXX: this should be sped up by intelligent use of octrees
+        for f in self.meshes[meshname].faces:
+            # attempt to intersect the ray and the face
+            ret = mesh.triangle_segment_intersect(p, f.vertices, 2)
+
+            if isinstance(ret, mesh.Vector):
+                intersects.append(((ret-Vector(x,y,z)).magnitude(), f, ret))
+
+        if intersects:
+            # sort the intersections in order of distance
+            intersects = sorted(intersects, key=lambda x: x[0])
+            ret = intersects[0][2]
+            return (ret.x, ret.y, ret.z, intersects[0][1].name)
+
+        return None
+
 
     def setVisible(self, name, value):
         self.meshes.setVisible(name, value)
@@ -233,11 +259,13 @@ class MeshController(object):
     def OnMouseMotion(self, event):
         self.lastx, self.lasty = self.x, self.y
         self.x, self.y = event.GetPosition()
+
         if self.currentTool:
             try:
                 return self.currentTool.OnMouseMotion(self.x, self.y, self.lastx, self.lasty, event)
             except AttributeError:
                 pass
+        
 
         if event.Dragging() and event.LeftIsDown():
             # TODO

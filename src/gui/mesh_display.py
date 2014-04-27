@@ -25,6 +25,10 @@ display objects.
 from OpenGL.GL import *
 from OpenGL.GLUT import *
 
+from OpenGL.arrays import vbo
+
+import numpy as np
+
 from settings import *
 
 class Range3d(object):
@@ -107,6 +111,9 @@ class MeshCollectionDisplay(MeshCollection):
         self.mainList = {}
         self.vertexList = {}
 
+        # OpenGL VBOs
+        self.vbos = {}
+
         # display styles
         self.style = {}
         self.visible = {}
@@ -135,20 +142,48 @@ class MeshCollectionDisplay(MeshCollection):
                 self.mainList[key] = self.faceListInit(mesh)
             if not key in self.vertexList:
                 self.vertexList[key] = self.vertexListInit(mesh)
+
+        for key, mesh in self.meshes.items():
+            if not key in self.vbos:
+                self.vbos[key] = self.faceVboInit(mesh)
+            #if not key in self.vertexList:
+            #    self.vertexList[key] = self.vertexListInit(mesh)
+
         objs = {}
         for key, mesh in self.meshes.items():
             objs[key] = {}
             objs[key]["matrix_mode"] = GL_PROJECTION
             objs[key]["style"] = self.style[key]
             objs[key]["visible"] = self.visible[key]
-            objs[key]["list"] = self.mainList[key]
+            #objs[key]["list"] = self.mainList[key]
             objs[key+"_vertices"] = {}
             objs[key+"_vertices"]["matrix_mode"] = GL_PROJECTION
             objs[key+"_vertices"]["style"] = "Red"
             objs[key+"_vertices"]["visible"] = self.vertices[key]
             objs[key+"_vertices"]["list"] = self.vertexList[key]
+            objs[key]["vbo"] = self.vbos[key][1]
+            objs[key]["vbo_len"] = self.vbos[key][0]
+            objs[key]["highlight_index"] = 21
 
         self.displayObjects = objs
+
+    def faceVboInit(self, mesh):
+        # XXX: this is still slightly legacy, and should move to indexed arrays
+
+        num_faces = len(mesh.faces)
+
+        vertices = np.empty([num_faces*3, 6], 'f')
+
+        for i, f in enumerate(mesh.faces):
+            n = f.normal.normalise()
+            assert len(f.vertices) == 3
+            for j, v in enumerate(f.vertices):
+                vertices[i*3+j][0:3] = [float(v.x), float(v.y), float(v.z)]
+                vertices[i*3+j][3:6] = [float(n.x), float(n.y), float(n.z)]
+
+        vbo_face = vbo.VBO(vertices)
+
+        return (num_faces*3, vbo_face)
 
     def faceListInit(self, mesh):
         faceList = glGenLists(1)

@@ -27,9 +27,18 @@ from __future__ import division
 
 import wx
 from wx import glcanvas
+
+from mesh import Vector
+
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import *
+
+from OpenGL.GL import shaders
+from OpenGL.arrays import vbo
+
+import numpy as np
+
 
 class pickPixel:
     def __init__(self, x, y):
@@ -62,6 +71,9 @@ class MeshCanvas(glcanvas.GLCanvas):
         # hog the key focus
         self.Bind(wx.EVT_KILL_FOCUS, lambda evt: self.SetFocus())
         self.SetFocus()
+
+        #XXX:
+        self.highlight = None
 
     def setController(self, controller):
         '''Set the controller class for the view (MVC pattern).
@@ -142,6 +154,60 @@ class MeshCanvas(glcanvas.GLCanvas):
         glEnable(GL_LIGHT0)
         glEnable(GL_COLOR_MATERIAL)
 
+        # basic vertex shader that adds configurable ambient and diffuse (normal aligned) lighting
+        VERTEX_SHADER = shaders.compileShader("""#version 120
+            uniform vec3 Light_location;
+            uniform vec4 Global_ambient;
+            uniform vec4 Light_diffuse;
+            uniform vec4 Base_colour;
+            attribute vec3 Vertex_position;
+            attribute vec3 Vertex_normal;
+
+            void main() {
+                gl_Position = gl_ModelViewProjectionMatrix * vec4( Vertex_position, 1.0 );
+
+                vec3 normal = normalize(gl_NormalMatrix * Vertex_normal);
+                vec3 lightDir = normalize(vec3(Light_location));
+                float NdotL = max(dot(normal, lightDir), 0.0);
+
+                //vec4 diffuse = vec4(0.2,0.2,0.2,1.0);
+                vec4 diffuse = Light_diffuse;
+
+                vec4 lighting = NdotL * diffuse + Global_ambient;
+
+                gl_FrontColor = clamp(Base_colour * lighting, 0.0, 1.0);
+
+            }
+            """, GL_VERTEX_SHADER)
+
+        FRAGMENT_SHADER = shaders.compileShader("""#version 120
+
+            void main() {
+
+                gl_FragColor = gl_Color;
+
+            }
+            """, GL_FRAGMENT_SHADER)
+
+        self.shader = shaders.compileProgram(VERTEX_SHADER, FRAGMENT_SHADER)
+
+        # configure uniform variables to pass to the vertex shaders
+        for uniform in ( 'Global_ambient', 'Light_location','Light_diffuse', 'Base_colour' ):
+            location = glGetUniformLocation( self.shader, uniform )
+
+            if location in (None,-1):
+                print 'Warning, no uniform: %s'%( uniform )
+
+            setattr( self, uniform+ '_loc', location )
+
+        for attribute in ( 'Vertex_position','Vertex_normal', ):
+            location = glGetAttribLocation( self.shader, attribute )
+
+            if location in (None,-1):
+                print 'Warning, no attribute: %s'%( uniform )
+
+            setattr( self, attribute+ '_loc', location )
+
         glInitNames()
 
         # TODO:
@@ -154,6 +220,7 @@ class MeshCanvas(glcanvas.GLCanvas):
         # clear color and depth buffers
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         self.setupScene()
+
         for k in self.displayObjects.keys():
             obj = self.displayObjects[k]
             glMatrixMode(obj["matrix_mode"])
@@ -164,9 +231,12 @@ class MeshCanvas(glcanvas.GLCanvas):
                 glColor3f(0.7, 0.7, 1.0)
             else:
                 glColor3f(1.0, 1.0, 1.0)
+
             visible = obj["visible"]
+            if not visible:
+                continue
             
-            if visible:
+            if "list" in obj:
                 glCallList(obj["list"])
 
         # TODO:
@@ -174,6 +244,71 @@ class MeshCanvas(glcanvas.GLCanvas):
         #    self.drawXAxisGrid()
         #    self.drawYAxisGrid()
         #    self.drawZAxisGrid()
+
+
+        shaders.glUseProgram(self.shader)
+        try:
+            glUniform4f( self.Global_ambient_loc, .3,.3, .3, 0.5)
+            glUniform4f(self.Light_diffuse_loc, 0.5, 0.5, 0.5, 0.5)
+            glUniform3f(self.Light_location_loc, 0, 1, 10)
+
+            for k in self.displayObjects.keys():
+                obj = self.displayObjects[k]
+
+                visible = obj["visible"]
+                
+                if not visible:
+                    continue
+
+                if not "vbo" in obj:
+                    continue
+
+                vbo = obj["vbo"]
+                num_triangles = obj["vbo_len"]
+
+                if not self.highlight:
+                    highlight = False
+                else:
+                    highlight = True
+                    highlight_index = self.highlight_index
+
+                vbo.bind()
+                try:
+                    glUniform4f(self.Base_colour_loc, 0.7, 0.7, 0.7, 0.5)
+
+                    glEnableVertexAttribArray( self.Vertex_position_loc )
+                    glEnableVertexAttribArray( self.Vertex_normal_loc )
+                    stride = 24
+                    glVertexAttribPointer(self.Vertex_position_loc, 3, GL_FLOAT,False, stride,vbo)
+
+                    glVertexAttribPointer(self.Vertex_normal_loc, 3, GL_FLOAT,False, stride, vbo+12)
+
+                    if not highlight:
+                        glDrawArrays(GL_TRIANGLES, 0, num_triangles)
+                    else:
+                        if highlight_index == 0:
+                            glUniform4f(self.Base_colour_loc, 0.7, 0.2, 0.2, 0.5)
+                            glDrawArrays(GL_TRIANGLES, 0, 3)
+                            glUniform4f(self.Base_colour_loc, 0.7, 0.7, 0.7, 0.5)
+                            glDrawArrays(GL_TRIANGLES, 3, num_triangles-3)
+                        elif highlight_index == num_triangles-2:
+                            glUniform4f(self.Base_colour_loc, 0.7, 0.2, 0.2, 0.5)
+                            glDrawArrays(GL_TRIANGLES, 0, num_triangles-3)
+                            glUniform4f(self.Base_colour_loc, 0.7, 0.7, 0.7, 0.5)
+                            glDrawArrays(GL_TRIANGLES, num_triangles-3, 3)
+                        else:
+                            glUniform4f(self.Base_colour_loc, 0.7, 0.7, 0.7, 0.5)
+                            glDrawArrays(GL_TRIANGLES, 0, highlight_index)
+                            glDrawArrays(GL_TRIANGLES, highlight_index+3, num_triangles-highlight_index-3)
+                            glUniform4f(self.Base_colour_loc, 0.7, 0.2, 0.2, 0.5)
+                            glDrawArrays(GL_TRIANGLES, highlight_index, 3)
+
+                finally:
+                    vbo.unbind()
+                    glDisableVertexAttribArray( self.Vertex_position_loc )
+                    glDisableVertexAttribArray( self.Vertex_normal_loc )
+        finally:
+            shaders.glUseProgram(0)
 
         self.SwapBuffers()
 

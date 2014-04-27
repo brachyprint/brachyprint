@@ -4,6 +4,8 @@ from OpenGL.GL import *
 from OpenGL.GLUT import *
 from math import pi, acos
 
+from copy import copy
+
 
 class ROI:
     def __init__(self):
