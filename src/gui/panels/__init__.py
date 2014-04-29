@@ -18,13 +18,11 @@
 
 
 '''
-A library of GUI tools (e.g. rotation, zoom, ROI manipulation).
+A library of GUI panels (e.g. tool selection, mesh options).
 '''
 
-__all__ = ['rotate_tool', 'zoom_tool', 'roi_tool', 'debug_tool']
+__all__ = ['mode_panel', 'mesh_panel']
 
-from rotate_tool import RotateTool
-from zoom_tool import ZoomTool
-from roi_tool import RoiTool
-from debug_tool import DebugTool
+from mode_panel import ModePanel
+from mesh_panel import MeshPanel
 

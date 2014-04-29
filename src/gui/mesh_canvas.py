@@ -274,7 +274,15 @@ class MeshCanvas(glcanvas.GLCanvas):
 
                 vbo.bind()
                 try:
-                    glUniform4f(self.Base_colour_loc, 0.7, 0.7, 0.7, 0.5)
+                    style = obj["style"]
+                    if style == "Grey":
+                        glUniform4f(self.Base_colour_loc, 0.7, 0.7, 0.7, 0.5)
+                    elif style == "Red":
+                        glUniform4f(self.Base_colour_loc, 0.7, 0.3, 0.3, 0.5)
+                    elif style == "Blue":
+                        glUniform4f(self.Base_colour_loc, 0.3, 0.3, 0.7, 0.5)
+                    else:
+                        glUniform4f(self.Base_colour_loc, 0.7, 0.7, 0.7, 0.5)
 
                     glEnableVertexAttribArray( self.Vertex_position_loc )
                     glEnableVertexAttribArray( self.Vertex_normal_loc )

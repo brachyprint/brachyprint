@@ -31,6 +31,8 @@ import numpy as np
 
 from settings import *
 
+from mesh import Vector
+
 class Range3d(object):
     def __init__(self, minX, maxX, minY, maxY, minZ, maxZ):
         self.min_X = minX
@@ -138,8 +140,8 @@ class MeshCollectionDisplay(MeshCollection):
         '''Build a list of display objects based on the meshes in the collection.
         '''
         for key, mesh in self.meshes.items():
-            if not key in self.mainList:
-                self.mainList[key] = self.faceListInit(mesh)
+            #if not key in self.mainList:
+            #    self.mainList[key] = self.faceListInit(mesh)
             if not key in self.vertexList:
                 self.vertexList[key] = self.vertexListInit(mesh)
 
@@ -174,10 +176,18 @@ class MeshCollectionDisplay(MeshCollection):
 
         vertices = np.empty([num_faces*3, 6], 'f')
 
+        #normals = [0]*len(mesh.vertices)
+        #for i, v in enumerate(mesh.vertices):
+        #    n = Vector(0,0,0)
+        #    for f in v.faces:
+        #        n = n + f.normal.normalise()
+        #    normals[i] = (n / len(v.faces))
+
         for i, f in enumerate(mesh.faces):
             n = f.normal.normalise()
-            assert len(f.vertices) == 3
+            #assert len(f.vertices) == 3
             for j, v in enumerate(f.vertices):
+                #n = normals[v.name]
                 vertices[i*3+j][0:3] = [float(v.x), float(v.y), float(v.z)]
                 vertices[i*3+j][3:6] = [float(n.x), float(n.y), float(n.z)]
 
