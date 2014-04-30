@@ -23,6 +23,8 @@ A 2D line class for the ``mesh'' package.
 
 from __future__ import division
 
+from mesh_settings import epsilon
+
 class Line(object):
     '''
     A class representing a 2D line segment.
@@ -31,6 +33,10 @@ class Line(object):
     def __init__(self, name, v1, v2):
         self.name = name
         self.v1, self.v2 = v1, v2
+
+    def __repr__(self):
+        return "Line from %d to %d" % (self.v1.name, self.v2.name)
+        #return "Line from %s to %s" % (self.v1.__repr__(), self.v2.__repr__())
 
     def length(self):
         """Returns the length of the line segment.
@@ -57,7 +63,7 @@ class Line(object):
             t = ty
         elif ty is None:
             t = tx
-        elif tx != ty:
+        elif abs(tx - ty) > epsilon:
             return False
         else:
             t = tx

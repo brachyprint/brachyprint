@@ -24,6 +24,7 @@ A 2D vector class for the ``mesh'' package.
 from __future__ import division
 from math import sqrt
 
+from mesh_settings import epsilon
 
 class Vector2d(object):
     '''
@@ -36,7 +37,7 @@ class Vector2d(object):
             x = x[0]
     
         self.x, self.y = x, y
-        self.epsilon = 0.00001
+        self.epsilon = epsilon
 
     def __eq__(self, v):
         if isinstance(v, Vector2d):

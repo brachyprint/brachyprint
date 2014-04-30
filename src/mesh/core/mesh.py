@@ -139,7 +139,7 @@ class Mesh(object):
 
                 vertices = dict(vertices=array(points), segments=array(segments))
 
-                plot_it = True
+                plot_it = False
                 if plot_it:
                     print vertices
 

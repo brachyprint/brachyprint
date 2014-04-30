@@ -3,6 +3,7 @@ Functions to plot 2d geometry.
 """
 
 from mesh import Vector, Face
+from mesh import Vector2d, Vertex2d
 
 import matplotlib.pyplot as plt
 from matplotlib.path import Path
@@ -18,6 +19,8 @@ def add_patch(ax, verts, plot_points, plot3d, u1, u2):
             verts = [v.project2d(u1, u2) for v in verts]
         else:
             verts = [(v.x, v.y) for v in verts]
+    elif isinstance(verts[0], Vector2d) or isinstance(verts[0], Vertex2d):
+        verts = [(v.x, v.y) for v in verts]
 
     codes = [Path.MOVETO] + [Path.LINETO]*(len(verts)-1) + [Path.CLOSEPOLY]
 
@@ -54,6 +57,8 @@ def plot_verts(verts, plot_points=True, plot3d=False):
         u2 = verts[0][2] - verts[0][0]
         n = u1.cross(u2)
         u2 = n.cross(u1)
+        u1.normalise()
+        u2.normalise()
 
     for vs in verts:
         [(minx2, maxx2), (miny2, maxy2)] = add_patch(ax, vs, plot_points, plot3d, u1, u2)

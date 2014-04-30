@@ -24,6 +24,9 @@ A 3D vector class for the ``mesh'' package.
 from __future__ import division
 from math import sqrt
 
+from vector2d import Vector2d
+
+from mesh_settings import epsilon
 
 class Vector(object):
     '''
@@ -37,7 +40,7 @@ class Vector(object):
             x = x[0]
     
         self.x, self.y, self.z = x, y, z
-        self.epsilon = 0.00001
+        self.epsilon = epsilon
 
     def __eq__(self, v):
         if isinstance(v, Vector):
@@ -188,6 +191,12 @@ class Vector(object):
             p = self.cross(bv)
             if p.magnitude() > 0.1:
                 return p.normalise(), self.cross(p).normalise()
+
+    def project2dvector(self, u, v):
+        '''
+        Project the vector into 2d using the basis vectors 'u' and 'v'.
+        '''
+        return Vector2d(self.dot(u), self.dot(v))
 
 
 BASIS_VECTORS = [Vector(0,0,1), Vector(0,1,0), Vector(1,0,0)]

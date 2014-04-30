@@ -74,10 +74,11 @@ class PartitionPolygonTests(TestCase):
         for i, path in enumerate(paths):
             x = itertools.cycle(path)
             forward = [tuple([x.next() for i in range(len(path)+1)][0:-1]) for j in path]
-            y = itertools.cycle(reversed(path))
-            backward = [tuple([y.next() for i in range(len(path)+1)][0:-1]) for j in path]
+            #y = itertools.cycle(reversed(path))
+            #backward = [tuple([y.next() for i in range(len(path)+1)][0:-1]) for j in path]
 
-            paths_rotated.append(set(forward + backward))
+            #paths_rotated.append(set(forward + backward))
+            paths_rotated.append(set(forward))
         return paths_rotated
 
     def checkPaths(self, paths, paths_valid):
@@ -93,13 +94,12 @@ class PartitionPolygonTests(TestCase):
         # check that every path was returned
         self.assertTrue(sum(used_paths)==len(paths_valid))
 
-    def check_partition(self, vertices, lines, paths_expected):
+    def check_partition(self, p, paths_expected):
         """Check the partition agrees with the expected paths.
         """
         paths_valid = self.rotations(paths_expected)
 
-        # generate polygon
-        p = Polygon((vertices, lines))
+        # partition polygon
         paths = p.partition()
         
         # check the correct number of paths were returned
@@ -153,9 +153,10 @@ class PartitionPolygonTests(TestCase):
                     Vector2d(6,6),
                     Vector2d(11,1)]
         lines = [(0,1),(1,2),(2,0)]
-        paths_expected = [[0, 1, 2]]
+        paths_expected = [[0, 2, 1]]
 
-        self.check_partition(vertices, lines, paths_expected)
+        p = Polygon((vertices, lines))
+        self.check_partition(p, paths_expected)
 
     def test_triangle_partition_2(self):
         # triangle with partition on one edge:
@@ -174,9 +175,10 @@ class PartitionPolygonTests(TestCase):
                     Vector2d(6,4),
                     Vector2d(4,1)]
         lines = [(0,1),(1,2),(2,3),(3,5),(5,0),(3,4),(4,5)]
-        paths_expected = [[0, 1, 2, 3, 4, 5], [3, 4, 5]]
+        paths_expected = [[0, 5, 4, 3, 2, 1], [5, 3, 4]]
 
-        self.check_partition(vertices, lines, paths_expected)
+        p = Polygon((vertices, lines))
+        self.check_partition(p, paths_expected)
 
     def test_triangle_partition_3(self):
         # triangle with partition spanning two edges
@@ -195,9 +197,10 @@ class PartitionPolygonTests(TestCase):
                     Vector2d(4,1),
                     Vector2d(6,4)]
         lines = [(0,1),(1,2),(2,3),(3,4),(4,0),(4,5),(5,1)]
-        paths_expected = [[0, 1, 5, 4], [1, 2, 3, 4, 5]]
+        paths_expected = [[0, 4, 5, 1], [1, 5, 4, 3, 2]]
 
-        self.check_partition(vertices, lines, paths_expected)
+        p = Polygon((vertices, lines))
+        self.check_partition(p, paths_expected)
 
     def test_triangle_partition_4(self):
         # triangle with three partitions connecting all three edges
@@ -218,9 +221,45 @@ class PartitionPolygonTests(TestCase):
                     Vector2d(4,1),
                     Vector2d(6,4)]
         lines = [(0,1),(1,2),(2,3),(3,4),(4,5),(5,0),(1,6),(3,6),(5,6)]
-        paths_expected = [[0, 1, 6, 5], [1, 2, 3, 6], [3, 4, 5, 6]]
+        paths_expected = [[0, 5, 6, 1], [1, 6, 3, 2], [3, 6, 5, 4]]
 
-        self.check_partition(vertices, lines, paths_expected)
+        p = Polygon((vertices, lines))
+        self.check_partition(p, paths_expected)
+
+    def test_rectangle_partition(self):
+        # rectangle with two partitions
+        #
+        # 1___________2
+        #  |         |
+        #  |         |
+        # 4|_________|5
+        #  |         |
+        #  |         |
+        # 0|_________|3
+
+        p = Polygon()
+
+        v0 = p.add_vertex(1,1)
+        v1 = p.add_vertex(1,5)
+        v2 = p.add_vertex(5,5)
+        v3 = p.add_vertex(5,1)
+
+        # original rectangle
+        p.add_line(v0, v1)
+        p.add_line(v1, v2)
+        p.add_line(v2, v3)
+        p.add_line(v3, v0)
+
+        # add two additional vertices and a line to form a partition
+        v4 = p.add_vertex(1,3)
+        v5 = p.add_vertex(5,3)
+
+        # dividing line
+        p.add_line(v5, v4)
+
+        paths_expected = [[0, 3, 5, 4], [1, 4, 5, 2]]
+
+        self.check_partition(p, paths_expected)
 
 
 if __name__ == '__main__':

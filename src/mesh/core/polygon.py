@@ -27,6 +27,9 @@ from vector2d import Vector2d
 from vertex2d import Vertex2d
 from line import Line
 
+from mesh_settings import epsilon
+
+
 class Polygon(object):
     '''
     A class representing a 2D polygon.
@@ -63,6 +66,8 @@ class Polygon(object):
                     # split the line into 2
                     v1, v2 = l.v1, l.v2
                     self.lines.remove(l)
+                    v1.remove_line(l)
+                    v2.remove_line(l)
                     self.add_line(v1, v)
                     self.add_line(v, v2)
                     break
@@ -70,13 +75,10 @@ class Polygon(object):
 
     def add_line(self, v1, v2):
         l = Line(self.next_line_name, v1, v2)
+        self.next_line_name += 1
         self.lines.append(l)
         for v in [v1, v2]:
             v.add_line(l)
-
-    def area(self):
-        v1, v2, v3 = self.vertices
-        return (v2 - v1).cross(v3 - v1).magnitude() / 2.0
 
     def centroid(self):
         return reduce((lambda x,y:x+y), self.vertices) / 3
@@ -175,6 +177,9 @@ class Polygon(object):
             for w in r:
                 path.append(w[0])
                 #print "<v%i,v%i,v%i>" % (w[0].name+1, w[1].name+1, w[2].name+1)
+            # Switch to anti-clockwise
+            # XXX: if necessary, this could probably be done higher up.
+            path.reverse()
             paths.append(path)
 
 
@@ -225,6 +230,9 @@ class Polygon(object):
         # calculate the area of each region
         areas = [area(p) for p in paths]
 
+        #if len(areas) == 2:
+        #    raise ValueError
+
         # remove the region with the largest area (the outside region)
         max_area = max(areas)
         paths.pop(areas.index(max_area))
@@ -233,7 +241,7 @@ class Polygon(object):
         # i.e. whether the polygon is simply connected. This is equivalent to
         # checking that the area of all other regions sums to the area of the
         # outside region.
-        if sum(areas) != 2*max_area:
+        if abs(sum(areas) - 2*max_area) > epsilon:
             raise ValueError("Polygon is not simply connected")
 
             # TODO: cope with this case!

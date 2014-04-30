@@ -1,9 +1,29 @@
 
+#    Brachyprint -- 3D printing brachytherapy moulds
+#    Copyright (C) 2013-14  Martin Green and Oliver Madge
+#
+#    This program is free software; you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation; either version 2 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License along
+#    with this program; if not, write to the Free Software Foundation, Inc.,
+#    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+
 from __future__ import division
 
 import mesh
 
 from random import uniform
+
+from mesh.plot import plot_verts
 
 
 def intersect(m1, m2):
@@ -40,10 +60,6 @@ def intersect(m1, m2):
                 # intersections
             # for each partition to output
                # output the face, triangulating if necessary
-
-
-    m1_intersections = {}
-    m2_intersections = {}
 
     new_vertices = {}
     new_name = {0: 0} # hack to be visible in the inner function
@@ -105,20 +121,38 @@ def intersect(m1, m2):
 
         return r
 
-        
-    m1_face_points = {}
+    # create Polygons to represent faces
+    m1_polygons = {}
     for f1 in m1.faces:
-        m1_face_points[f1.name] = []
+        m1_polygons[f1.name] = {}
+        (vs, u, v, undo) = f1.project2d()
+        #vs.reverse()
+        p = mesh.Polygon((vs, [(0,2),(2,1),(1,0)]))
+        m1_polygons[f1.name]["p"] = p
+        m1_polygons[f1.name]["u"] = u
+        m1_polygons[f1.name]["v"] = v
+        m1_polygons[f1.name]["undo"] = undo
 
+        # add vertices and record mapping
+        m1_polygons[f1.name]["map"] = []
         for i in range(3):
-            m1_face_points[f1.name].append(add_vertex(f1.vertices[i], m1_vertices[f1.vertices[i].name]))
+            m1_polygons[f1.name]["map"].append(add_vertex(f1.vertices[i], m1_vertices[f1.vertices[i].name]))
 
-    m2_face_points = {}
+    m2_polygons = {}
     for f2 in m2.faces:
-        m2_face_points[f2.name] = []
+        m2_polygons[f2.name] = {}
+        (vs, u, v, undo) = f2.project2d()
+        p = mesh.Polygon((vs, [(0,2),(2,1),(1,0)]))
+        m2_polygons[f2.name]["p"] = p
+        m2_polygons[f2.name]["u"] = u
+        m2_polygons[f2.name]["v"] = v
+        m2_polygons[f2.name]["undo"] = undo
 
+        # add vertices and record mapping
+        m2_polygons[f2.name]["map"] = []
         for i in range(3):
-            m2_face_points[f2.name].append(add_vertex(f2.vertices[i], m2_vertices[f2.vertices[i].name]))
+            m2_polygons[f2.name]["map"].append(add_vertex(f2.vertices[i], m2_vertices[f2.vertices[i].name]))
+        
 
     # determine all face/face intersections
     # XXX: optimise this using octrees
@@ -132,52 +166,35 @@ def intersect(m1, m2):
                 # these two faces intersect
                 # add the vertices to the list
 
-                s[0] = add_vertex(s[0], 2)
-                s[1] = add_vertex(s[1], 2)
+                # marry vertices with existing vertices
+                for i_s in range(len(s)):
+                    s[i_s] = add_vertex(s[i_s], 2)
 
-                # record m1 vertices
-                if not s[0] in m1_face_points[f1.name]:
-                    m1_face_points[f1.name].append(s[0])
-                if not s[1] in m1_face_points[f1.name]:
-                    m1_face_points[f1.name].append(s[1])
+                u1 = m1_polygons[f1.name]["u"]
+                v1 = m1_polygons[f1.name]["v"]
+                u2 = m2_polygons[f2.name]["u"]
+                v2 = m2_polygons[f2.name]["v"]
 
-                # record m1 edge connections
-                if f1.name in m1_intersections:
-                    if s[0] in m1_intersections[f1.name]:
-                        m1_intersections[f1.name][s[0]].append(s[1])
-                    else:
-                        m1_intersections[f1.name][s[0]] = [s[1]]
-                        
-                    if s[1] in m1_intersections[f1.name]:
-                        m1_intersections[f1.name][s[1]].append(s[0])
-                    else:
-                        m1_intersections[f1.name][s[1]] = [s[0]]
-                else:
-                    m1_intersections[f1.name] = {}
-                    m1_intersections[f1.name][s[0]] = [s[1]]
-                    m1_intersections[f1.name][s[1]] = [s[0]]
+                # record m1 and m2 vertices
+                verts1 = [0]*len(s)
+                verts2 = [0]*len(s)
+                for i_s in range(len(s)):
+                    verts1[i_s] = m1_polygons[f1.name]["p"].add_vertex(new_vertices[s[i_s]].project2dvector(u1, v1))
+                    if verts1[i_s].name == len(m1_polygons[f1.name]["map"]):
+                        m1_polygons[f1.name]["map"].append(s[i_s])
+                    elif verts1[i_s].name > len(m1_polygons[f1.name]["map"]):
+                        raise ValueError
 
-                # record m2 vertices
-                if not s[0] in m2_face_points[f2.name]:
-                    m2_face_points[f2.name].append(s[0])
-                if not s[1] in m2_face_points[f2.name]:
-                    m2_face_points[f2.name].append(s[1])
+                    verts2[i_s] = m2_polygons[f2.name]["p"].add_vertex(new_vertices[s[i_s]].project2dvector(u2, v2))
+                    if verts2[i_s].name == len(m2_polygons[f2.name]["map"]):
+                        m2_polygons[f2.name]["map"].append(s[i_s])
+                    elif verts2[i_s].name > len(m2_polygons[f2.name]["map"]):
+                        raise ValueError
 
-                # record m2 edge connections
-                if f2.name in m2_intersections:
-                    if s[0] in m2_intersections[f2.name]:
-                        m2_intersections[f2.name][s[0]].append(s[1])
-                    else:
-                        m2_intersections[f2.name][s[0]] = [s[1]]
-                        
-                    if s[1] in m2_intersections[f2.name]:
-                        m2_intersections[f2.name][s[1]].append(s[0])
-                    else:
-                        m2_intersections[f2.name][s[1]] = [s[0]]
-                else:
-                    m2_intersections[f2.name] = {}
-                    m2_intersections[f2.name][s[0]] = [s[1]]
-                    m2_intersections[f2.name][s[1]] = [s[0]]
+                # record m1 and m2 lines
+                for i_s in range(len(s)-1):
+                    m1_polygons[f1.name]["p"].add_line(verts1[i_s-1], verts1[i_s])
+                    m2_polygons[f2.name]["p"].add_line(verts2[i_s-1], verts2[i_s])
 
     # create new output mesh
     m = mesh.Mesh()
@@ -188,22 +205,29 @@ def intersect(m1, m2):
         if include_vertex[k]:
             nv.append(m.add_vertex(v))
         else:
-            nv.append(None)
+            nv.append(v)
 
-    output_faces(m1_face_points, include_vertex, m1_intersections, new_vertices, m, nv)
-    output_faces(m2_face_points, include_vertex, m2_intersections, new_vertices, m, nv, True)
+    # output faces for the outer mesh
+    output_faces(m1_polygons, include_vertex, new_vertices, m, nv)
+    # output faces for the inner mesh
+    output_faces(m2_polygons, include_vertex, new_vertices, m, nv, True)
 
     return m
 
 
-def output_faces(face_points, include_vertex, intersections, new_vertices, m, nv, invert=False):
+def output_faces(polygons, include_vertex, new_vertices, m, nv, invert=False):
 
     # output the faces from m1
-    for k,vs in face_points.items():
+    for k,p in polygons.items():
 
         # triangulate the face with the new vertices
 
+        # extract the vertex names
+        vs = map(lambda x: x.name, p["p"].vertices)
+        vs = [p["map"][v] for v in vs]
+
         if len(vs) < 3:
+            # XXX: change this to an Exception
             print "Error!"
         elif len(vs) == 3:
             # no intersection; just add the face
@@ -214,166 +238,59 @@ def output_faces(face_points, include_vertex, intersections, new_vertices, m, nv
                     m.add_face(nv[vs[0]], nv[vs[1]], nv[vs[2]])
         else:
 
+            # XXX: change this to an Exception
+            if not p["p"].closed():
+                print "Warning: intersection polygon is not closed. This is likely to be caused by a bug in the intersection code."
+                print p["p"].vertices
+                print p["p"].lines
+                plot_verts([p["p"].vertices])
+                continue
+
             # partition the surface
+            partitions = p["p"].partition()
 
-            edges = [[vs[0]],[vs[1]],[vs[2]]]
+            # reconstruct the 3D paths from the 2D planar intersection geometry
+            paths = []
+            for p in partitions:
+                verts = [vs[x.name] for x in p]
+                paths.append(verts)
 
-            inter = intersections[k]
+            # classify partitions into those to display or not
+            ps_i = range(len(paths))
+            disp = [None]*len(paths)
 
-            # find the edge points
-            edge_points = [ki for ki,x in intersections[k].items() if len(x)==1]
-            
-            bv = [0,0,0]
-            bv[0] = new_vertices[vs[1]]-new_vertices[vs[0]]
-            bv[1] = new_vertices[vs[2]]-new_vertices[vs[1]]
-            bv[2] = new_vertices[vs[0]]-new_vertices[vs[2]]
-
-            #map(lambda x: print(edge_points[x]), range(len(edge_points)))
-            #for i in range(len(edge_points)):
-            #    print edge_points[i], nv[edge_points[i]]
-            
-            # assign each edge point to the corresponding edge
-            for p in edge_points:
-                for i in range(3):
-                    #print bv[i].cross(new_vertices[p]-new_vertices[vs[i]])
-                    if bv[i].cross(new_vertices[p]-new_vertices[vs[i]]) == mesh.nullVector:
-                        edges[i].append(p)
-
-            for j in range(3):
-                edges[j] = [(bv[j].dot(new_vertices[edges[j][i]]), edges[j][i]) for i in range(len(edges[j]))]
-                edges[j].sort(key=lambda t: t[0])
-                edges[j] = [edges[j][i][1] for i in range(len(edges[j]))]
-            
-            edges = edges[0] + edges[1] + edges[2]
-
-            #if len(edge_points)+3 != len(edges):
-            #    print "Not enough edge points!"
-            #    continue
-
-            path = {}
-            for p in edge_points:
-                # trace out the paths
-                ps = [p]
-                while 1:
-                    for ip in inter[ps[-1]]:
-                        if not ip in ps:
-                            ps.append(ip)
-                    if ps[-1] in edge_points:
-                        break
-                path[p] = ps[1:]
-
-            partitions = []
-
-            #print inter
-            #print edges
-            #print edge_points
-
-            for p in edge_points:
-                i = edges.index(p)
-                part = [p]
-                follow_edge = False
-                # traverse round the way
-                n = -1
-                while n != p:
-                    # toggle following the edge, or the partition
-                    if n in edge_points:
-                        if follow_edge:
-                            follow_edge = False
-                            i = (i + 1) % len(edges)
-                            n = edges[i]
-                            part.append(n)
-                        else:
-                            follow_edge = True
-                            for ps in path[n]:
-                                if ps == p:
-                                    n = p
-                                    break
-                                else:
-                                    part.append(ps)
-                            if n == p:
-                                continue
-                            i = edges.index(part[-1])
-                            n = edges[i]
-                    else:
-                        i = (i + 1) % len(edges)
-                        n = edges[i]
-                        part.append(n)
-                        
-                partitions.append(part)
-
-            # cull any duplicate partitions
-            partition_sets = range(len(partitions))
-
-            for i in range(len(partitions)):
-                partition_sets[i] = set(partitions[i])
-
-            to_delete = []
-            for i in range(len(partition_sets)):
-                for j in range(len(partition_sets)):
-                    if i==j or partition_sets[i] == None or partition_sets[j] == None:
-                        continue
-                    if partition_sets[i] == partition_sets[j]:
-                        partition_sets[j] = None
-                        to_delete.append(j)
-
-            # delete in reverse order so as not to disturb the indices
-            to_delete.sort(reverse=True)
-
-            for i in to_delete:
-                del partitions[i]
-                
-            # work out which partitions to display
-            # start at v[0], if in include_vertex, display that partition.
-            # find all partitions adjacent to v[0] partition
-                # set display opposite to v[0] partition
-            # find all partitions adjacent to these partitions
-                # set display the same as v[0] partition
-            # etc.
-
-            ps_i = range(len(partitions))
-            disp = [None]*len(partitions)
-
+            # find the partition that includes the first vertex, and display its
+            # partition according to the 
             for p in ps_i:
-                if vs[0] in partitions[p]:
+                if vs[0] in paths[p]:
                     disp[p] = (include_vertex[vs[0]] == 1)
                     part_prev = p
                     break
 
+            # For each vertex in the current path, find any paths that share
+            # a vertex. Their display will be the opposite of the adjacent path.
+            # Proceed recursively to classify the whole partition.
             def find_all_adj(p_prev):
                 for p in ps_i:
                     if disp[p] != None:
                         continue
                     # must share an edge (i.e. two points)
-                    if len([i for i in partitions[p] if i in partitions[p_prev]]) > 1:
+                    if len([i for i in paths[p] if i in paths[p_prev]]) > 1:
                         disp[p] = not disp[p_prev]
                         find_all_adj(p)
 
             find_all_adj(part_prev)
 
-            # XXX: check that the display of partitions containing v[1] and v[2]
-            # are set correctly according to include_vertex
-            for p in ps_i:
-                if vs[1] in partitions[p]:
-                    if disp[p] != (include_vertex[vs[1]] == 1):
-                        raise RuntimeError("Partitioning algorithm has a bug")
-                if vs[2] in partitions[p]:
-                    if disp[p] != (include_vertex[vs[2]] == 1):
-                        raise RuntimeError("Partitioning algorithm has a bug")
-            
-            for p in range(len(partitions)):
+            for i, path in enumerate(paths):
+                if disp[i]:
 
-                part = partitions[p]
+                    verts = [nv[x] for x in path]
 
-                if not disp[p]:
-                    continue
+                    # XXX: this shouldn't really require inversion here
+                    if not invert:
+                        verts.reverse()
 
-                verts = []
-                for index in partitions[p]:
-                    verts.append(nv[index])
+                    m.add_face(verts)
 
-                if invert:
-                    verts.reverse()
-
-                m.add_face(verts)
-
+            continue
 

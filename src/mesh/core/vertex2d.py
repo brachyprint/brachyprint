@@ -47,3 +47,9 @@ class Vertex2d(Vector2d):
         '''
         self.lines.append(line)
 
+    def remove_line(self, line):
+        '''
+        Remove a line from a vertex.
+        '''
+        self.lines.remove(line)
+

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: iso-8859-1 -*-
+
 import wx
 from meshGUI import MainWindow
 from settings import *
@@ -7,12 +8,6 @@ import mesh
 
 if __name__ == '__main__':
     app = wx.App(False)
-    #app = wx.PySimpleApp()        
-    #openFileDialog = wx.FileDialog(None, "Load", DEFAULT_OUTPUT_DIR, DEFAULT_OUTPUT_FILE, wildcard="*.skin.ply")
-    #openFileDialog.ShowModal()
-    #skin_file = openFileDialog.GetPath()
-    #openFileDialog.Destroy()
-    #base_filename = skin_file[:-8]
 
     # add a cube mesh to the display
     meshes = {}
@@ -38,9 +33,13 @@ if __name__ == '__main__':
 
     meshes = {"cylinder":c1, "cube2": m2, "cube4": m4, "intersect": m3, "blah": m5}
 
+    #meshes = {"cylinder":c1, "cube2": m2, "intersect": m3, "inter":}
+    #meshes = {"cube1": m1, "cube2": m2, "intersect": i1}
+
     frame = MainWindow(meshes = meshes,
                        rois = {},
                        title = "Intersection test")
     app.MainLoop()
     del frame
     del app
+

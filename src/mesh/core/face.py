@@ -62,13 +62,17 @@ class Face(object):
         
     def project2d(self):
         # form basis vectors
-        a = (self.vertices[1]-self.vertices[0]).normalise()
-        b = (self.vertices[2]-self.vertices[0]).normalise()
-        n = a.cross(b)
-        u = n.cross(a)
+        a = (self.vertices[1]-self.vertices[0])
+        b = (self.vertices[2]-self.vertices[0])
+        n = b.cross(a)
+        u = a
         v = n.cross(u)
+        u = u.normalise()
+        v = v.normalise()
+        n = u.cross(v)
+        origin = self.vertices[0]
 
-        fun = lambda vs: [vec.x*u+vec.y*v for vec in vs]
+        fun = lambda vs: [vec.x*u+vec.y*v+origin for vec in vs]
 
-        return ([f.project2dvector(u,v) for f in self.vertices], fun)
+        return ([f.project2dvector(u,v) for f in self.vertices], u, v, fun)
 
