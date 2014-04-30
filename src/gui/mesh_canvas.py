@@ -153,6 +153,7 @@ class MeshCanvas(glcanvas.GLCanvas):
         glEnable(GL_LIGHTING)
         glEnable(GL_LIGHT0)
         glEnable(GL_COLOR_MATERIAL)
+        glEnable(GL_VERTEX_PROGRAM_TWO_SIDE_ARB)
 
         # basic vertex shader that adds configurable ambient and diffuse (normal aligned) lighting
         VERTEX_SHADER = shaders.compileShader("""#version 120
@@ -176,6 +177,8 @@ class MeshCanvas(glcanvas.GLCanvas):
                 vec4 lighting = NdotL * diffuse + Global_ambient;
 
                 gl_FrontColor = clamp(Base_colour * lighting, 0.0, 1.0);
+                //gl_BackColor = clamp(0.5*Base_colour * lighting, 0.0, 1.0);
+                gl_BackColor = vec4(0.7, 0.2, 0.2, 0.5);
 
             }
             """, GL_VERTEX_SHADER)
@@ -295,12 +298,12 @@ class MeshCanvas(glcanvas.GLCanvas):
                         glDrawArrays(GL_TRIANGLES, 0, num_triangles)
                     else:
                         if highlight_index == 0:
-                            glUniform4f(self.Base_colour_loc, 0.7, 0.2, 0.2, 0.5)
+                            glUniform4f(self.Base_colour_loc, 0.2, 0.2, 0.2, 0.5)
                             glDrawArrays(GL_TRIANGLES, 0, 3)
                             glUniform4f(self.Base_colour_loc, 0.7, 0.7, 0.7, 0.5)
                             glDrawArrays(GL_TRIANGLES, 3, num_triangles-3)
                         elif highlight_index == num_triangles-2:
-                            glUniform4f(self.Base_colour_loc, 0.7, 0.2, 0.2, 0.5)
+                            glUniform4f(self.Base_colour_loc, 0.2, 0.2, 0.2, 0.5)
                             glDrawArrays(GL_TRIANGLES, 0, num_triangles-3)
                             glUniform4f(self.Base_colour_loc, 0.7, 0.7, 0.7, 0.5)
                             glDrawArrays(GL_TRIANGLES, num_triangles-3, 3)
@@ -308,7 +311,7 @@ class MeshCanvas(glcanvas.GLCanvas):
                             glUniform4f(self.Base_colour_loc, 0.7, 0.7, 0.7, 0.5)
                             glDrawArrays(GL_TRIANGLES, 0, highlight_index)
                             glDrawArrays(GL_TRIANGLES, highlight_index+3, num_triangles-highlight_index-3)
-                            glUniform4f(self.Base_colour_loc, 0.7, 0.2, 0.2, 0.5)
+                            glUniform4f(self.Base_colour_loc, 0.2, 0.2, 0.2, 0.5)
                             glDrawArrays(GL_TRIANGLES, highlight_index, 3)
 
                 finally:

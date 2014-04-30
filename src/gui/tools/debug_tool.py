@@ -39,6 +39,7 @@ class DebugTool(GuiTool):
         self.line_list = {}
         self.thickness = 0.1
         self.colour = "green"
+        self.mode = -1
 
     def initDisplay(self):
         for name, mesh in self.controller.meshes.items():
@@ -51,7 +52,6 @@ class DebugTool(GuiTool):
 
             if not edges:
                 continue
-            print name
 
             self.line_list[name] = glGenLists(1)
             glNewList(self.line_list[name], GL_COMPILE)
@@ -81,7 +81,13 @@ class DebugTool(GuiTool):
     def select(self, subtool):
         self.mode = subtool
 
+        if subtool == 1:
+            self.controller.Refresh()
+
     def getDisplayObjects(self):
+
+        if self.mode != 1:
+            return {}
 
         objs = {}
     
@@ -104,6 +110,8 @@ class DebugTool(GuiTool):
 
     def highlight(self):
         for mesh in self.controller.meshes.keys():
+            if not self.controller.meshes.visible[mesh]:
+                continue
             face_hit = self.controller.hit_location(mesh)
             if face_hit:
                 x,y,z,name = face_hit
