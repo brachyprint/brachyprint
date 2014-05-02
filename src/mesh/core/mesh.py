@@ -32,6 +32,7 @@ from vertex import Vertex
 from face import Face
 from edge import Edge
 from ..routes import *
+from octrees import *
 
 
 
@@ -47,6 +48,7 @@ class Mesh(object):
         self.vertices = []
         self.faces = []
         self.edges = {}
+        self.boundary = set()
         self.maxX, self.minX = None, None
         self.maxY, self.minY = None, None
         self.maxZ, self.minZ = None, None
@@ -195,6 +197,7 @@ class Mesh(object):
                 self.edges[(vs, ve)] = e
             e.add_face(f,isleft)
             f.add_edge(e)
+            self.boundary.symmetric_difference_update([e])
         for v in [v1, v2, v3]:
             v.add_face(f)
         return f
@@ -339,10 +342,7 @@ class Mesh(object):
 
         :returns: True if the surface is closed.
         """
-        for e in self.edges.itervalues():
-            if e.lface is None or e.rface is None:
-                return False
-        return True
+        return not(self.boundary)
 
 
     def add_mesh(self, mesh, invert = False):
