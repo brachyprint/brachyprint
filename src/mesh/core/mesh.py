@@ -33,6 +33,8 @@ from face import Face
 from edge import Edge
 from ..routes import *
 
+
+
 class Mesh(object):
     '''
     Class representing a mesh.
@@ -48,10 +50,7 @@ class Mesh(object):
         self.maxX, self.minX = None, None
         self.maxY, self.minY = None, None
         self.maxZ, self.minZ = None, None
-        self.next_vertex_name = 0
-        self.next_face_name = 0
-        self.next_volume_name = 0
-        self.face_to_vol = {}
+
 
     def get_edge(self, v1, v2):
         if self.edges.has_key((v1,v2)):
@@ -60,6 +59,7 @@ class Mesh(object):
             return self.edges[(v2,v1)]
         else:
             raise KeyError
+
 
     def add_vertex(self, x, y=None, z=None):
         """Add a vertex to the mesh.
@@ -72,8 +72,7 @@ class Mesh(object):
             y = x.y
             z = x.z
             x = x.x
-        v = Vertex(x,y,z, self.next_vertex_name)
-        self.next_vertex_name += 1
+        v = Vertex(x,y,z, len(self.vertices))
         self.vertices.append(v)
         if self.maxX is None:
             self.maxX = x
@@ -89,6 +88,7 @@ class Mesh(object):
         if z > self.maxZ: self.maxZ = z
         elif z < self.minZ: self.minZ = z
         return v
+
 
     def add_face(self, v1, v2=None, v3=None):
         """Add a face to the mesh.
@@ -172,6 +172,7 @@ class Mesh(object):
         else:
             self.add_triangle_face(v1, v2, v3)
 
+
     def add_triangle_face(self, v1, v2, v3):
         """Add a triangular face to the mesh.
 
@@ -179,8 +180,7 @@ class Mesh(object):
         :param v2: vertex 2 of the face
         :param v3: vertex 3 of the face
         """
-        f = Face(self.next_face_name, v1, v2, v3)
-        self.next_face_name += 1
+        f = Face(len(self.faces), v1, v2, v3)
         self.faces.append(f)
         for vs, ve in [(v1, v2), (v2, v3), (v3, v1)]:
             if self.edges.has_key((vs, ve)):
@@ -197,8 +197,8 @@ class Mesh(object):
             f.add_edge(e)
         for v in [v1, v2, v3]:
             v.add_face(f)
-
         return f
+
 
     def get_path(self, s1, s2):
         s2Postion = s2[0], s2[1], s2[2]
@@ -224,6 +224,7 @@ class Mesh(object):
                         new_dist = newPath.dist()
                         heappush(priority_queue, (dist + new_dist + newPath.crowdist(), dist + new_dist, paths + [newPath]))
 
+
     def get_vertex_path(self, v1, v2):
         priority_queue = []
         visited = {}
@@ -243,6 +244,7 @@ class Mesh(object):
                     for newPath in lastPath.new_Paths():
                         new_dist = newPath.dist()
                         heappush(priority_queue, (dist + new_dist + newPath.crowdist(), dist + new_dist, paths + [newPath]))
+
 
     def cloneSubVol(self, triangle, avoidEdges):
         vertex_map = {}
@@ -328,6 +330,7 @@ class Mesh(object):
         areas = [f.area() for f in self.faces]
         return sum(areas)
 
+
     def closed(self):
         """Checks whether the mesh contains only closed surfaces.
 
@@ -340,6 +343,7 @@ class Mesh(object):
             if e.lface is None or e.rface is None:
                 return False
         return True
+
 
     def add_mesh(self, mesh, invert = False):
         """Copy all vertices and faces from another mesh to this one.
@@ -375,28 +379,3 @@ class Mesh(object):
                 return v
 
         return None
-
-
-#    def allocate_volumes(self):
-#        '''Allocate each face to a particular volume.
-#
-#        '''
-#        to_grow = []
-#        for face in self.faces:
-#            if face.volume is None:
-#                face.volume = self.next_volume_name
-#                self.face_to_vol[face.name] = face.volume
-#                self.next_volume_name += 1
-#                self.volumes[face.volume]= [face]
-#                to_grow.append(face)
-#                while to_grow:
-#                    f = to_grow.pop()
-#                    for e in f.edges:
-#                        for new_face in e.faces():
-#                            if new_face.volume is None:
-#                                new_face.volume = face.volume
-#                                self.face_to_vol[new_face.name] = face.volume
-#                                self.volumes[face.volume].append(new_face)
-#                                to_grow.append(new_face)
-#        
-
