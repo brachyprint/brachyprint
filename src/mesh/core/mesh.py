@@ -52,6 +52,7 @@ class Mesh(object):
         self.maxX, self.minX = None, None
         self.maxY, self.minY = None, None
         self.maxZ, self.minZ = None, None
+        self.has_fresh_octrees = False
 
 
     def get_edge(self, v1, v2):
@@ -70,6 +71,7 @@ class Mesh(object):
         :keyword y: y coordinate of the vertex.
         :keyword z: z coordinate of the vertex.
         """
+        self.has_fresh_octrees = False
         if isinstance(x, Vector):
             y = x.y
             z = x.z
@@ -103,6 +105,7 @@ class Mesh(object):
         order faces are added by constrained Delauney triangulation of the
         vertices.
         """
+        self.has_fresh_octrees = False
         if isinstance(v1, list):
             if len(v1) == 3:
                 self.add_triangle_face(v1[0], v1[1], v1[2])
@@ -213,7 +216,7 @@ class Mesh(object):
         for v in self.faces[s1[3]].vertices:
             pv = point_to_vertex(s1[0], s1[1], s1[2], v, s2Postion, s2Face)
             heappush(priority_queue, (pv.dist() + pv.crowdist(), pv.dist(), [pv]))	
-        while (len(priority_queue) > 0):
+        while priority_queue:
             dist_plus_crow, dist, paths = heappop(priority_queue)
             lastPath = paths[-1]
             end = lastPath.end()
@@ -234,7 +237,7 @@ class Mesh(object):
         for vertex, edge in v1.adjacent_vertices():
             fe = follow_edge_vertex_path(v1, vertex, edge, v2)
             heappush(priority_queue, (fe.dist() + fe.crowdist(), fe.dist(), [fe]))	
-        while (len(priority_queue) > 0):
+        while priority_queue:
             dist_plus_crow, dist, paths = heappop(priority_queue)
             lastPath = paths[-1]
             end = lastPath.end
@@ -368,14 +371,35 @@ class Mesh(object):
         :param x: x coordinate of the vertex, or optionally a list of coordinates.
         :keyword y: y coordinate of the vertex.
         :keyword z: z coordinate of the vertex.
-
-        XXX: this is currently very slow!
         """
-        if not isinstance(x, Vector):
-            x = Vector(x, y, z)
 
-        for v in self.vertices:
-            if v == x:
-                return v
+        if isinstance(x, Vector):
+            x,y,z = x.x,x.y,x.z
 
-        return None
+        if self.vertices:
+            self.ensure_fresh_octrees()
+            return self.vertex_octree.get((x,y,z))
+        else:
+            return None
+
+
+    def ensure_fresh_octrees(self):
+        if not(self.has_fresh_octrees):
+            self.has_fresh_octrees = True
+            if self.vertices is None:
+                self.vertex_octree = None
+                self.face_octree = None
+            else:
+                epsilon = 0.1
+                b = ((self.minX-epsilon,self.maxX+epsilon),
+                     (self.minY-epsilon,self.maxY+epsilon),
+                     (self.minZ-epsilon,self.maxZ+epsilon))
+
+                self.vertex_octree = Octree(b)
+                for v in self.vertices:
+                    self.vertex_octree.insert((v.x,v.y,v.z),v.name)
+
+                self.face_octree = BlobOctree(b)
+                for f in self.faces:
+                    p = f.centroid()
+                    self.face_octree.insert((p.x,p.y,p.z),f.bounding_box(),f.name)

@@ -39,6 +39,9 @@ class Vertex(Vector):
     def __repr__(self):
         return "<Vertex x:%f y:%f z:%f name:%d>" % (self.x, self.y, self.z, self.name)
 
+    def __hash__(self):
+        return id(self)
+
     def __str__(self):
         return "From str method of Vertex: x is %f, y is %f, z is %f, name is %d" % (self.x, self.y, self.z, self.name)
 

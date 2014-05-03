@@ -107,6 +107,7 @@ class StlReader(object):
     def decode_ascii(self, m, lines):
         mode = 0
         vs = []
+        all_vertices = {}
         solid_name = lines[0].strip().split(' ')[1]
         for i in range(1, len(lines)): # in lines:
             words = lines[i].strip().split(' ')
@@ -138,12 +139,12 @@ class StlReader(object):
                     # check if the vertices already exist in the mesh
                     fv = []
                     for v in vs:
-                        v_e = m.get_vertex(v)
-                        if v_e is None:
-                            fv.append(m.add_vertex(v))
+                        if v in all_vertices:
+                            fv.append(all_vertices[v])
                         else:
-                            fv.append(v_e)
-
+                            p = m.add_vertex(v)
+                            all_vertices[v] = p
+                            fv.append(p)
                     # create face
                     m.add_face(fv)
                     vs = []

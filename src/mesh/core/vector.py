@@ -42,6 +42,9 @@ class Vector(object):
         self.x, self.y, self.z = x, y, z
         self.epsilon = epsilon
 
+    def __hash__(self):
+        return hash((Vector,self.x,self.y,self.z))
+
     def __eq__(self, v):
         if isinstance(v, Vector):
             return abs(self.x - v.x) <= self.epsilon and abs(self.y - v.y) <= self.epsilon and abs(self.z - v.z) <= self.epsilon
