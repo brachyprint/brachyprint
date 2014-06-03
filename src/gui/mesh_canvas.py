@@ -37,7 +37,11 @@ from OpenGL.GLUT import *
 from OpenGL.GL import shaders
 from OpenGL.arrays import vbo
 
+from OpenGL import extensions
+
 import numpy as np
+
+from math import ceil, floor
 
 
 class pickPixel:
@@ -52,11 +56,29 @@ class MeshCanvas(glcanvas.GLCanvas):
         self.parent = parent
         self.controller = None
 
-        glcanvas.GLCanvas.__init__(self, parent, -1, attribList=(glcanvas.WX_GL_DOUBLEBUFFER, ))
+        # The magic WX_GL_DEPTH_SIZE argument is required to guarantee
+        # initialisation of a depth buffer on the GL canvas. This is needed
+        # with certain graphics drivers, e.g. Intel, which allow creation of
+        # a GL canvas without a depth buffer (??).
+        # 
+        # See:
+        # https://groups.google.com/forum/#!topic/wxpython-users/lbzhzaBNkxQ
+        #   for a discussion.
+
+        attribs = [glcanvas.WX_GL_DOUBLEBUFFER,
+                   glcanvas.WX_GL_DEPTH_SIZE,16,]
+
+        # XXX: 16 is a magic number. IsDisplaySupported() should be used to
+        # check the attribute list is supported, but it is only available in
+        # wxPython >= 2.9. In any case, 24 might be a better choice.
+
+        glcanvas.GLCanvas.__init__(self, parent, -1, attribList=attribs, style= wx.FULL_REPAINT_ON_RESIZE)
+
         self.init = False
 
         self.displayObjects = None
 
+        # bind the relevant events
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
         self.Bind(wx.EVT_SIZE, self.OnSize)
         self.Bind(wx.EVT_PAINT, self.OnPaint)
@@ -72,7 +94,7 @@ class MeshCanvas(glcanvas.GLCanvas):
         self.Bind(wx.EVT_KILL_FOCUS, lambda evt: self.SetFocus())
         self.SetFocus()
 
-        #XXX:
+        # FIXME: this is a hack to enable highlighting of triangles
         self.highlight = None
 
     def setController(self, controller):
@@ -96,6 +118,8 @@ class MeshCanvas(glcanvas.GLCanvas):
         if self.controller:
             if self.controller.OnSize(event):
                 self.Refresh(False)
+
+        self.Update()
 
         # propagate the event
         event.Skip()
@@ -147,13 +171,22 @@ class MeshCanvas(glcanvas.GLCanvas):
                 self.Refresh(False)
 
     def InitGL(self):
+        '''Initialise OpenGL.
+        '''
 
         glutInit()
         glEnable(GL_DEPTH_TEST)
         glEnable(GL_LIGHTING)
         glEnable(GL_LIGHT0)
         glEnable(GL_COLOR_MATERIAL)
-        glEnable(GL_VERTEX_PROGRAM_TWO_SIDE_ARB)
+
+        # XXX: this might be a good optimisation to consider enabling
+        #glEnable(GL_CULL_FACE)
+        #glCullFace(GL_BACK)
+
+        # enable two sided lighting, but not available with all graphics drivers
+        if extensions.hasGLExtension("GL_VERTEX_PROGRAM_TWO_SIDE_ARB"):
+            glEnable(GL_VERTEX_PROGRAM_TWO_SIDE_ARB)
 
         # basic vertex shader that adds configurable ambient and diffuse (normal aligned) lighting
         VERTEX_SHADER = shaders.compileShader("""#version 120
@@ -213,9 +246,14 @@ class MeshCanvas(glcanvas.GLCanvas):
 
         glInitNames()
 
-        # TODO:
         if self.controller:
             self.controller.InitGL()
+
+        # ensure depth testing is enabled
+        glEnable(GL_DEPTH_TEST)
+        glDepthMask(GL_TRUE)
+        glDepthFunc(GL_LEQUAL)
+        glDepthRange(0.0, 1.0)
 
     def OnDraw(self):
         '''Redraw the widget.
@@ -224,8 +262,8 @@ class MeshCanvas(glcanvas.GLCanvas):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         self.setupScene()
 
-        for k in self.displayObjects.keys():
-            obj = self.displayObjects[k]
+        for obj in self.displayObjects:
+            #obj = self.displayObjects[k]
             glMatrixMode(obj["matrix_mode"])
             style = obj["style"]
             if style == "Red":
@@ -242,11 +280,10 @@ class MeshCanvas(glcanvas.GLCanvas):
             if "list" in obj:
                 glCallList(obj["list"])
 
-        # TODO:
-        #if self.parent.showgrid.GetValue():
-        #    self.drawXAxisGrid()
-        #    self.drawYAxisGrid()
-        #    self.drawZAxisGrid()
+        if self.controller.showgrid:
+            self.drawXAxisGrid()
+            self.drawYAxisGrid()
+            self.drawZAxisGrid()
 
 
         shaders.glUseProgram(self.shader)
@@ -255,8 +292,7 @@ class MeshCanvas(glcanvas.GLCanvas):
             glUniform4f(self.Light_diffuse_loc, 0.5, 0.5, 0.5, 0.5)
             glUniform3f(self.Light_location_loc, 0, 1, 10)
 
-            for k in self.displayObjects.keys():
-                obj = self.displayObjects[k]
+            for obj in self.displayObjects:
 
                 visible = obj["visible"]
                 
@@ -290,9 +326,9 @@ class MeshCanvas(glcanvas.GLCanvas):
                     glEnableVertexAttribArray( self.Vertex_position_loc )
                     glEnableVertexAttribArray( self.Vertex_normal_loc )
                     stride = 24
-                    glVertexAttribPointer(self.Vertex_position_loc, 3, GL_FLOAT,False, stride,vbo)
+                    glVertexAttribPointer(self.Vertex_position_loc, 3, GL_FLOAT, False, stride, vbo)
 
-                    glVertexAttribPointer(self.Vertex_normal_loc, 3, GL_FLOAT,False, stride, vbo+12)
+                    glVertexAttribPointer(self.Vertex_normal_loc, 3, GL_FLOAT, False, stride, vbo+12)
 
                     if not highlight:
                         glDrawArrays(GL_TRIANGLES, 0, num_triangles)
@@ -324,6 +360,8 @@ class MeshCanvas(glcanvas.GLCanvas):
         self.SwapBuffers()
 
     def updateViewPort(self, selector = lambda: None):
+        '''Update the view port.
+        '''
         if self.GetContext():
             self.SetCurrent()
             glViewport(0, 0, self.viewport.width, self.viewport.height)
@@ -334,6 +372,8 @@ class MeshCanvas(glcanvas.GLCanvas):
             xscale = self.viewport.xscale()
             yscale = self.viewport.yscale()
             range_max = self.viewport.range_max
+            if range_max == float('inf'):
+                return
             glFrustum(-xscale * range_max, xscale * range_max, -yscale * range_max, 
                       yscale * range_max, 1.0 * range_max, 3.0 * range_max)
             glTranslatef(0, 0, - 2 * range_max)
@@ -359,26 +399,26 @@ class MeshCanvas(glcanvas.GLCanvas):
 
     def drawXAxisGrid(self, d=10):
         rangex = []
-        rangey = [self.meshes.min_Y, self.meshes.max_Y]
-        rangez = [self.meshes.min_Z, self.meshes.max_Z]
+        rangey = [self.controller.meshes.min_Y, self.controller.meshes.max_Y]
+        rangez = [self.controller.meshes.min_Z, self.controller.meshes.max_Z]
         self.drawGrid(rangex, rangey, rangez, d)
 
     def drawYAxisGrid(self, d=10):
-        rangex = [self.meshes.min_X, self.meshes.max_X]
+        rangex = [self.controller.meshes.min_X, self.controller.meshes.max_X]
         rangey = []
-        rangez = [self.meshes.min_Z, self.meshes.max_Z]
+        rangez = [self.controller.meshes.min_Z, self.controller.meshes.max_Z]
         self.drawGrid(rangex, rangey, rangez, d)
 
     def drawZAxisGrid(self, d=10):
-        rangex = [self.meshes.min_X, self.meshes.max_X]
-        rangey = [self.meshes.min_Y, self.meshes.max_Y]
+        rangex = [self.controller.meshes.min_X, self.controller.meshes.max_X]
+        rangey = [self.controller.meshes.min_Y, self.controller.meshes.max_Y]
         rangez = []
         self.drawGrid(rangex, rangey, rangez, d)
 
     def calcGridSize(self, numLines=10):
-        rangex = [self.meshes.min_X, self.meshes.max_X]
-        rangey = [self.meshes.min_Y, self.meshes.max_Y]
-        rangez = [self.meshes.min_Z, self.meshes.max_Z]
+        rangex = [self.controller.meshes.min_X, self.controller.meshes.max_X]
+        rangey = [self.controller.meshes.min_Y, self.controller.meshes.max_Y]
+        rangez = [self.controller.meshes.min_Z, self.controller.meshes.max_Z]
 
         d = [float('inf')]*3
         if rangex:
