@@ -224,10 +224,9 @@ class Mesh(object):
         def err_func((cx, cy, cz, radius), points):
             return [((px - cx) ** 2 + (py - cy) ** 2 + (pz - cz) ** 2) ** 0.5 - radius for (px, py, pz) in points]
         (cx, cy, cz, radius), found = leastsq(err_func, (0, 0, 0, 0), args=(points))
-        if found in [1,2,3,4]:
-             print cx, cy, cz
-        else:
-             print self.centre()
+        if found not in [1,2,3,4]:
+             cx, cy, cz = self.centre()
+        print s1[3]
         return paths
 
     def get_edge_path(self, s1, s2):
