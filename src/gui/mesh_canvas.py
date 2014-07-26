@@ -262,8 +262,7 @@ class MeshCanvas(glcanvas.GLCanvas):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         self.setupScene()
 
-        for obj in self.displayObjects:
-            #obj = self.displayObjects[k]
+        for obj in self.displayObjects.values():
             glMatrixMode(obj["matrix_mode"])
             style = obj["style"]
             if style == "Red":
@@ -280,10 +279,10 @@ class MeshCanvas(glcanvas.GLCanvas):
             if "list" in obj:
                 glCallList(obj["list"])
 
-        if self.controller.showgrid:
-            self.drawXAxisGrid()
-            self.drawYAxisGrid()
-            self.drawZAxisGrid()
+        #if self.controller.showgrid:
+        #    self.drawXAxisGrid()
+        #    self.drawYAxisGrid()
+        #    self.drawZAxisGrid()
 
 
         shaders.glUseProgram(self.shader)
@@ -292,7 +291,7 @@ class MeshCanvas(glcanvas.GLCanvas):
             glUniform4f(self.Light_diffuse_loc, 0.5, 0.5, 0.5, 0.5)
             glUniform3f(self.Light_location_loc, 0, 1, 10)
 
-            for obj in self.displayObjects:
+            for obj in self.displayObjects.values():
 
                 visible = obj["visible"]
                 
