@@ -78,40 +78,25 @@ class Vector(object):
         raise TypeError("Vector is not a binary type")
 
     def __add__(self, v):
-        if isinstance(v, Vector):
-            return Vector(self.x + v.x, self.y + v.y, self.z + v.z)
-        else:
-            raise NotImplementedError
+        return Vector(self.x + v.x, self.y + v.y, self.z + v.z)
 
     def __neg__(self):
         return Vector(-self.x, -self.y, -self.z)
 
     def __sub__(self, v):
-        if isinstance(v, Vector):
-            return Vector(self.x - v.x, self.y - v.y, self.z - v.z)
-        else:
-            raise NotImplementedError
-
+        return Vector(self.x - v.x, self.y - v.y, self.z - v.z)
+        
     def __mul__(self, val):
-        if isinstance(val, float) or isinstance(val, int):
-            return Vector(self.x*val, self.y*val, self.z*val)
-        else:
-            raise NotImplementedError
+        return Vector(self.x*val, self.y*val, self.z*val)
 
     def __rmul__(self, other):
         return self.__mul__(other)
 
     def __div__(self, val):
-        if isinstance(val, float) or isinstance(val, int):
-            return Vector(self.x/val, self.y/val, self.z/val)
-        else:
-            raise NotImplementedError
+        return Vector(self.x/val, self.y/val, self.z/val)
 
     def __truediv__(self, val):
-        if isinstance(val, float) or isinstance(val, int):
-            return Vector(self.x/val, self.y/val, self.z/val)
-        else:
-            raise NotImplementedError
+        return Vector(self.x/val, self.y/val, self.z/val)
 
     def __rtruediv__(self, other):
         return self.__truediv__(other)
@@ -168,10 +153,13 @@ class Vector(object):
                       self.x * v.y - self.y * v.x)
 
     def dot(self, v):
-        return self.x * v.x + self.y * v.y + self.z * v.z
+        return float(self.x * v.x + self.y * v.y + self.z * v.z)
 
     def magnitude(self):
         return sqrt(self.x ** 2 + self.y ** 2 + self.z ** 2)
+
+    def distance(self,other):
+	return (self-other).magnitude()
 
     def normalise(self):
         m = self.magnitude()

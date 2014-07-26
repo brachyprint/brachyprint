@@ -40,7 +40,7 @@ class Step(object):
         self.p2 = p2
 
     def dist(self):
-        self.p1.point.distance(self.p2.point)
+        return self.p1.point.distance(self.p2.point)
 
 
 
@@ -60,6 +60,9 @@ class Route(object):
     def __init__(self,l=[]):
         self.trajectory = deque(l)
         self.closed = False
+
+    def points(self):
+        return [((t.p1.point.x, t.p1.point.y, t.p1.point.z), (t.p2.point.x, t.p2.point.y, t.p2.point.z)) for t in self.trajectory]
 
     def dist(self):
         return sum(s.dist() for s in self.trajectory)
