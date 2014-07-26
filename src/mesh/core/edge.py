@@ -90,4 +90,4 @@ class Edge(object):
         """
         a1 = fn(self.v1)
         a2 = fn(self.v2)
-        return (a2*v1 - a1*v2)/(a2-a1)
+        return (a2*self.v1 - a1*self.v2)/(a2-a1)

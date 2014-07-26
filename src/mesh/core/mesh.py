@@ -227,7 +227,7 @@ class Mesh(object):
 
         paths = []
 
-        def pursue(e2):
+        for e2 in f1.edges:
             f = f1
             x1 = fn(e2.v1)
             x2 = fn(e2.v2)
@@ -237,7 +237,7 @@ class Mesh(object):
                 while True:
                     e1 = e2
                     q1 = q2
-                    f = e.face_on_other_side(f)
+                    f = e2.face_on_other_side(f)
                     if f is None:
                         return None
                     if f == f2:
@@ -253,10 +253,7 @@ class Mesh(object):
                                     q2 = e2.zero_point(fn)
                                     l.append(Step(f,EdgePoint(e1,q1),EdgePoint(e2,q2)))
                                     break
-            paths.append(Route(l))
-
-        for e in f1.edges:
-            pursue(e)
+                paths.append(Route(l))
 
         return min(paths,key=lambda r: r.dist())
 
@@ -269,7 +266,7 @@ class Mesh(object):
         (cx, cy, cz, radius), found = leastsq(err_func, (0, 0, 0, 0), args=(points))
         if found not in [1,2,3,4]:
              cx, cy, cz = self.centre()
-        print s1[3]
+        print self.get_planar_path(Vector(s1[:3]), self.faces[s1[3]], Vector(s2[:3]), self.faces[s2[3]], Vector(cx, cy, cz))
         return paths
 
     def get_edge_path(self, s1, s2):

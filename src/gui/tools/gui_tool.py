@@ -47,14 +47,14 @@ class GuiTool(object):
         return {}
 
     def OnKeyPress(self, keycode, event):
-        raise AttributeError()
+        pass
 
     def OnMouseDown(self, x, y, lastx, lasty, event):
-        raise AttributeError()
+        pass
 
     def OnMouseUp(self, event):
-        raise AttributeError()
+        pass
 
     def OnMouseMotion(self, x, y, lastx, lasty, event):
-        raise AttributeError()
+        pass
 
