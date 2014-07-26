@@ -47,6 +47,12 @@ class Edge(object):
     def faces(self):
         return list(self.faces_iter())
 
+    def face_on_other_side(self,f):
+        if self.lface == f:
+            return self.rface
+        else:
+            return self.lface
+
     def add_face(self, face, isleft=None):
         if isleft is None:
             v = (self.v1, self.v2)
@@ -77,3 +83,11 @@ class Edge(object):
         Return a vector i of the way from v1 to v2.
         """
         return self.v2*i + self.v1*(1-i)
+
+    def zero_point(self, fn):
+        """Return a vector along the line at which linear functional fn
+        vanishes.
+        """
+        a1 = fn(self.v1)
+        a2 = fn(self.v2)
+        return (a2*v1 - a1*v2)/(a2-a1)
