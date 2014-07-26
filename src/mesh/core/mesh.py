@@ -33,6 +33,7 @@ from face import Face
 from edge import Edge
 from ..routes import *
 from octrees import *
+from scipy.optimize import leastsq
 
 
 
@@ -53,6 +54,9 @@ class Mesh(object):
         self.maxY, self.minY = None, None
         self.maxZ, self.minZ = None, None
         self.has_fresh_octrees = False
+        self.sumX = 0
+        self.sumY = 0
+        self.sumZ = 0
 
 
     def get_edge(self, v1, v2):
@@ -72,10 +76,14 @@ class Mesh(object):
         :keyword z: z coordinate of the vertex.
         """
         self.has_fresh_octrees = False
+        
         if isinstance(x, Vector):
             y = x.y
             z = x.z
             x = x.x
+        self.sumX = self.sumX + x
+        self.sumY = self.sumY + y
+        self.sumZ = self.sumZ + z
         v = Vertex(x,y,z, len(self.vertices))
         self.vertices.append(v)
         if self.maxX is None:
@@ -93,6 +101,10 @@ class Mesh(object):
         elif z < self.minZ: self.minZ = z
         return v
 
+    def centre(self):
+        l = len(self.vertices)
+        if l:
+            return self.sumX / l, self.sumY / l, self.sumZ / l
 
     def add_face(self, v1, v2=None, v3=None):
         """Add a face to the mesh.
@@ -205,8 +217,20 @@ class Mesh(object):
             v.add_face(f)
         return f
 
-
     def get_path(self, s1, s2):
+        #Function not finished.  edge route found between points, and then a sphere fitted.  Next need to intersect mesh with s1, s2, c
+        paths = self.get_edge_path(s1, s2)
+        points = set(point for path in paths for points in path.points() for point in points)
+        def err_func((cx, cy, cz, radius), points):
+            return [((px - cx) ** 2 + (py - cy) ** 2 + (pz - cz) ** 2) ** 0.5 - radius for (px, py, pz) in points]
+        (cx, cy, cz, radius), found = leastsq(err_func, (0, 0, 0, 0), args=(points))
+        if found in [1,2,3,4]:
+             print cx, cy, cz
+        else:
+             print self.centre()
+        return paths
+
+    def get_edge_path(self, s1, s2):
         s2Position = s2[0], s2[1], s2[2]
         s2Face = self.faces[s2[3]]
         priority_queue = []
