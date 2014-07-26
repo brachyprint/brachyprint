@@ -207,14 +207,14 @@ class Mesh(object):
 
 
     def get_path(self, s1, s2):
-        s2Postion = s2[0], s2[1], s2[2]
+        s2Position = s2[0], s2[1], s2[2]
         s2Face = self.faces[s2[3]]
         priority_queue = []
         visited = {}
         if s1[3] == s2[3]:
             return [point_to_point(s1, s2)]
         for v in self.faces[s1[3]].vertices:
-            pv = point_to_vertex(s1[0], s1[1], s1[2], v, s2Postion, s2Face)
+            pv = point_to_vertex(s1[0], s1[1], s1[2], v, s2Position, s2Face)
             heappush(priority_queue, (pv.dist() + pv.crowdist(), pv.dist(), [pv]))	
         while priority_queue:
             dist_plus_crow, dist, paths = heappop(priority_queue)
