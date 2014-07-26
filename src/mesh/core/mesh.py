@@ -102,7 +102,7 @@ class Mesh(object):
         :keyword v3: Vertex 3 of the face.
 
         Quadrilateral faces are split simply into two triangles, and higher
-        order faces are added by constrained Delauney triangulation of the
+        order faces are added by constrained Delaunay triangulation of the
         vertices.
         """
         self.has_fresh_octrees = False
@@ -397,9 +397,9 @@ class Mesh(object):
 
                 self.vertex_octree = Octree(b)
                 for v in self.vertices:
-                    self.vertex_octree.insert((v.x,v.y,v.z),v.name)
+                    self.vertex_octree.insert((v.x,v.y,v.z),v)
 
                 self.face_octree = BlobOctree(b)
                 for f in self.faces:
                     p = f.centroid()
-                    self.face_octree.insert((p.x,p.y,p.z),f.bounding_box(),f.name)
+                    self.face_octree.insert((p.x,p.y,p.z),f.bounding_box(),f)
