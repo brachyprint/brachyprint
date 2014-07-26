@@ -46,12 +46,7 @@ class Vector(object):
         return hash((Vector,self.x,self.y,self.z))
 
     def __eq__(self, v):
-        if isinstance(v, Vector):
-            return abs(self.x - v.x) <= self.epsilon and abs(self.y - v.y) <= self.epsilon and abs(self.z - v.z) <= self.epsilon
-        elif isinstance(v, list):
-            return abs(self.x - v[0]) <= self.epsilon and abs(self.y - v[1]) <= self.epsilon and abs(self.z - v[2]) <= self.epsilon
-        else:
-            raise NotImplementedError
+        return abs(self.x - v[0]) <= self.epsilon and abs(self.y - v[1]) <= self.epsilon and abs(self.z - v[2]) <= self.epsilon
 
     def __ne__(self, v):
         return not self.__eq__(v)
@@ -102,31 +97,22 @@ class Vector(object):
         return self.__truediv__(other)
 
     def __iadd__(self, v):
-        if isinstance(v, Vector):
-            self.x += v.x
-            self.y += v.y
-            self.z += v.z
-            return self
-        else:
-            raise NotImplementedError
+        self.x += v.x
+        self.y += v.y
+        self.z += v.z
+        return self
         
     def __isub__(self, v):
-        if isinstance(v, Vector):
-            self.x -= v.x
-            self.y -= v.y
-            self.z -= v.z
-            return self
-        else:
-            raise NotImplementedError
+        self.x -= v.x
+        self.y -= v.y
+        self.z -= v.z
+        return self
 
     def __imul__(self, val):
-        if isinstance(val, float) or isinstance(val, int):
-            self.x *= val
-            self.y *= val
-            self.z *= val
-            return self
-        else:
-            raise NotImplementedError
+        self.x *= val
+        self.y *= val
+        self.z *= val
+        return self
 
     def __getitem__(self, i):
         if i == 0:
