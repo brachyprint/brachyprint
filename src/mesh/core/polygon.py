@@ -25,7 +25,7 @@ from __future__ import division
 from math import atan2, pi
 from vector2d import Vector2d
 from vertex2d import Vertex2d
-from line import Line
+from line2d import Line
 
 from mesh_settings import epsilon
 

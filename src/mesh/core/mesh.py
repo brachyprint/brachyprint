@@ -32,6 +32,7 @@ from vertex import Vertex
 from face import Face
 from edge import Edge
 from ..routes import *
+from ..routes2 import *
 from octrees import *
 from scipy.optimize import leastsq
 
@@ -216,6 +217,48 @@ class Mesh(object):
         for v in [v1, v2, v3]:
             v.add_face(f)
         return f
+
+    def get_planar_path(self,p1,f1,p2,f2,p3):
+        """Consider points p1 on face f1, p2 on face f2, and a third point
+        p3. We construct the shortest path from p1 to p2 obtained by
+        intersecting the mesh with the plane through p1, p2, p3.
+        """
+        fn = lambda p: (p-p1).cross(p-p2).dot(p-p3)
+
+        paths = []
+
+        def pursue(e2):
+            f = f1
+            x1 = fn(e2.v1)
+            x2 = fn(e2.v2)
+            if min(x1,x2) <= 0 <= max(x1,x2):
+                q2 = e2.zero_point(fn)
+                l = [Step(f1,FacePoint(f1,p1),EdgePoint(e2,q2))]
+                while True:
+                    e1 = e2
+                    q1 = q2
+                    f = e.face_on_other_side(f)
+                    if f is None:
+                        return None
+                    if f == f2:
+                        l.append(Step(f,EdgePoint(e1,q1),FacePoint(f2,p2)))
+                        paths.append(l)
+                        return None
+                    else:
+                        for e2 in f.edges:
+                            if e2 != e1:
+                                x1 = fn(e2.v1)
+                                x2 = fn(e2.v2)
+                                if min(x1,x2) <= 0 <= max(x1,x2):
+                                    q2 = e2.zero_point(fn)
+                                    l.append(Step(f,EdgePoint(e1,q1),EdgePoint(e2,q2)))
+                                    break
+            paths.append(Route(l))
+
+        for e in f1.edges:
+            pursue(e)
+
+        return min(paths,key=lambda r: r.dist())
 
     def get_path(self, s1, s2):
         #Function not finished.  edge route found between points, and then a sphere fitted.  Next need to intersect mesh with s1, s2, c
@@ -426,3 +469,4 @@ class Mesh(object):
                 for f in self.faces:
                     p = f.centroid()
                     self.face_octree.insert((p.x,p.y,p.z),f.bounding_box(),f)
+        

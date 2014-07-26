@@ -29,6 +29,6 @@ from edge import *
 from mesh import *
 from vector2d import *
 from vertex2d import *
-from line import *
+from line2d import *
 from polygon import *
 
