@@ -156,13 +156,14 @@ class MeshController(object):
 
         intersects = []
         
-        # XXX: this should be sped up by intelligent use of octrees
-        for f in self.meshes[meshname].faces:
+
+        self.meshes[meshname].ensure_fresh_octrees()
+        for (ref_point, extends, face) in self.meshes[meshname].face_octree.intersect_with_line(p[0],p[1] - p[0], positive=False):
             # attempt to intersect the ray and the face
-            ret = mesh.triangle_segment_intersect(p, f.vertices, 2)
+            ret = mesh.triangle_segment_intersect(p, face.vertices, 2)
 
             if isinstance(ret, mesh.Vector):
-                intersects.append(((ret-Vector(x,y,z)).magnitude(), f, ret))
+                intersects.append(((ret-Vector(x,y,z)).magnitude(), face, ret))
 
         if intersects:
             # sort the intersections in order of distance
