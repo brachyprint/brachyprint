@@ -207,10 +207,8 @@ class MeshController(object):
         keycode = event.GetKeyCode()
 
         if self.currentTool:
-            try:
+            if hasattr(self.currentTool, "OnKeyPress"):
                 return self.currentTool.OnKeyPress(keycode, event)
-            except AttributeError:
-                pass
 
     def OnSize(self, event):
         size = self.view.GetClientSize()
@@ -236,18 +234,15 @@ class MeshController(object):
         self.x, self.y = self.lastx, self.lasty = event.GetPosition()
 
         if self.currentTool:
-            try:
+            if hasattr(self.currentTool, "OnMouseDown"):
                 return self.currentTool.OnMouseDown(self.x, self.y, self.lastx, self.lasty, event)
-            except AttributeError:
-                pass
+
 
     def OnMouseUp(self, event):
 
         if self.currentTool:
-            try:
+            if hasattr(self.currentTool, "OnMouseUp"):
                 return self.currentTool.OnMouseUp(event)
-            except AttributeError:
-                pass
 
         # TODO:
         mode = ("", "")
@@ -262,10 +257,9 @@ class MeshController(object):
         self.x, self.y = event.GetPosition()
 
         if self.currentTool:
-            try:
+            if hasattr(self.currentTool, "OnMouseMotion"):
                 return self.currentTool.OnMouseMotion(self.x, self.y, self.lastx, self.lasty, event)
-            except AttributeError:
-                pass
+
         
 
         if event.Dragging() and event.LeftIsDown():
