@@ -5,15 +5,20 @@ Requirements
 ------------
 
 * pydicom -- DICOM manipulation library: https://code.google.com/p/pydicom
+  (Debian package: python-dicom)
 * triangle -- triangulation library: http://dzhelil.info/triangle/
+  (PyPI package: triangle)
 * PyOpenGL -- python wrapper for OpenGL: http://pyopengl.sourceforge.net
+  (Debian package: python-opengl)
 * wxPython -- python wrapper for wxWidgets: http://wxpython.org
+  (Debian package: python-wxtools)
+* matplotlib -- 2D plotting library for Python: http://matplotlib.org/
+  (Debian package: python-matplotlib)
 
-Under Debian/Ubuntu, one author has had some success running the
-following as a superuser:
+Under Debian Jessie, one author has had some success running the
+following (as a superuser):
 
-  aptitude install python-pip python-dev
-  pip install Cython
+  aptitude install python-dicom python-pip python-dev cython python-wxtools python-matplotlib python-opengl
   pip install triangle
 
 
