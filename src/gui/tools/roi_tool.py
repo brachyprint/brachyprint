@@ -44,7 +44,9 @@ class RoiTool(GuiTool):
 
     def initDisplay(self):
         # create an RoiGUI associated with the tool
-        self.roiGUI = RoiGUI(mesh = self.controller.meshes[self.roi["meshname"]], **self.roi)
+        mesh = self.controller.meshes[self.roi["meshname"]]
+        self.roiGUI = RoiGUI(mesh = mesh, **self.roi)
+        mesh.ensure_fresh_octrees()
         self.roiGUI.InitGL()
 
     def getSubTools(self):
