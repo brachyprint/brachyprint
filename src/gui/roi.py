@@ -160,21 +160,22 @@ class RoiGUI(object):
                 for path in path_list:
                     self.linelookup.append((roi, index))
                     name = name + 1
-                    start, end = path.points():
-                    dx = start[0] - end[0]
-                    dy = start[1] - end[1]
-                    dz = start[2] - end[2]
-                    length_d = (dx ** 2 + dy ** 2 + dz ** 2) ** 0.5
-                    if length_d > 0:
-                        #axis of rotation = (0, 0, 1) cross (dx, dy, dz) = (-dy, dx, 0)
-                        #angle to rotate = 180.0 / pi * acos((0,0,1).(dx, dy, dz) / (dx, dy, dz).(dx, dy, dz))
-                        glPushMatrix()
-                        glTranslatef(start[0], start[1], start[2])
-                        glRotatef(180.0 / pi * acos(dz / length_d), -dy, dx, 0)
-                        glutSolidSphere(2 * self.thickness, 10, 10)
-                        glutSolidCylinder(2 * self.thickness, -length_d, 20 ,20)
-                        glPopMatrix()
-                glPopName() 
+                    for step in path.trajectory:
+                        start, end = step.start(), step.end()
+                        dx = start[0] - end[0]
+                        dy = start[1] - end[1]
+                        dz = start[2] - end[2]
+                        length_d = (dx ** 2 + dy ** 2 + dz ** 2) ** 0.5
+                        if length_d > 0:
+                            #axis of rotation = (0, 0, 1) cross (dx, dy, dz) = (-dy, dx, 0)
+                            #angle to rotate = 180.0 / pi * acos((0,0,1).(dx, dy, dz) / (dx, dy, dz).(dx, dy, dz))
+                            glPushMatrix()
+                            glTranslatef(start[0], start[1], start[2])
+                            glRotatef(180.0 / pi * acos(dz / length_d), -dy, dx, 0)
+                            glutSolidSphere(2 * self.thickness, 10, 10)
+                            glutSolidCylinder(2 * self.thickness, -length_d, 20 ,20)
+                            glPopMatrix()
+                    glPopName() 
         glEndList()
 
     def update(self):

@@ -22,7 +22,7 @@ Describes piecewise-linear paths on a mesh.
 """
 
 from collections import deque
-
+from mesh import Vertex
 
 
 
@@ -33,18 +33,28 @@ class VertexPoint(MeshPoint):
     """A point in a mesh which happens to be a vertex."""
     def __init__(self,v):
         self.point = v
+    def splitmesh(self, mesh):
+        return self.point
 
 class EdgePoint(MeshPoint):
     """A point in a mesh which happens to be on an edge."""
     def __init__(self,e,p):
         self.edge = e
         self.point = p
+    def splitmesh(self, mesh):
+        v = Vertex(self.point.x, self.point.y, self.point.z)
+        mesh.split_edge(v, self.edge)
+        return v
 
 class FacePoint(MeshPoint):
     """A point in a mesh which is just on some face."""
     def __init__(self,f,p):
         self.face = f
         self.point = p
+    def splitmesh(self, mesh):
+        v = Vertex(self.point.x, self.point.y, self.point.z)
+        mesh.split_face(v, self.face)
+        return v
 
 
 
@@ -56,8 +66,14 @@ class Step(object):
         self.p1 = p1
         self.p2 = p2
 
+    def start(self):
+	return self.p1.point
+
+    def end(self):
+        return self.p2.point
+
     def dist(self):
-        return self.p1.point.distance(self.p2.point)
+        return self.start().distance(self.end())
 
 
 
@@ -88,7 +104,7 @@ class Route(object):
         return sum(s.dist() for s in self.trajectory)
 
     def points(self):
-        yield self.start()
+        yield self.trajectory[0].p1
         for s in self.trajectory:
             yield s.p2
 
@@ -106,10 +122,10 @@ class Route(object):
                 yield p.point
 
     def start(self):
-        return self.trajectory[0].p1
+        return self.trajectory[0].start()
 
     def end(self):
-        return self.trajectory[-1].p2
+        return self.trajectory[-1].end()
 
     def extend_right(self,s):
         if self.closed:

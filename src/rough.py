@@ -30,7 +30,20 @@ class OnSelect(object):
     self.mesh = mesh
     self.base_file = base_file
   def __call__(self, roiGUI, triangle):
-    avoid_edges = roiGUI.get_avoidance_edges()
+    avoid_edges = []
+    for roi in roiGUI.rois:
+        avoid = []
+        for paths in roi.paths:
+            start = None
+            for path in paths:
+                for point in path.points():
+                    if start != point:#if first point != last point
+                        avoid.append(point.splitmesh(self.mesh))
+                        if start is None:
+                            start = point
+        avoid_edges.append(avoid)                
+
+    #avoid_edges = roiGUI.get_avoidance_edges()
     #Save the cut out mesh to a file
     roughcut = self.mesh.cloneSubVol(triangle, avoid_edges)
     print "Saving"
