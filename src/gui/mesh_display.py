@@ -1,6 +1,5 @@
-
 #    Brachyprint -- 3D printing brachytherapy moulds
-#    Copyright (C) 2013-14  Martin Green and Oliver Madge
+#    Copyright (C) 2013-14  James Cranch, Martin Green and Oliver Madge
 #
 #    This program is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
