@@ -286,9 +286,12 @@ class Mesh(object):
         points = set(point for path in paths for points in path.points() for point in points)
         def err_func((cx, cy, cz, radius), points):
             return [((px - cx) ** 2 + (py - cy) ** 2 + (pz - cz) ** 2) ** 0.5 - radius for (px, py, pz) in points]
-        (cx, cy, cz, radius), found = leastsq(err_func, (0, 0, 0, 0), args=(points))
-        if found not in [1,2,3,4]:
-             cx, cy, cz = self.centre()
+        try:
+            (cx, cy, cz, radius), found = leastsq(err_func, (0, 0, 0, 0), args=(points))
+            if found not in [1,2,3,4]:
+                raise Exception 
+        except:
+            cx, cy, cz = self.centre()
         t = self.get_planar_path(Vector(s1[:3]), self.faces[s1[3]], Vector(s2[:3]), self.faces[s2[3]], Vector(cx, cy, cz))
         return [t]
 
