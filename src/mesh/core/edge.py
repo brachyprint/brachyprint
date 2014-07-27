@@ -68,6 +68,15 @@ class Edge(object):
                 self.rface = face
             else:
                 raise ValueError("Edge already has an associated right face")
+
+    def remove_face(self, face):
+        if self.lface is face:
+            self.lface = None
+            return None
+        if self.rface is face:
+            self.rface = None
+            return None
+        raise ValueError("Edge does not attach to the face to be removed")
     
     def to_ratio(self, v):
         """
