@@ -298,7 +298,7 @@ class Mesh(object):
         """
 
         paths = self.get_edge_path(s1, s2)
-        points = set(point for path in paths for points in path.points() for point in points)
+        points = set(point for path in paths for point in path.points())
         def err_func((cx, cy, cz, radius), points):
             return [((px - cx) ** 2 + (py - cy) ** 2 + (pz - cz) ** 2) ** 0.5 - radius for (px, py, pz) in points]
         try:

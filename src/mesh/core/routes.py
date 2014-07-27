@@ -21,7 +21,7 @@ class point_to_point(object):
     def __init__(self, s, e, endPoint = None, endFace = None):
         self.s, self.e = s,e 
     def points(self):
-        return [((self.s[0], self.s[1], self.s[2]), (self.e[0], self.e[1], self.e[2]))]
+        return [(self.s[0], self.s[1], self.s[2]), (self.e[0], self.e[1], self.e[2])]
     def get_edges(self):
         return []
 
@@ -36,7 +36,7 @@ class point_to_vertex(object):
     def end(self):
         return self.e
     def points(self):
-        return [((self.sx, self.sy, self.sz), (self.e.x, self.e.y, self.e.z))]
+        return [(self.sx, self.sy, self.sz), (self.e.x, self.e.y, self.e.z)]
     def new_Paths(self):
         results = [follow_edge(self.e, v, self.endPoint, self.endFace, edge) for v, edge in self.e.adjacent_vertices()] 
         if self.endPoint is not None and self.endFace in self.e.faces:
@@ -59,7 +59,7 @@ class follow_edge(object):
     def end(self):
         return self.e
     def points(self):
-        return [((self.s.x, self.s.y, self.s.z), (self.e.x, self.e.y, self.e.z))]
+        return [(self.s.x, self.s.y, self.s.z), (self.e.x, self.e.y, self.e.z)]
     def new_Paths(self):
         results =  [follow_edge(self.e, v, self.endPoint, self.endFace, edge) for v, edge in self.e.adjacent_vertices()] 
         if self.endPoint is not None and self.endFace in self.e.faces:
@@ -80,7 +80,7 @@ class vertex_to_point(object):
     def finished(self):
         return True
     def points(self):
-        return [((self.s.x, self.s.y, self.s.z), (self.ex, self.ey, self.ez))]
+        return [(self.s.x, self.s.y, self.s.z), (self.ex, self.ey, self.ez)]
     def end(self):
         return "Finished!!!"
     def get_edges(self):
