@@ -89,7 +89,7 @@ class Route(object):
 
     def points(self):
         yield self.start()
-        for s in self.trajectory():
+        for s in self.trajectory:
             yield s.p2
 
     def faces_covered(self):
