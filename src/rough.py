@@ -35,10 +35,14 @@ class OnSelect(object):
         avoid = []
         for paths in roi.paths:
             start = None
+            previous_vertex = None
             for path in paths:
                 for point in path.points():
                     if start != point:#if first point != last point
-                        avoid.append(point.splitmesh(self.mesh))
+                        vertex = point.splitmesh(self.mesh)
+                        if previous_vertex is not None:
+                            avoid.append(self.mesh.edges[(vertex, previous_vertex)])#Need an edge not a vertex!!
+                        previous_vertex = vertex
                         if start is None:
                             start = point
         avoid_edges.append(avoid)                
