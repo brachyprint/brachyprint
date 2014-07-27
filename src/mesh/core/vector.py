@@ -39,7 +39,7 @@ class Vector(object):
             z = x[2]
             x = x[0]
     
-        self.x, self.y, self.z = x, y, z
+        self.x, self.y, self.z = float(x), float(y), float(z)
         self.epsilon = epsilon
 
     def __hash__(self):

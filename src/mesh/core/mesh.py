@@ -260,7 +260,6 @@ class Mesh(object):
         return min(paths,key=lambda r: r.dist())
 
     def get_path(self, s1, s2):
-        #Function not finished.  edge route found between points, and then a sphere fitted.  Next need to intersect mesh with s1, s2, c
         paths = self.get_edge_path(s1, s2)
         points = set(point for path in paths for points in path.points() for point in points)
         def err_func((cx, cy, cz, radius), points):
@@ -468,4 +467,6 @@ class Mesh(object):
                 for f in self.faces:
                     p = f.centroid()
                     self.face_octree.insert((p.x,p.y,p.z),f.bounding_box(),f)
+
+
         
