@@ -30,20 +30,20 @@ class Vertex(Vector):
     A class representing a mesh vertex.
     '''
 
-    def __init__(self, x, y, z, name):
+    def __init__(self, x, y, z):
         super(Vertex, self).__init__(x, y, z)
-        self.name = name
         self.edges = []
         self.faces = []
+
+    def __repr__(self):
+        return "<Vertex x:%f y:%f z:%f>" % (self.x, self.y, self.z)
 
     def __hash__(self):
         return id(self)
 
-    def __repr__(self):
-        return "Vertex(%f, %f, %f, %d)"%(self.x, self.y, self.z, self.name)
-
     def __str__(self):
-        return "<Vertex %d (%f,%f,%f)>"%(self.name, self.x, self.y, self.z)
+        return "<Vertex (%f,%f,%f)>"%(self.x, self.y, self.z)
+
 
     def add_edge(self, edge):
         '''
