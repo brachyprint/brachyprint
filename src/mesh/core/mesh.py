@@ -311,7 +311,8 @@ class Mesh(object):
 
     def get_edge_path(self, s1, s2):
         """
-        Find a path from s1 to s2 through edges.
+        Find a path from s1 to s2 through edges (using the A*
+        algorithm).
 
         s1 and s2 are 4-tuples in the form (x,y,z,n), where n is the
         index of the face on which they lie.
@@ -463,18 +464,62 @@ class Mesh(object):
         :param mesh: the other mesh to add.
         :keyword invert: invert every face if True, i.e. turn the added mesh inside out.
         """
-        vertex_map = {}
-        for vertex in mesh.vertices:
-            vertex_map[vertex] = self.add_vertex(vertex.x, vertex.y, vertex.z)
+        vertex_map = dict((v,self.add_vertex(v.x, v.y, v.z)) for v in mesh.vertices)
         for face in mesh.faces:
             vertices = [vertex_map[vertex] for vertex in face.vertices]
             if invert:
                 self.add_triangle_face(vertices[0], vertices[2], vertices[1])
             else:
-                self.add_triangle_face(*vertices)
+                self.add_triangle_face(vertices[0], vertices[1], vertices[2])
         
 
+    def add_regular_subdivision(self, mesh, n, invert=False):
+        """
+        Copy all vertices and faces from another mesh into this one, but
+        subdivided such that every edge is split into n equal parts.
+        """
+
+        vvertices = dict((v,self.add_vertex(v.x,v.y,v.z)) for v in mesh.vertices)
+
+        evertices = {}
+        for e in m.edges.itervalues():
+            for r in xrange(1,n):
+                s = n-r
+                v = self.add_vertex((e.v1*r + e.v2*s)/n)
+                evertices[(e.v1,e.v2,r,s)] = v
+                evertices[(e,v2,e.v1,s,r)] = v
+
+        for f in m.faces:
+            u,v,w = f.vertices
+            fvertices = {}
+            for r in xrange(1,n-1):
+                for s in xrange(1,n-r):
+                    t = n-r-s
+                    fvertices[(r,s,t)] = self.add_vertex((u*r + v*s + w*t)/n)
+
+            for r in xrange(1,n):
+                s = n-r
+                fvertices[(r,s,0)] = evertices[(u,v,r,s)]
+                fvertices[(0,r,s)] = evertices[(v,w,r,s)]
+                fvertices[(s,0,r)] = evertices[(w,u,r,s)]
+
+            fvertices[(n,0,0)] = vvertices[u]
+            fvertices[(0,n,0)] = vvertices[v]
+            fvertices[(0,0,n)] = vvertices[w]
+
+            for r in xrange(0,n):
+                for s in xrange(0,n-r):
+                    t = n-r-s-1
+                    self.add_face(fvertices[(r+1,s,t)],fvertices[(r,s+1,t)],fvertices[(r,s,t+1)])
+
+            for r in xrange(0,detail_level-1):
+                for s in xrange(0,detail_level-r-1):
+                    t = detail_level-r-s-2
+                    mesh.add_face(fvertices[(r,s+1,t+1)],fvertices[(r+1,s,t+1)],fvertices[(r+1,s+1,t)])
+
+
     def get_vertex(self, x, y=None, z=None):
+
         """Get a vertex from the mesh, if extant.
         
         :param x: x coordinate of the vertex, or optionally a list of coordinates.
