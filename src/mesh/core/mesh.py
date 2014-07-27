@@ -63,22 +63,7 @@ class Mesh(object):
 
     def copy(self):
         m = Mesh()
-        m.vertices = list(self.vertices)
-        m.faces = list(self.faces)
-        m.edges = self.edges.copy()
-        m.boundary = self.boundary.copy()
-        m.maxX, m.minX = self.maxX, self.minX
-        m.maxY, m.minY = self.maxY, self.minY
-        m.maxZ, m.minZ = self.maxZ, self.minZ
-        m.sumX = self.sumX
-        m.sumY = self.sumY
-        m.sumZ = self.sumZ
-        if self.has_fresh_octrees:
-            m.has_fresh_octrees = True
-            m.vertex_octree = self.vertex_octree.copy()
-            m.face_octree = self.face_octree.copy()
-        else:
-            m.has_fresh_octrees = False
+        m.add_mesh(self)
         return m
         
 
@@ -90,6 +75,11 @@ class Mesh(object):
         else:
             raise KeyError
 
+    def add_specific_vertex(self, v):
+        """Add a vertex to the mesh."""
+        self.has_fresh_octrees = False
+        self.vertices.append(v)
+        self.update_bounds(v.x, v.y, v.z)
 
     def add_vertex(self, x, y=None, z=None):
         """Add a vertex to the mesh.
@@ -107,8 +97,13 @@ class Mesh(object):
         self.sumX = self.sumX + x
         self.sumY = self.sumY + y
         self.sumZ = self.sumZ + z
-        v = Vertex(x,y,z, len(self.vertices))
+        v = Vertex(x,y,z)
+        self.update_bounds(x, y, z)
         self.vertices.append(v)
+
+        return v
+
+    def update_bounds(self, x, y, z):
         if self.maxX is None:
             self.maxX = x
             self.minX = x
@@ -122,7 +117,6 @@ class Mesh(object):
         elif y < self.minY: self.minY = y
         if z > self.maxZ: self.maxZ = z
         elif z < self.minZ: self.minZ = z
-        return v
 
     def centre(self):
         l = len(self.vertices)
@@ -220,6 +214,9 @@ class Mesh(object):
         :param v2: vertex 2 of the face
         :param v3: vertex 3 of the face
         """
+        assert v1 != v2
+        assert v2 != v3
+        assert v3 != v1
         f = Face(len(self.faces), v1, v2, v3)
         self.faces.append(f)
         for vs, ve in [(v1, v2), (v2, v3), (v3, v1)]:
@@ -240,6 +237,13 @@ class Mesh(object):
             v.add_face(f)
         return f
 
+    def remove_face(self, f):
+        """Remove a triangular face from the mesh.
+        """
+        for edge in f.edges:
+            edge.remove_face(f)
+        self.faces.remove(f)
+        
     def get_planar_path(self,p1,f1,p2,f2,p3):
         """Consider points p1 on face f1, p2 on face f2, and a third point
         p3. We construct the shortest path from p1 to p2 obtained by
@@ -495,5 +499,32 @@ class Mesh(object):
                     p = f.centroid()
                     self.face_octree.insert((p.x,p.y,p.z),f.bounding_box(),f)
 
-
+    def split_edge(self, vertex, edge):
+        """Add the vertex along the edge and retriangulate"""
+        assert vertex not in [edge.v1, edge.v2]
+        new_faces = []
+        for face in [edge.lface, edge.rface]:
+            if face is not None:
+                new_faces = new_faces + self.split_edge_one_face(vertex, edge, face)
+        self.edges.pop((edge.v1, edge.v2))
+        return new_faces
         
+    def split_edge_one_face(self, vertex, edge, face): 
+        """Remove the face, and make two new triangles split along the edge at vertex"""
+        assert vertex not in face.vertices
+        self.remove_face(face)
+        third_vertex = next(v for v in face.vertices if v not in (edge.v1, edge.v2))
+        third_vertex_index = face.vertices.index(third_vertex)
+        first_vertex = face.vertices[(third_vertex_index + 1) % 3]
+        second_vertex = face.vertices[(third_vertex_index + 2) % 3]
+        return [self.add_triangle_face(first_vertex, vertex, third_vertex),
+                self.add_triangle_face(third_vertex, vertex, second_vertex)]
+
+    def split_face(self, vertex, face):
+        """Add the vertex within the face and retriangulate"""
+        self.remove_face(face)
+        return [self.add_triangle_face(face.vertices[0], face.vertices[1], vertex),
+                self.add_triangle_face(face.vertices[1], face.vertices[2], vertex),
+                self.add_triangle_face(face.vertices[2], face.vertices[0], vertex)]
+
+

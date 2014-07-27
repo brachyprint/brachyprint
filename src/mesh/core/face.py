@@ -75,3 +75,12 @@ class Face(object):
         fun = lambda vs: [vec.x*u+vec.y*v+origin for vec in vs]
 
         return ([f.project2dvector(u,v) for f in self.vertices], u, v, fun)
+
+    def opposite_edge(self, vertex):
+        try:
+            return next(e for e in self.edges if e.v1 != vertex and e.v2 != vertex)
+        except:
+            print vertex
+            for e in self.edges:
+                print e.v1, e.v2
+            raise Exception("No Opposite Edge ?!?")

@@ -18,4 +18,5 @@
 __all__ = ["intersect"]
 
 from intersect import *
+from intersect3 import *
 
