@@ -128,10 +128,10 @@ class Vector(object):
         return 3
 
     def __repr__(self):
-        return "<Vector x:%f y:%f z:%f>" % (self.x, self.y, self.z)
+        return "Vector(%f, %f, %f)"%(self.x, self.y, self.z)
 
     def __str__(self):
-        return "From str method of Vector: x is %f, y is %f, z is %f" % (self.x, self.y, self.z)
+        return "Vector(%f, %f, %f)"%(self.x, self.y, self.z)
 
     def cross(self, v):
         return Vector(self.y * v.z - self.z * v.y,

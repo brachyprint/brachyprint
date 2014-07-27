@@ -36,14 +36,14 @@ class Vertex(Vector):
         self.edges = []
         self.faces = []
 
-    def __repr__(self):
-        return "<Vertex x:%f y:%f z:%f name:%d>" % (self.x, self.y, self.z, self.name)
-
     def __hash__(self):
         return id(self)
 
+    def __repr__(self):
+        return "Vertex(%f, %f, %f, %d)"%(self.x, self.y, self.z, self.name)
+
     def __str__(self):
-        return "From str method of Vertex: x is %f, y is %f, z is %f, name is %d" % (self.x, self.y, self.z, self.name)
+        return "<Vertex %d (%f,%f,%f)>"%(self.name, self.x, self.y, self.z)
 
     def add_edge(self, edge):
         '''

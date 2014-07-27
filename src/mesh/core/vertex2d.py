@@ -36,10 +36,10 @@ class Vertex2d(Vector2d):
         self.lines = []
 
     def __repr__(self):
-        return "<Vertex2d x:%f y:%f name:%d>" % (self.x, self.y, self.name)
+        return "Vertex2d(%f, %f, %d)"%(self.x, self.y, self.name)
 
     def __str__(self):
-        return "From str method of Vertex2d: x is %f, y is %f, name is %d" % (self.x, self.y, self.name)
+        return "<Vertex2d %d (%f,%f)>"%(self.name, self.x, self.y)
 
     def add_line(self, line):
         '''

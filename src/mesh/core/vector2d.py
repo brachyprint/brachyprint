@@ -145,11 +145,11 @@ class Vector2d(object):
     def __len__(self):
         return 2
 
-    def __repr__(self):
-        return "<Vector2d x:%f y:%f z:%f>" % (self.x, self.y)
+    def __repr__(self): 
+        return "Vector2d(%f, %f)"%(self.x, self.y)
 
     def __str__(self):
-        return "From str method of Vector2d: x is %f, y is %f" % (self.x, self.y)
+        return "Vector2d(%f, %f)"%(self.x, self.y)
 
     def cross(self, v):
         return self.x*v.y - self.y*v.x
