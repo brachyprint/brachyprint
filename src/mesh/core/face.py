@@ -75,4 +75,3 @@ class Face(object):
         fun = lambda vs: [vec.x*u+vec.y*v+origin for vec in vs]
 
         return ([f.project2dvector(u,v) for f in self.vertices], u, v, fun)
-
