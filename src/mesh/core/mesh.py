@@ -31,8 +31,8 @@ from vector import Vector, nullVector
 from vertex import Vertex
 from face import Face
 from edge import Edge
-from ..routes import *
-from ..routes2 import *
+from routes import *
+from routes2 import *
 from octrees import *
 from scipy.optimize import leastsq
 
@@ -45,6 +45,7 @@ class Mesh(object):
 
     def __init__(self):
         self.clear()
+
 
     def clear(self):
         self.vertices = []
@@ -59,6 +60,26 @@ class Mesh(object):
         self.sumY = 0
         self.sumZ = 0
 
+
+    def copy(self):
+        m = Mesh()
+        m.vertices = list(self.vertices)
+        m.faces = list(self.faces)
+        m.edges = self.edges.copy()
+        m.boundary = self.boundary.copy()
+        m.maxX, m.minX = self.maxX, self.minX
+        m.maxY, m.minY = self.maxY, self.minY
+        m.maxZ, m.minZ = self.maxZ, self.minZ
+        m.sumX = self.sumX
+        m.sumY = self.sumY
+        m.sumZ = self.sumZ
+        if self.has_fresh_octrees:
+            m.has_fresh_octrees = True
+            m.vertex_octree = self.vertex_octree.copy()
+            m.face_octree = self.face_octree.copy()
+        else:
+            m.has_fresh_octrees = False
+        
 
     def get_edge(self, v1, v2):
         if self.edges.has_key((v1,v2)):

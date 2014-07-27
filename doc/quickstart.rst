@@ -14,6 +14,8 @@ Requirements
   (Debian package: python-wxtools)
 * matplotlib -- 2D plotting library for Python: http://matplotlib.org/
   (Debian package: python-matplotlib)
+* scipy -- Scientific computing library: http://www.scipy.org/
+  (Debian package
 
 Under Debian Jessie, one author has had some success running the
 following (as a superuser):

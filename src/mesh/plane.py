@@ -468,5 +468,3 @@ def polygon_plane_clip(vertices,plane):
             count += 1
         previous = index
     return result.values()
-    
-    
