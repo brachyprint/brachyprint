@@ -26,7 +26,7 @@ from __future__ import division
 import mesh
 from math import pi, cos, sin
 
-class transform_and_add_vertex:
+class transform_and_add_vertex(object):
     def __init__(self, mesh, offset, axis, perp1, perp2):
         self.mesh = mesh
         self.offset = offset

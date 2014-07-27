@@ -47,7 +47,7 @@ def find_vertex(mesh, vertex):
     else:
         print "Missed"
 
-class OnSelect:
+class OnSelect(object):
   def __init__(self, outer_mesh, inner_mesh, base_file):
     self.outer_mesh = outer_mesh
     self.inner_mesh = inner_mesh

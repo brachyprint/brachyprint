@@ -25,7 +25,7 @@ import mesh
 from octrees import Octree
 from points import expand, make_ply
 
-class OnSelect:
+class OnSelect(object):
   def __init__(self, mesh, base_file):
     self.mesh = mesh
     self.base_file = base_file

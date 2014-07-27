@@ -17,7 +17,7 @@
 
 from math import sqrt
 
-class point_to_point:
+class point_to_point(object):
     def __init__(self, s, e, endPoint = None, endFace = None):
         self.s, self.e = s,e 
     def points(self):
@@ -25,7 +25,7 @@ class point_to_point:
     def get_edges(self):
         return []
 
-class point_to_vertex:
+class point_to_vertex(object):
     def __init__(self, sx, sy, sz, e, endPoint = None, endFace = None):
         self.sx, self.sy, self.sz, self.e = sx, sy, sz, e
         self.endPoint, self.endFace = endPoint, endFace
@@ -49,7 +49,7 @@ class point_to_vertex:
     #def __str__(self):
      
 
-class follow_edge:
+class follow_edge(object):
     def __init__(self, s, e, endPoint = None, endFace = None, edge = None):
         self.s, self.e = s, e
         self.endPoint, self.endFace = endPoint, endFace
@@ -72,7 +72,7 @@ class follow_edge:
     def get_edges(self):
         return [self.edge]
 
-class vertex_to_point:
+class vertex_to_point(object):
     def __init__(self, s, (ex, ey, ez)):
         self.s, self.ex, self.ey, self.ez = s, ex, ey, ez
     def dist(self):
@@ -88,7 +88,7 @@ class vertex_to_point:
     def crowdist(self):
         return 0
 
-class follow_edge_vertex_path:
+class follow_edge_vertex_path(object):
     def __init__(self, start, end, edge, destination):
         self.start, self.end = start, end
         self.edge = edge

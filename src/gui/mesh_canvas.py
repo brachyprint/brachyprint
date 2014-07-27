@@ -44,7 +44,7 @@ import numpy as np
 from math import ceil, floor
 
 
-class pickPixel:
+class pickPixel(object):
     def __init__(self, x, y):
         self.x, self.y = x, y
     def __call__(self):

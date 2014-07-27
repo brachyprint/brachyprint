@@ -23,7 +23,7 @@ from math import pi, acos
 from copy import copy
 
 
-class ROI:
+class ROI(object):
     def __init__(self):
         self.paths = []
         self.points = []
@@ -71,7 +71,7 @@ class ROI:
 
 COLOURS = {"red": (1,0.2,0.2), "green": (0.2, 1,0.2), "blue":(0.2,0.2,1),}
 
-class RoiGUI:
+class RoiGUI(object):
     def __init__(self, mesh, meshname, closed, colour="green", thickness = 1, onSelect=None):
         self.meshname = meshname
         self.mesh = mesh

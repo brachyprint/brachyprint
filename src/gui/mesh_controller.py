@@ -34,14 +34,14 @@ from settings import *
 from mesh_display import MeshCollectionDisplay
 
 
-class opengl_list:
+class opengl_list(object):
     def __init__(self, list_):
         self.list = list_
     def __call__(self):
         glCallList(self.list)
 
 
-class renderOneBlock:
+class renderOneBlock(object):
     """A volume is split into multiple blocks, each containing BLOCKSIZE triangles"""
     def __init__(self, block_name, mesh):
         self.block_name = block_name

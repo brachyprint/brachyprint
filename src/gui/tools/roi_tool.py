@@ -28,7 +28,7 @@ from gui import RoiGUI
 
 from OpenGL.GL import *
 
-class opengl_list:
+class opengl_list(object):
     def __init__(self, list_):
         self.list = list_
     def __call__(self):

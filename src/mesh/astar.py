@@ -21,7 +21,7 @@ Astar algorithm.
 
 from __future__ import division
 
-class AStar:
+class AStar(object):
     def __init__(self, s1, s2, mesh):
         self.s1 = s1
         self.s2 = s2
