@@ -14,7 +14,7 @@ if __name__ == '__main__':
  
     m2 = mesh.Mesh()
     mesh.primitives.add_cylinder(m2, 2.6, 80, 50, axis=[0,1,0], offset=[5, -10, 0])
-    mesh.primitives.add_cylinder(m2, 2.8, 80, 50, axis=[0,1,0], offset=[15 -10, 0])
+    mesh.primitives.add_cylinder(m2, 2.8, 80, 50, axis=[0,1,0], offset=[15, -10, 0])
     mesh.primitives.add_cylinder(m2, 3, 80, 50, axis=[0,1,0], offset=[30, -10, 0])
     mesh.primitives.add_cylinder(m2, 3.2, 80, 50, axis=[0,1,0], offset=[45, -10, 0])
     mesh.primitives.add_cylinder(m2, 3.4, 80, 50, axis=[0,1,0], offset=[55, -10, 0])
