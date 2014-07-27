@@ -78,25 +78,49 @@ class Route(object):
         self.trajectory = deque(l)
         self.closed = False
 
+    def __iter__(self):
+        return iter(self.trajectory)
+
     def __len__(self):
         return len(self.trajectory)
 
-    def points(self):
-        return [((t.p1.point.x, t.p1.point.y, t.p1.point.z), (t.p2.point.x, t.p2.point.y, t.p2.point.z)) for t in self.trajectory]
-
     def dist(self):
         return sum(s.dist() for s in self.trajectory)
+
+    def points(self):
+        yield self.start()
+        for s in self.trajectory():
+            yield s.p2
+
+    def faces_covered(self):
+        return list(s.face for s in self.trajectory)
+
+    def edges_crossed(self):
+        for p in self.points():
+            if isinstance(p,EdgePoint):
+                yield p.edge
+
+    def vertices_hit(self):
+        for s in self.points():
+            if isinstance(p,VertexPoint):
+                yield p.point
+
+    def start(self):
+        return self.trajectory[0].p1
+
+    def end(self):
+        return self.trajectory[-1].p2
 
     def extend_right(self,s):
         if self.closed:
             raise ValueError("Cannot extend closed route")
         self.trajectory.append(s)
-        if self.trajectory[0].p1 == self.trajectory[-1].p2:
+        if self.start() == self.end():
             self.closed=True
 
     def extend_left(self,f,t):
         if self.closed:
             raise ValueError("Cannot extend closed route")
         self.trajectory.append_left(s)
-        if self.trajectory[0].p1 == self.trajectory[-1].p2:
+        if self.start() == self.end():
             self.closed=True
