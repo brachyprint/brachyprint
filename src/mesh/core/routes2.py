@@ -61,6 +61,9 @@ class Route(object):
         self.trajectory = deque(l)
         self.closed = False
 
+    def __len__(self):
+        return len(self.trajectory)
+
     def points(self):
         return [((t.p1.point.x, t.p1.point.y, t.p1.point.z), (t.p2.point.x, t.p2.point.y, t.p2.point.z)) for t in self.trajectory]
 

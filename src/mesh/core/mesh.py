@@ -247,8 +247,10 @@ class Mesh(object):
         """
         fn = lambda p: (p-p1).cross(p-p2).dot(p-p3)
 
-        paths = []
+        if f1==f2:
+            return Route([Step(f1,FacePoint(f1,p1),FacePoint(f1,p2))])
 
+        paths = []
         def pursue(e2):
             f = f1
             x1 = fn(e2.v1)
