@@ -240,10 +240,12 @@ class Mesh(object):
             v.add_face(f)
         return f
 
+
     def get_planar_path(self,p1,f1,p2,f2,p3):
         """Consider points p1 on face f1, p2 on face f2, and a third point
-        p3. We construct the shortest path from p1 to p2 obtained by
-        intersecting the mesh with the plane through p1, p2, p3.
+        p3. We consider paths from p1 to p2 obtained by intersecting
+        the mesh with the plane through p1, p2 and p3: we return the
+        shorter such path.
         """
         fn = lambda p: (p-p1).cross(p-p2).dot(p-p3)
 
@@ -284,6 +286,17 @@ class Mesh(object):
         return min(paths,key=lambda r: r.dist())
 
     def get_path(self, s1, s2):
+        """A hybrid path-finding algorithm.
+
+        We use the A* algorithm to find the shortest path from s1 to
+        s2 along edges. Then we fit a sphere to that, consider the
+        plane through s1, s2 and the centre, and intersect that with
+        the mesh to produce a path.
+
+        s1 and s2 are 4-tuples in the form (x,y,z,n), where n is the
+        index of the face on which they lie.
+        """
+
         paths = self.get_edge_path(s1, s2)
         points = set(point for path in paths for points in path.points() for point in points)
         def err_func((cx, cy, cz, radius), points):
@@ -298,6 +311,12 @@ class Mesh(object):
         return [t]
 
     def get_edge_path(self, s1, s2):
+        """
+        Find a path from s1 to s2 through edges.
+
+        s1 and s2 are 4-tuples in the form (x,y,z,n), where n is the
+        index of the face on which they lie.
+        """
         s2Position = s2[0], s2[1], s2[2]
         s2Face = self.faces[s2[3]]
         priority_queue = []

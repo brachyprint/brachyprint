@@ -24,6 +24,10 @@ from copy import copy
 
 
 class ROI(object):
+    """
+    A region of interest.
+    """
+
     def __init__(self):
         self.paths = []
         self.points = []
