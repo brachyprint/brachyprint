@@ -79,6 +79,7 @@ class Mesh(object):
             m.face_octree = self.face_octree.copy()
         else:
             m.has_fresh_octrees = False
+        return m
         
 
     def get_edge(self, v1, v2):
