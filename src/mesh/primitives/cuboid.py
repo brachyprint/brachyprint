@@ -69,21 +69,21 @@ def add_cuboid(mesh,
 
     for i in xrange(nx):
         for j in xrange(ny):
-            mesh.add_face(vertices[(i,j,0)],vertices[(i+1,j,0)],vertices[(i,j+1,0)])
-            mesh.add_face(vertices[(i,j+1,0)],vertices[(i+1,j,0)],vertices[(i+1,j+1,0)])
-            mesh.add_face(vertices[(i,j,nz)],vertices[(i,j+1,nz)],vertices[(i+1,j,nz)])
-            mesh.add_face(vertices[(i,j+1,nz)],vertices[(i+1,j+1,nz)],vertices[(i+1,j,nz)])
+            mesh.add_face(vertices[(i,j,0)],vertices[(i,j+1,0)],vertices[(i+1,j,0)])
+            mesh.add_face(vertices[(i,j+1,0)],vertices[(i+1,j+1,0)],vertices[(i+1,j,0)])
+            mesh.add_face(vertices[(i,j,nz)],vertices[(i+1,j,nz)],vertices[(i,j+1,nz)])
+            mesh.add_face(vertices[(i,j+1,nz)],vertices[(i+1,j,nz)],vertices[(i+1,j+1,nz)])
 
     for j in xrange(ny):
         for k in xrange(nz):
-            mesh.add_face(vertices[(0,j,k)],vertices[(0,j+1,k)],vertices[(0,j,k+1)])
-            mesh.add_face(vertices[(0,j,k+1)],vertices[(0,j+1,k)],vertices[(0,j+1,k+1)])
-            mesh.add_face(vertices[(nx,j,k)],vertices[(nx,j,k+1)],vertices[(nx,j+1,k)])
-            mesh.add_face(vertices[(nx,j,k+1)],vertices[(nx,j+1,k+1)],vertices[(nx,j+1,k)])
+            mesh.add_face(vertices[(0,j,k)],vertices[(0,j,k+1)],vertices[(0,j+1,k)])
+            mesh.add_face(vertices[(0,j,k+1)],vertices[(0,j+1,k+1)],vertices[(0,j+1,k)])
+            mesh.add_face(vertices[(nx,j,k)],vertices[(nx,j+1,k)],vertices[(nx,j,k+1)])
+            mesh.add_face(vertices[(nx,j,k+1)],vertices[(nx,j+1,k)],vertices[(nx,j+1,k+1)])
             
     for i in xrange(nx):
         for k in xrange(nz):
-            mesh.add_face(vertices[(i,0,k)],vertices[(i,0,k+1)],vertices[(i+1,0,k)])
-            mesh.add_face(vertices[(i+1,0,k)],vertices[(i,0,k+1)],vertices[(i+1,0,k+1)])
-            mesh.add_face(vertices[(i,ny,k)],vertices[(i+1,ny,k)],vertices[(i,ny,k+1)])
-            mesh.add_face(vertices[(i+1,ny,k)],vertices[(i+1,ny,k+1)],vertices[(i,ny,k+1)])
+            mesh.add_face(vertices[(i,0,k)],vertices[(i+1,0,k)],vertices[(i,0,k+1)])
+            mesh.add_face(vertices[(i+1,0,k)],vertices[(i+1,0,k+1)],vertices[(i,0,k+1)])
+            mesh.add_face(vertices[(i,ny,k)],vertices[(i,ny,k+1)],vertices[(i+1,ny,k)])
+            mesh.add_face(vertices[(i+1,ny,k)],vertices[(i,ny,k+1)],vertices[(i+1,ny,k+1)])
