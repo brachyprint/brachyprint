@@ -23,6 +23,7 @@ A 3D vector class for the ``mesh'' package.
 
 from __future__ import division
 from math import sqrt
+from numbers import Number
 
 from vector2d import Vector2d
 
@@ -73,46 +74,70 @@ class Vector(object):
         raise TypeError("Vector is not a binary type")
 
     def __add__(self, v):
-        return Vector(self.x + v.x, self.y + v.y, self.z + v.z)
+        try:
+            return Vector(self.x + v.x, self.y + v.y, self.z + v.z)
+        except AttributeError:
+            raise TypeError
 
     def __neg__(self):
         return Vector(-self.x, -self.y, -self.z)
 
     def __sub__(self, v):
-        return Vector(self.x - v.x, self.y - v.y, self.z - v.z)
+        try:
+            return Vector(self.x - v.x, self.y - v.y, self.z - v.z)
+        except AttributeError:
+            raise TypeError
         
     def __mul__(self, val):
-        return Vector(self.x*val, self.y*val, self.z*val)
+        if isinstance(val,Number):
+            return Vector(self.x*val, self.y*val, self.z*val)
+        else:
+            raise TypeError
 
     def __rmul__(self, other):
         return self.__mul__(other)
 
     def __div__(self, val):
-        return Vector(self.x/val, self.y/val, self.z/val)
+        if isinstance(val,Number):
+            return Vector(self.x/val, self.y/val, self.z/val)
+        else:
+            raise TypeError
 
     def __truediv__(self, val):
-        return Vector(self.x/val, self.y/val, self.z/val)
+        if isinstance(val,Number):
+            return Vector(self.x/val, self.y/val, self.z/val)
+        else:
+            raise TypeError
 
     def __rtruediv__(self, other):
         return self.__truediv__(other)
 
     def __iadd__(self, v):
-        self.x += v.x
-        self.y += v.y
-        self.z += v.z
-        return self
+        try:
+            self.x += v.x
+            self.y += v.y
+            self.z += v.z
+            return self
+        except AttributeError:
+            raise TypeError
         
     def __isub__(self, v):
-        self.x -= v.x
-        self.y -= v.y
-        self.z -= v.z
-        return self
+        try:
+            self.x -= v.x
+            self.y -= v.y
+            self.z -= v.z
+            return self
+        except AttributeError:
+            raise TypeError
 
     def __imul__(self, val):
-        self.x *= val
-        self.y *= val
-        self.z *= val
-        return self
+        if isinstance(val,Number):
+            self.x *= val
+            self.y *= val
+            self.z *= val
+            return self
+        else:
+            raise TypeError
 
     def __getitem__(self, i):
         if i == 0:
@@ -134,12 +159,18 @@ class Vector(object):
         return "Vector(%f, %f, %f)"%(self.x, self.y, self.z)
 
     def cross(self, v):
-        return Vector(self.y * v.z - self.z * v.y,
-                      self.z * v.x - self.x * v.z,
-                      self.x * v.y - self.y * v.x)
+        try:
+            return Vector(self.y * v.z - self.z * v.y,
+                          self.z * v.x - self.x * v.z,
+                          self.x * v.y - self.y * v.x)
+        except AttributeError:
+            raise TypeError
 
     def dot(self, v):
-        return float(self.x * v.x + self.y * v.y + self.z * v.z)
+        try:
+            return float(self.x * v.x + self.y * v.y + self.z * v.z)
+        except AttributeError:
+            raise TypeError
 
     def magnitude(self):
         return sqrt(self.x ** 2 + self.y ** 2 + self.z ** 2)
@@ -164,10 +195,12 @@ class Vector(object):
         '''
         Returns two orthogonal vectors
         '''
-        for bv in BASIS_VECTORS:
-            p = self.cross(bv)
+        a = self.normalise()
+        for bv in basisVectors:
+            p = a.cross(bv)
             if p.magnitude() > 0.1:
-                return p.normalise(), self.cross(p).normalise()
+                p = p.normalise()
+                return p, a.cross(p)
 
     def project2dvector(self, u, v):
         '''
@@ -176,6 +209,6 @@ class Vector(object):
         return Vector2d(self.dot(u), self.dot(v))
 
 
-BASIS_VECTORS = [Vector(0,0,1), Vector(0,1,0), Vector(1,0,0)]
+basisVectors = [Vector(0,0,1), Vector(0,1,0), Vector(1,0,0)]
 nullVector = Vector(0, 0, 0)
 

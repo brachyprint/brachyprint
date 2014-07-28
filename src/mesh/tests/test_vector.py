@@ -53,11 +53,11 @@ class BasicArithmeticTests(TestCase):
         self.assertEqual(v3, Vector(0, 4, 7))
 
         # adding integer
-        with self.assertRaises(NotImplementedError):
+        with self.assertRaises(TypeError):
             self.v1 + 10
 
         # adding float
-        with self.assertRaises(NotImplementedError):
+        with self.assertRaises(TypeError):
             self.v1 + 10.1
 
     def test_sub(self):
@@ -68,11 +68,11 @@ class BasicArithmeticTests(TestCase):
         self.assertEqual(v3, Vector(-2, 0, 1))
 
         # subtracting integer
-        with self.assertRaises(NotImplementedError):
+        with self.assertRaises(TypeError):
             self.v1 - 10
 
         # subtracting float
-        with self.assertRaises(NotImplementedError):
+        with self.assertRaises(TypeError):
             self.v1 - 10.1
 
     def test_mul(self):
@@ -93,7 +93,7 @@ class BasicArithmeticTests(TestCase):
         v3 = 2 * self.v1
         self.assertEqual(v3, Vector(2, 4, 6))
 
-        with self.assertRaises(NotImplementedError):
+        with self.assertRaises(TypeError):
             v3 = self.v1 * self.v2
 
     def test_div(self):
@@ -114,7 +114,7 @@ class BasicArithmeticTests(TestCase):
             v3 = 0.5 / self.v1
 
         # division of two vectors
-        with self.assertRaises(NotImplementedError):
+        with self.assertRaises(TypeError):
             v3 = self.v1 / self.v2
 
     def test_no_binary(self):
@@ -145,12 +145,12 @@ class BasicArithmeticTests(TestCase):
     def test_infix_add(self):
         # infix integer addition
         v = Vector(1, 2, 3)
-        with self.assertRaises(NotImplementedError):
+        with self.assertRaises(TypeError):
             v += 10
 
         # infix float addition
         v = Vector(1, 2, 3)
-        with self.assertRaises(NotImplementedError):
+        with self.assertRaises(TypeError):
             v += 5.5
 
         # infix vector addition
@@ -161,12 +161,12 @@ class BasicArithmeticTests(TestCase):
     def test_infix_sub(self):
         # infix integer subtraction
         v = Vector(1, 2, 3)
-        with self.assertRaises(NotImplementedError):
+        with self.assertRaises(TypeError):
             v -= 10
 
         # infix float subtraction
         v = Vector(1, 2, 3)
-        with self.assertRaises(NotImplementedError):
+        with self.assertRaises(TypeError):
             v -= 5.5
 
         # infix vector subtraction
@@ -187,7 +187,7 @@ class BasicArithmeticTests(TestCase):
 
         # infix vector multiplication
         v = Vector(1, 2, 3)
-        with self.assertRaises(NotImplementedError):
+        with self.assertRaises(TypeError):
             v *= Vector(1, 3, 5)
 
     def test_infix_div(self):
@@ -203,7 +203,7 @@ class BasicArithmeticTests(TestCase):
 
         # infix vector division
         v = Vector(1, 2, 3)
-        with self.assertRaises(NotImplementedError):
+        with self.assertRaises(TypeError):
             v /= Vector(1, 3, 5)
 
 
