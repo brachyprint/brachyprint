@@ -241,7 +241,7 @@ class Mesh(object):
         for edge in f.edges:
             edge.remove_face(f)
             if edge.lface is None and edge.rface is None:
-                self.edges.remove((edge.v1,edge.v2))
+                self.edges.pop((edge.v1,edge.v2))
         self.faces.remove(f)
         
     def get_planar_path(self,p1,f1,p2,f2,p3):
