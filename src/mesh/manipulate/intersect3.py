@@ -35,7 +35,7 @@ def subdivide_meshes(mesh1, mesh2):
         for edge1 in face1.edges:
             for refernce_pont, bounding_box, face2 in mesh2.face_octree.intersect_with_line_segment(edge1.v1, edge1.v2):
                 intersection = face_intersects_with_edge(face2, edge1)
-                if intersection is not None:
+                if intersection is not None and intersection not in [edge1.v1, edge1.v2]:
                     vertex, new_faces1, new_faces2 = split_at_intersection(mesh1, mesh2, intersection, edge1, face2)
                     propagate_split(vertex, new_faces1, new_faces2, mesh1, mesh2, vertex, True)
                     return None
