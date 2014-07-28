@@ -27,14 +27,15 @@ if __name__ == '__main__':
     app = wx.App(False)
 
     m1 = mesh.Mesh()
-    mesh.primitives.add_cuboid(m1, 60, 60, 10)
+    mesh.primitives.add_cuboid(m1, lx=60, ly=60, lz=10,
+               nx=12, ny=6, nz=2,)
  
     m2 = mesh.Mesh()
-    mesh.primitives.add_cylinder(m2, 2.6, 80, 10, axis=[0,1,0], basepoint=[5, -10, 0])
-    mesh.primitives.add_cylinder(m2, 2.8, 80, 10, axis=[0,1,0], basepoint=[15, -10, 0])
-    mesh.primitives.add_cylinder(m2, 3, 80, 10, axis=[0,1,0], basepoint=[30, -10, 0])
-    mesh.primitives.add_cylinder(m2, 3.2, 80, 10, axis=[0,1,0], basepoint=[45, -10, 0])
-    mesh.primitives.add_cylinder(m2, 3.4, 80, 10, axis=[0,1,0], basepoint=[55, -10, 0])
+    mesh.primitives.add_cylinder(m2, 2.6, 80, 10, v_axis=[0,1,0], basepoint=[5, -10, 0], n_height = 10)
+    mesh.primitives.add_cylinder(m2, 2.8, 80, 10, v_axis=[0,1,0], basepoint=[15, -10, 0], n_height = 10)
+    mesh.primitives.add_cylinder(m2, 3, 80, 10, v_axis=[0,1,0], basepoint=[30, -10, 0], n_height = 10)
+    mesh.primitives.add_cylinder(m2, 3.2, 80, 10, v_axis=[0,1,0], basepoint=[45, -10, 0], n_height = 10)
+    mesh.primitives.add_cylinder(m2, 3.4, 80, 10, v_axis=[0,1,0], basepoint=[55, -10, 0], n_height = 10)
 
     m3, m4 = mesh.manipulate.split(m1, m2)
 
