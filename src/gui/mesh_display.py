@@ -222,7 +222,7 @@ class MeshCollectionDisplay(MeshCollection):
             glPushName(i)
             glTranslatef(v[0], v[1], v[2])
             glColor3f(0.2,1,0.2)
-            glutSolidSphere(0.008, 10, 10)
+            glutSolidSphere(0.08, 10, 10)
             glPopName()
             glPopMatrix()
         for e in mesh.edges.values():
@@ -233,7 +233,7 @@ class MeshCollectionDisplay(MeshCollection):
                 glTranslatef(e.v1.x, e.v1.y, e.v1.z)
                 glColor3f(0.2,0.2,0.2)
                 glRotatef(180.0 / pi * acos(d.z / length_d), -d.y, d.x, 0)
-                glutSolidCylinder(0.005, -length_d, 10 ,10)
+                glutSolidCylinder(0.05, -length_d, 10 ,10)
                 glPopMatrix()
         glEndList()
 
