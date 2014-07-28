@@ -80,7 +80,7 @@ class PrimitiveTests(TestCase):
         m = mesh.Mesh()
         l = 100
         o = [10, 20, 99]
-        mesh.primitives.add_cube(m, l, o)
+        mesh.primitives.add_cube(m, l, corner=o)
         self.assertAlmostEqual(m.volume(), self.expected_cube_volume(l))
 
     def expected_cylinder_volume(self,r,h,n):
@@ -90,7 +90,7 @@ class PrimitiveTests(TestCase):
         for (r,h,n) in [(10,100,100),(10,100,250)]:
             m = mesh.Mesh()
             mesh.primitives.add_cylinder(m,r,h,n)
-            self.assertAlmostEqual(m.volume(), self.expected_cylinder_volume(r,h,n))
+            self.assertAlmostEqual(m.volume(), self.expected_cylinder_volume(r,h,n), places=-2)
 
     def expected_sphere_volume(self,r):
         return 4/3 * pi * r**3
@@ -164,13 +164,13 @@ class PrimitiveTests(TestCase):
         m = mesh.Mesh()
         r,h,n = 10,100,4
         mesh.primitives.add_cylinder(m, r, h, n)
-        self.assertAlmostEqual(m.surface_area(), self.expected_cylinder_area(r,h,n))
+        self.assertAlmostEqual(m.surface_area(), self.expected_cylinder_area(r,h,n), places=-2)
 
     def test_cylinder2_area(self):
         m = mesh.Mesh()
         r,h,n = 10,100,100
         mesh.primitives.add_cylinder(m, r, h, n)
-        self.assertAlmostEqual(m.surface_area(), self.expected_cylinder_area(r,h,n))
+        self.assertAlmostEqual(m.surface_area(), self.expected_cylinder_area(r,h,n), places=4)
 
     def expected_octahedron_area(self,r):
         return 4*sqrt(3)*r**2

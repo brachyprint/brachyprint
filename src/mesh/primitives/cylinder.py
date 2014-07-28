@@ -22,67 +22,59 @@ A cylinder primitive.
 '''
 
 from __future__ import division
-
-import mesh
 from math import pi, cos, sin
 
-class transform_and_add_vertex(object):
-    def __init__(self, mesh, offset, axis, perp1, perp2):
-        self.mesh = mesh
-        self.offset = offset
-        self.axis = axis
-        self.perp1 = perp1
-        self.perp2 = perp2
-    def __call__(self, x, y, z):
-        return self.mesh.add_vertex(*[o + x * p1 + y * p2 + z * a 
-                                      for o, p1, p2, a 
-                                      in zip(self.offset, self.perp1, self.perp2, self.axis)])
+from mesh import Vector
 
-def add_cylinder(c, r, h, sampling, axis=(0, 0, 1), offset=(0,0,0)):
-    '''
-    Add a cylinder of radius r and height h to the existing mesh c.
-    '''
 
-    axis = mesh.Vector(axis)
-    offset = mesh.Vector(offset)
 
-    #Find a normalised orthogonal set of vectors
-    axis = axis.normalise()
-    for arbitary_vector in [mesh.Vector(0, 0, 1), mesh.Vector(0, 1, 0), mesh.Vector(1, 0, 0)]:
-        if arbitary_vector.dot(axis) < 0.6:  #One of the above vectors dot producted with a normalised vector must be less than 1/3 ** 1/2
-            perp1 = arbitary_vector.cross(axis).normalise()
-            perp2 = axis.cross(perp1).normalise()
-            break
-    add_vertex = transform_and_add_vertex(c, offset, axis, perp1, perp2)
-    # create end vertices
+def add_cylinder(mesh, radius, height,
+                 n_circle = 10, n_height = 1,
+                 v_axis = Vector(0,0,1),
+                 basepoint = Vector(0,0,0),
+                 twist_angle = 0,
+                 close_bot = True,
+                 close_top = True):
+    """Add a cylinder to an existing mesh.
 
-    o = add_vertex(0, 0, 0)
-    o2 = add_vertex(0, 0, h)
+    Arguments are as follows:
+    - mesh is the mesh to add to;
+    - radius is the radius;
+    - height is the height (expressed in multiples of v_axis);
+    - n_circle is the number of points to place around a circle;
+    - n_height is the number of layers to subdivide the cylinder into;
+    - v_axis is a unit vector in the direction of the cylinder;
+    - basepoint is a vector in the centre of the base of the cylinder;
+    - twist_angle is the phase with which points are distributed;
+    - close_bot and close_top say whether to give the circular disk
+      ends of the cylinder.
+    """
 
-    vs = []
+    v_axis = Vector(v_axis).normalise()
+    (perp1, perp2) = v_axis.get_orthogonal_vectors()
+    basepoint = Vector(basepoint)
 
-    hs = [0, h]
+    def make_row(i):
+        for j in xrange(n_circle):
+            t = twist_angle + (i+2*j)*pi/n_circle
+            v = basepoint + perp1*(radius*cos(t)) + perp2*(radius*sin(t)) + v_axis*(height*i/n_height)
+            yield mesh.add_vertex(v)
 
-    for j in range(2):
-        vs.append([])
-        for i in range(sampling):
-            th = i/sampling*2*pi
-            x = r*sin(th)
-            y = r*cos(th)
-            vs[j].append(add_vertex(x,y,hs[j])) # bottom
+    r = list(make_row(0))
 
-    v = vs[0]
-    v2 = vs[1]
-    for i in range(len(v)):
-        c.add_face([v[i], v[i-1], v2[i-1], v2[i]])
-    
-    # create bottom
-    for i in range(len(vs[0])):
-        c.add_face(vs[0][i-1],vs[0][i],o)
+    if close_bot:
+        o = mesh.add_vertex(basepoint)
+        for j in xrange(n_circle):
+            mesh.add_face(r[j],o,r[(j+1)%n_circle])
 
-    # create top
-    for i in range(len(vs[-1])):
-        c.add_face(vs[-1][i],vs[-1][i-1],o2)
+    for i in xrange(n_height):
+        s = list(make_row(i+1))
+        for j in xrange(n_circle):
+            mesh.add_face(r[j],r[(j+1)%n_circle],s[j])
+            mesh.add_face(s[(j-1)%n_circle],r[j],s[j])
+        r = s
 
-    return c 
-
+    if close_top:
+        o = mesh.add_vertex(basepoint + v_axis*height)
+        for j in xrange(n_circle):
+            mesh.add_face(s[j],s[(j+1)%n_circle],o)

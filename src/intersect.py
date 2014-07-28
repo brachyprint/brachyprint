@@ -32,15 +32,12 @@ if __name__ == '__main__':
     mesh.primitives.add_cube(m1, 100)
     #self.meshCanvas.addMesh(m1, "cube1")
     #self.meshPanel.addMesh("cube1")
-
-    #mesh.primitives.add_cube(m2, 100, (-48, 48, 48))
  
     m2 = mesh.Mesh()
-    mesh.primitives.add_cube(m2, 100, (-38, 48, 48))
+    mesh.primitives.add_cube(m2, 100, 1, corner=(-38, 48, 48))
 
     c1 = mesh.Mesh()
-    #mesh.primitives.add_cylinder(c1, 50, 40, 50, offset=[1,1,-15])
-    mesh.primitives.add_cylinder(c1, 50, 40, 50, offset=[1,1,-10])
+    mesh.primitives.add_cylinder(c1, 50, 40, 50, basepoint=[1,1,-10])
     #self.meshCanvas.addMesh(m2, "cube2")
     #self.meshPanel.addMesh("cube2")
 
