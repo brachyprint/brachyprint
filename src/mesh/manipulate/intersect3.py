@@ -30,6 +30,7 @@ def split(mesh1, mesh2):
     return meshcopy1, meshcopy2
     
 def subdivide_meshes(mesh1, mesh2):
+    #To Do: Deal with common vertices
     mesh2.ensure_fresh_octrees()
     for face1 in mesh1.faces:
         for edge1 in face1.edges:
@@ -51,6 +52,17 @@ def split_at_intersection(mesh1, mesh2, intersection, edge1, face2):
         assert nf2 in mesh2.faces
     return vertex, new_faces1, new_faces2
 
+
+def split_at_vertex(mesh1, mesh2, vertex1, face2):
+    assert vertex1 in mesh1.vertices
+    assert face2 in mesh2.faces
+    assert vertex1 not in mesh2.vertices
+    mesh2.add_specific_vertex(vertex1)
+    assert vertex1 in mesh2.vertices
+    print "???"
+    #new_faces2 = mesh2.split_face(vertex1, face2)
+    #return new_faces2
+
 def face_intersects_with_edge(face, edge):
     """Determines whether an edge and a face intersect, and returns the intersection point as a vector"""
     #consider the equation for a line p = d * l + l0, where l is the edge displacement and l0 is edge.v1
@@ -71,6 +83,11 @@ def face_intersects_with_edge(face, edge):
                                      (face.vertices[1]-face.vertices[0]).cross(face.vertices[2]-face.vertices[0]))
             if a > 0 and b > 0 and a + b < 1: # line-plane intersection is within face
                 return p
+
+def face_intersects_with_vertex(face, vertex):
+    """Determines whether a vertex and a face intersect"""
+    print face.normal.cross(face.vertices[0] - vertex).magnitude() < 0.00001 * (face.vertices[0] - vertex).magnitude() * face.normal.magnitude(), face.normal.cross(face.vertices[0] - vertex).magnitude(), 0.00001 , (face.vertices[0] - vertex).magnitude() ,	 face.normal.magnitude()
+    return face.normal.cross(face.vertices[0] - vertex).magnitude() < 0.00001 * (face.vertices[0] - vertex).magnitude() * face.normal.magnitude()
         
 def div_parallel_vectors(v1, v2):
     """Divides two parellel vectors (preserving sign)"""
@@ -79,16 +96,28 @@ def div_parallel_vectors(v1, v2):
 def propagate_split(vertex, faces1, faces2, mesh1, mesh2, origin, first_propogation):
     """Propagates a split from vertex"""
     for f1 in faces1:
+        opp_edge1 = f1.opposite_edge(vertex) 
         for f2 in faces2:
             opp_edge2 = f2.opposite_edge(vertex)
-            if not ((origin in [opp_edge2.v1, opp_edge2.v2]) and origin in f1.vertices):
+            #ToDo look for radial edges intersecting opposite edges
+            #Look for verticies on faces
+            for v1 in f1.vertices:
+                if face_intersects_with_vertex(f2, v1) and v1 not in mesh2.vertices:
+                    print "HIT",
+                    split_at_vertex(mesh1, mesh2, v1, f2)
+                    return None 
+            for v2 in f2.vertices:
+                if face_intersects_with_vertex(f1, v2) and v2 not in mesh1.vertices:
+                    split_at_vertex(mesh2, mesh1, v2, f1)
+                    return None 
+            #Look for opposite edge on faces
+            if not ((origin in [opp_edge2.v1, opp_edge2.v2]) and origin in f1.vertices):#Is this condition required?
                 intersection = face_intersects_with_edge(f1, opp_edge2)
                 if intersection is not None and intersection not in [opp_edge2.v1, opp_edge2.v2]:
                     vertex, new_faces2, new_faces1 = split_at_intersection(mesh2, mesh1, intersection, opp_edge2, f1)
                     propagate_split(vertex, new_faces1, new_faces2, mesh1, mesh2, origin, False)
                     return None
-            opp_edge1 = f1.opposite_edge(vertex)
-            if not ((origin in [opp_edge1.v1, opp_edge1.v2]) and origin in f2.vertices):
+            if not ((origin in [opp_edge1.v1, opp_edge1.v2]) and origin in f2.vertices):#Is this condition required?
                 intersection = face_intersects_with_edge(f2, opp_edge1)
                 if intersection is not None and intersection not in [opp_edge1.v1, opp_edge1.v2]:
                     vertex, new_faces1, new_faces2 = split_at_intersection(mesh1, mesh2, intersection, opp_edge1, f2)
