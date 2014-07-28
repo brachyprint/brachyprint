@@ -236,8 +236,12 @@ class Mesh(object):
     def remove_face(self, f):
         """Remove a triangular face from the mesh.
         """
+        for vertex in f.vertices:
+            vertex.remove_face(f)
         for edge in f.edges:
             edge.remove_face(f)
+            if edge.lface is None and edge.rface is None:
+                self.edges.remove((edge.v1,edge.v2))
         self.faces.remove(f)
         
     def get_planar_path(self,p1,f1,p2,f2,p3):
@@ -565,7 +569,6 @@ class Mesh(object):
         for face in [edge.lface, edge.rface]:
             if face is not None:
                 new_faces = new_faces + self.split_edge_one_face(vertex, edge, face)
-        self.edges.pop((edge.v1, edge.v2))
         return new_faces
         
     def split_edge_one_face(self, vertex, edge, face): 

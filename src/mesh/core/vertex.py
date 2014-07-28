@@ -57,9 +57,15 @@ class Vertex(Vector):
         '''
         self.faces.append(face)
 
+    def remove_face(self, face):
+        """
+        Associate a face with the vertex no longer.
+        """
+        self.faces.remove(face)
+
     def normal(self):
-        '''
-        Determine a normal at the vertex by averaging its associated face normals.
+        '''Determine a normal at the vertex by averaging its associated face
+        normals.
         '''
         n = sum([f.normal for f in self.faces], nullVector)
         return n.normalise()
