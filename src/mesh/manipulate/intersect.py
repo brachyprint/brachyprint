@@ -82,9 +82,9 @@ def intersect(m1, m2):
                 count += 1
 
         if count % 2 == 0: # even number of crossing => outside
-            m1_vertices[v.name] = 1
+            m1_vertices[v] = 1
         else:
-            m1_vertices[v.name] = 0
+            m1_vertices[v] = 0
 
     # determine if m2 vertex is inside or outside m1
     for v in m2.vertices:
@@ -100,9 +100,9 @@ def intersect(m1, m2):
                 count += 1
 
         if count % 2 == 0: # even number of crossing => outside
-            m2_vertices[v.name] = 0
+            m2_vertices[v] = 0
         else:
-            m2_vertices[v.name] = 1
+            m2_vertices[v] = 1
 
     # add vertices to the new vertex list, reusing existing vertices
     # if extant
@@ -124,34 +124,34 @@ def intersect(m1, m2):
     # create Polygons to represent faces
     m1_polygons = {}
     for f1 in m1.faces:
-        m1_polygons[f1.name] = {}
+        m1_polygons[f1] = {}
         (vs, u, v, undo) = f1.project2d()
         #vs.reverse()
         p = mesh.Polygon((vs, [(0,2),(2,1),(1,0)]))
-        m1_polygons[f1.name]["p"] = p
-        m1_polygons[f1.name]["u"] = u
-        m1_polygons[f1.name]["v"] = v
-        m1_polygons[f1.name]["undo"] = undo
+        m1_polygons[f1]["p"] = p
+        m1_polygons[f1]["u"] = u
+        m1_polygons[f1]["v"] = v
+        m1_polygons[f1]["undo"] = undo
 
         # add vertices and record mapping
-        m1_polygons[f1.name]["map"] = []
+        m1_polygons[f1]["map"] = []
         for i in range(3):
-            m1_polygons[f1.name]["map"].append(add_vertex(f1.vertices[i], m1_vertices[f1.vertices[i].name]))
+            m1_polygons[f1]["map"].append(add_vertex(f1.vertices[i], m1_vertices[f1.vertices[i]]))
 
     m2_polygons = {}
     for f2 in m2.faces:
-        m2_polygons[f2.name] = {}
+        m2_polygons[f2] = {}
         (vs, u, v, undo) = f2.project2d()
         p = mesh.Polygon((vs, [(0,2),(2,1),(1,0)]))
-        m2_polygons[f2.name]["p"] = p
-        m2_polygons[f2.name]["u"] = u
-        m2_polygons[f2.name]["v"] = v
-        m2_polygons[f2.name]["undo"] = undo
+        m2_polygons[f2]["p"] = p
+        m2_polygons[f2]["u"] = u
+        m2_polygons[f2]["v"] = v
+        m2_polygons[f2]["undo"] = undo
 
         # add vertices and record mapping
-        m2_polygons[f2.name]["map"] = []
+        m2_polygons[f2]["map"] = []
         for i in range(3):
-            m2_polygons[f2.name]["map"].append(add_vertex(f2.vertices[i], m2_vertices[f2.vertices[i].name]))
+            m2_polygons[f2]["map"].append(add_vertex(f2.vertices[i], m2_vertices[f2.vertices[i]]))
         
 
     # determine all face/face intersections
@@ -170,31 +170,31 @@ def intersect(m1, m2):
                 for i_s in range(len(s)):
                     s[i_s] = add_vertex(s[i_s], 2)
 
-                u1 = m1_polygons[f1.name]["u"]
-                v1 = m1_polygons[f1.name]["v"]
-                u2 = m2_polygons[f2.name]["u"]
-                v2 = m2_polygons[f2.name]["v"]
+                u1 = m1_polygons[f1]["u"]
+                v1 = m1_polygons[f1]["v"]
+                u2 = m2_polygons[f2]["u"]
+                v2 = m2_polygons[f2]["v"]
 
                 # record m1 and m2 vertices
                 verts1 = [0]*len(s)
                 verts2 = [0]*len(s)
                 for i_s in range(len(s)):
-                    verts1[i_s] = m1_polygons[f1.name]["p"].add_vertex(new_vertices[s[i_s]].project2dvector(u1, v1))
-                    if verts1[i_s].name == len(m1_polygons[f1.name]["map"]):
-                        m1_polygons[f1.name]["map"].append(s[i_s])
-                    elif verts1[i_s].name > len(m1_polygons[f1.name]["map"]):
-                        raise ValueError
+                    verts1[i_s] = m1_polygons[f1]["p"].add_vertex(new_vertices[s[i_s]].project2dvector(u1, v1))
+                    #if verts1[i_s].name == len(m1_polygons[f1]["map"]):
+                    m1_polygons[f1]["map"].append(s[i_s])
+                    #elif verts1[i_s].name > len(m1_polygons[f1]["map"]):
+                    #    raise ValueError
 
-                    verts2[i_s] = m2_polygons[f2.name]["p"].add_vertex(new_vertices[s[i_s]].project2dvector(u2, v2))
-                    if verts2[i_s].name == len(m2_polygons[f2.name]["map"]):
-                        m2_polygons[f2.name]["map"].append(s[i_s])
-                    elif verts2[i_s].name > len(m2_polygons[f2.name]["map"]):
-                        raise ValueError
+                    verts2[i_s] = m2_polygons[f2]["p"].add_vertex(new_vertices[s[i_s]].project2dvector(u2, v2))
+                    #if verts2[i_s].name == len(m2_polygons[f2]["map"]):
+                    m2_polygons[f2]["map"].append(s[i_s])
+                    #elif verts2[i_s].name > len(m2_polygons[f2]["map"]):
+                    #    raise ValueError
 
                 # record m1 and m2 lines
                 for i_s in range(len(s)-1):
-                    m1_polygons[f1.name]["p"].add_line(verts1[i_s-1], verts1[i_s])
-                    m2_polygons[f2.name]["p"].add_line(verts2[i_s-1], verts2[i_s])
+                    m1_polygons[f1]["p"].add_line(verts1[i_s-1], verts1[i_s])
+                    m2_polygons[f2]["p"].add_line(verts2[i_s-1], verts2[i_s])
 
     # create new output mesh
     m = mesh.Mesh()
@@ -206,6 +206,8 @@ def intersect(m1, m2):
             nv.append(m.add_vertex(v))
         else:
             nv.append(v)
+
+    print "output"
 
     # output faces for the outer mesh
     output_faces(m1_polygons, include_vertex, new_vertices, m, nv)
