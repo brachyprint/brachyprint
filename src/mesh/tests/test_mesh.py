@@ -59,9 +59,9 @@ class BasicMeshTests(TestCase):
         # check that vertices are all present in the mesh
         print "left: %s"%(m.get_vertex(v1),)
         print "right: %s"%(v1,)
-        self.assertEqual(m.get_vertex(v1), v1.name)
-        self.assertEqual(m.get_vertex(v2), v2.name)
-        self.assertEqual(m.get_vertex(v3), v3.name)
+        self.assertEqual(m.get_vertex(v1), v1)
+        self.assertEqual(m.get_vertex(v2), v2)
+        self.assertEqual(m.get_vertex(v3), v3)
         v4 = Vector(-17,3,-3)
         self.assertIsNone(m.get_vertex(v4))
 
