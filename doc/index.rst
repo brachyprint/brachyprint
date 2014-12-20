@@ -17,7 +17,7 @@ Contents:
    quickstart.rst
    testing.rst
    mesh.rst
-
+   git.rst
 
 
 Indices and tables
