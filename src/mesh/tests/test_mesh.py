@@ -203,6 +203,12 @@ class ContainmentTests(TestCase):
                         self.assertTrue(m.contains_point(Vector(x,y,z)), "Sphere should contain point (%f,%f,%f)"%(x,y,z))
                     else:
                         self.assertFalse(m.contains_point(Vector(x,y,z)), "Sphere should not contain point (%f,%f,%f)"%(x,y,z))
+                        
+                                
+    def test_cuboid_contains(self):
+        m = Mesh()
+        primitives.add_cuboid(m, corner = Vector(2, 0, 0), lx = 1, ly = 1, lz = 1)
+        self.assertFalse(m.contains_point(Vector(0.3, 0.3, 0)))
 
 
 class EquivalenceTests(TestCase):
