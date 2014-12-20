@@ -178,37 +178,31 @@ class MergeMeshTests(TestCase):
 
 
 
-class OctreeBasedTests(TestCase):
-
-    def test_ray_intersection(self):
-        m = Mesh()
-        primitives.add_cube(m,10)
-        m.ensure_fresh_octrees()
-        p = Vector(1,2,3)
-        self.assertEqual(len(list(m.face_octree.intersect_with_line(p,Vector(1,0,0),positive=True))),1)
-
-
-
 class ContainmentTests(TestCase):
     
     def test_cube_contains(self):
         m = Mesh()
         primitives.add_cube(m, 10)
-        coords = [-1,1,9,11]
         for (x,y,z) in [(1,2,3), (4,5,6), (7,8,9)]:
             self.assertTrue(m.contains_point(Vector(x,y,z)), "Cube should contain (%d,%d,%d)"%(x,y,z))
-        for (x,y,z) in [(-1,0,1), (9,10,11)]:
-            self.assertFalse(m.contains_point(Vector(x,y,z)), "Cube should not contain (%d,%d,%d)"%(x,y,z))
+        for a in [-1,11]:
+            for b in [1,9]:
+                for c in [1,9]:
+                    for (x,y,z) in [(a,b,c),(a,c,b),(b,a,c),(b,c,a),(c,a,b),(c,b,a)]:
+                        self.assertFalse(m.contains_point(Vector(x,y,z)), "Cube should not contain (%d,%d,%d)"%(x,y,z))
 
     def test_sphere_contains(self):
         m = Mesh()
         primitives.add_sphere(m, 10)
-        coords = [-12,-8,-4,4,8,12]
+        coords = [-12,-8,-6,-4,-2,2,4,6,8,12]
         for x in coords:
             for y in coords:
                 for z in coords:
-                    self.assertEqual(x*x+y*y+z*z < 1000, m.contains_point(Vector(x,y,z)))
-
+                    print "Testing (%f,%f,%f)"%(x,y,z)
+                    if x*x + y*y + z*z < 100:
+                        self.assertTrue(m.contains_point(Vector(x,y,z)), "Sphere should contain point (%f,%f,%f)"%(x,y,z))
+                    else:
+                        self.assertFalse(m.contains_point(Vector(x,y,z)), "Sphere should not contain point (%f,%f,%f)"%(x,y,z))
 
 
 class EquivalenceTests(TestCase):
