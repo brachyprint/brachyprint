@@ -150,7 +150,7 @@ class MergeMeshTests(TestCase):
         self.assertTrue(m1.faces[1].vertices[1] == v23)
         self.assertTrue(m1.faces[1].vertices[2] == v22)
 
-        # check verticies have been cloned
+        # check vertices have been cloned
         self.assertTrue(m1.faces[1].vertices[0] is not v21)
         self.assertTrue(m1.faces[1].vertices[1] is not v23)
         self.assertTrue(m1.faces[1].vertices[2] is not v22)
@@ -175,6 +175,45 @@ class MergeMeshTests(TestCase):
         self.assertTrue(m1.maxY==177)
         self.assertTrue(m1.minZ==-60)
         self.assertTrue(m1.maxZ==100)
+
+
+
+class OctreeBasedTests(TestCase):
+
+    def test_ray_intersection(self):
+        m = Mesh()
+        primitives.add_cube(m,10)
+        m.ensure_fresh_octrees()
+        p = Vector(1,2,3)
+        self.assertEqual(len(list(m.face_octree.intersect_with_line(p,Vector(1,0,0),positive=True))),1)
+
+
+
+class ContainmentTests(TestCase):
+    
+    def test_cube_contains(self):
+        m = Mesh()
+        primitives.add_cube(m, 10)
+        coords = [-1,1,9,11]
+        for (x,y,z) in [(1,2,3), (4,5,6), (7,8,9)]:
+            self.assertTrue(m.contains_point(Vector(x,y,z)), "Cube should contain (%d,%d,%d)"%(x,y,z))
+        for (x,y,z) in [(-1,0,1), (9,10,11)]:
+            self.assertFalse(m.contains_point(Vector(x,y,z)), "Cube should not contain (%d,%d,%d)"%(x,y,z))
+
+    def test_sphere_contains(self):
+        m = Mesh()
+        primitives.add_sphere(m, 10)
+        coords = [-12,-8,-4,4,8,12]
+        for x in coords:
+            for y in coords:
+                for z in coords:
+                    self.assertEqual(x*x+y*y+z*z < 1000, m.contains_point(Vector(x,y,z)))
+
+
+
+class EquivalenceTests(TestCase):
+    pass
+
 
 if __name__ == '__main__':
     main()
