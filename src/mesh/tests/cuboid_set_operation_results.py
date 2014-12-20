@@ -46,4 +46,17 @@ def difference_volume(((ax1, ax2), (ay1, ay2), (az1, az2)),
     return (ax2 - ax1) * (ay2 - ay1) * (az2 - az1) - \
            intersection_volume(((ax1, ax2), (ay1, ay2), (az1, az2)), 
                                ((bx1, bx2), (by1, by2), (bz1, bz2)))
+                               
+def union_volume(((ax1, ax2), (ay1, ay2), (az1, az2)), 
+                 ((bx1, bx2), (by1, by2), (bz1, bz2))):
+    if ax1 > ax2: ax1, ax2 = ax2, ax1    
+    if ay1 > ay2: ay1, ay2 = ay2, ay1
+    if az1 > az2: az1, az2 = az2, az1
+    if bx1 > bx2: bx1, bx2 = bx2, bx1    
+    if by1 > by2: by1, by2 = by2, by1
+    if bz1 > bz2: bz1, bz2 = bz2, bz1 
+    return (ax2 - ax1) * (ay2 - ay1) * (az2 - az1) + \
+           (bx2 - bx1) * (by2 - by1) * (bz2 - bz1)- \
+           intersection_volume(((ax1, ax2), (ay1, ay2), (az1, az2)), 
+                               ((bx1, bx2), (by1, by2), (bz1, bz2)))
     
