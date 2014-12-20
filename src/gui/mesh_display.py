@@ -1,5 +1,6 @@
+
 #    Brachyprint -- 3D printing brachytherapy moulds
-#    Copyright (C) 2013-14  James Cranch, Martin Green and Oliver Madge
+#    Copyright (C) 2013-14  Martin Green and Oliver Madge
 #
 #    This program is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -20,7 +21,7 @@
 Classes to work with collections of meshes and convert them into OpenGL
 display objects.
 '''
-from math import pi, acos
+
 from OpenGL.GL import *
 from OpenGL.GLUT import *
 
@@ -291,19 +292,9 @@ class MeshCollectionDisplay(MeshCollection):
             glPushName(i)
             glTranslatef(v[0], v[1], v[2])
             glColor3f(0.2,1,0.2)
-            glutSolidSphere(0.08, 10, 10)
+            glutSolidSphere(3, 10, 10)
             glPopName()
             glPopMatrix()
-        for e in mesh.edges.values():
-            d = - e.displacement()
-            length_d = d.magnitude()
-            if length_d > 0:
-                glPushMatrix()
-                glTranslatef(e.v1.x, e.v1.y, e.v1.z)
-                glColor3f(0.2,0.2,0.2)
-                glRotatef(180.0 / pi * acos(d.z / length_d), -d.y, d.x, 0)
-                glutSolidCylinder(0.05, -length_d, 10 ,10)
-                glPopMatrix()
         glEndList()
 
         return vertexList

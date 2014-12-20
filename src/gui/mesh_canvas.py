@@ -274,7 +274,7 @@ class MeshCanvas(glcanvas.GLCanvas):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         self.setupScene()
 
-        for obj in self.displayObjects.values():
+        for obj in self.displayObjects:
             glMatrixMode(obj["matrix_mode"])
             style = obj["style"]
             if style == "Red":
@@ -303,7 +303,7 @@ class MeshCanvas(glcanvas.GLCanvas):
             glUniform4f(self.Light_diffuse_loc, 0.5, 0.5, 0.5, 0.5)
             glUniform3f(self.Light_location_loc, 0, 1, 10)
 
-            for obj in self.displayObjects.values():
+            for obj in self.displayObjects:
 
                 visible = obj["visible"]
                 
