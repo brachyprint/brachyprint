@@ -48,6 +48,8 @@ from math import sqrt
 #  2. intersect two objects
 #    determine the overlapping octree nodes
 
+epsilon = .000000001
+
 
 def triangle_segment_intersect(p, vs, intersect_type=0):
     '''
@@ -64,8 +66,6 @@ def triangle_segment_intersect(p, vs, intersect_type=0):
          <Vector>: intersection point
          2: line is in the plane (i.e. parallel)
     '''
-
-    epsilon = .000001
 
     # check for the intersection of the ray and the plane
 
@@ -165,7 +165,6 @@ def triangle_triangle_intersect(f1, f2):
     d2[0] = b.dot(s2[0] - s1[0])
     d2[1] = b.dot(s2[1] - s1[0])
 
-    epsilon = .00001
     #if abs(s1[1].cross(s1[0].dot(s2[0]))) > epsilon:
     #    print "ijkhkj"
     #if abs(s1[1].cross(s1[0].dot(s2[1]))) > epsilon:
@@ -249,8 +248,6 @@ def triangle_triangle_intersect(f1, f2):
 
 def triangle_plane_intersect(f1, f2):
 
-    epsilon = .00001
-
     # intersect f1 with the plane of f2
     
     # check for the intersection of the ray and the plane
@@ -325,6 +322,27 @@ def triangle_plane_intersect(f1, f2):
     return 0
 
 
+def sphere_segment_intersect(c, r, l):
+    """
+    Compute the intersection point of a sphere and a line segment.
+
+    :param: c -- sphere origin (Vector)
+    :param: r -- radius of sphere
+    :param: l -- line is l[0] + k*l[1]
+    """
+
+    #o = l[0]
+    #l = l[1].normalise()
+    #c = c
+
+    div = (l[1].dot(l[0]-c))**2 - ((l[0]-c).dot(l[0]-c) - r**2)
+
+    if div < 0:
+        return None
+    else:
+        return True
+
+
 def clip_triangle_triangle(t1, t2):
     
     for i in range(len(t1)):
@@ -371,8 +389,6 @@ def polygon_clip(vertices, clip):
     set of anti-clockwise vertices.
     '''
     
-    epsilon = .000001
-
     outputVertices = vertices
     n = (clip[2]-clip[0]).cross(clip[1]-clip[0]) + clip[0]
 

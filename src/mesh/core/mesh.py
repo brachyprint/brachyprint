@@ -24,6 +24,8 @@ A mesh class for the ``mesh'' package.
 from __future__ import division
 from heapq import heappush, heappop
 import triangle
+import matplotlib
+matplotlib.use('GTK')
 import matplotlib.pyplot as plt
 import triangle.plot as plot
 from numpy import array
@@ -243,7 +245,7 @@ class Mesh(object):
             if edge.lface is None and edge.rface is None:
                 self.edges.pop((edge.v1,edge.v2))
         self.faces.remove(f)
-        
+
     def get_planar_path(self,p1,f1,p2,f2,p3):
         """Consider points p1 on face f1, p2 on face f2, and a third point
         p3. We consider paths from p1 to p2 obtained by intersecting
@@ -541,6 +543,11 @@ class Mesh(object):
             return None
 
 
+    def get_face_octree(self):
+        self.ensure_fresh_octrees()
+
+        return self.face_octree
+
     def ensure_fresh_octrees(self):
         if not(self.has_fresh_octrees):
             self.has_fresh_octrees = True
@@ -588,5 +595,4 @@ class Mesh(object):
         return [self.add_triangle_face(face.vertices[0], face.vertices[1], vertex),
                 self.add_triangle_face(face.vertices[1], face.vertices[2], vertex),
                 self.add_triangle_face(face.vertices[2], face.vertices[0], vertex)]
-
 

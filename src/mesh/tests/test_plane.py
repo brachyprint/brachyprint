@@ -47,17 +47,17 @@ class PolygonClipTests(TestCase):
 
         result = polygon_clip(vs, clip)
 
-        answer = [Vector(100.0, 116.666667, 0.0),
-                  Vector(125.0, 100.000000, 0.0),
-                  Vector(275.0, 100.000000, 0.0),
-                  Vector(300.0, 116.666667, 0.0),
-                  Vector(300.0, 300.000000, 0.0),
-                  Vector(250.0, 300.000000, 0.0),
-                  Vector(200.0, 250.000000, 0.0),
-                  Vector(175.0, 300.000000, 0.0),
-                  Vector(125.0, 300.000000, 0.0),
-                  Vector(100.0, 250.000000, 0.0),
-                  Vector(100.0, 200.000000, 0.0)]
+        answer = [Vector(100.0, 116.6666666667, 0.0),
+                  Vector(125.0, 100.0000000000, 0.0),
+                  Vector(275.0, 100.0000000000, 0.0),
+                  Vector(300.0, 116.6666666667, 0.0),
+                  Vector(300.0, 300.0000000000, 0.0),
+                  Vector(250.0, 300.0000000000, 0.0),
+                  Vector(200.0, 250.0000000000, 0.0),
+                  Vector(175.0, 300.0000000000, 0.0),
+                  Vector(125.0, 300.0000000000, 0.0),
+                  Vector(100.0, 250.0000000000, 0.0),
+                  Vector(100.0, 200.0000000000, 0.0)]
 
         self.assertEqual(result, answer)
 
@@ -88,6 +88,18 @@ class PolygonClipTests(TestCase):
         vs2 = [Vector(5, -10, 7), Vector(5, 10, 7)]
 
         self.assertEqual(compute_line_intersection(vs, vs2), Vector(5, 1, 7))
+
+
+    def test_sphere_line_intersection(self):
+
+        tests = [(0.01, None), (0.2, True)]
+
+        for test in tests:
+            r = test[0]
+            
+            result = sphere_segment_intersect(Vector(1, 1.1, 1), r, [Vector(0,0,0), Vector(1, 1, 1).normalise()])
+
+            self.assertEqual(result, test[1])
 
 
 if __name__ == '__main__':

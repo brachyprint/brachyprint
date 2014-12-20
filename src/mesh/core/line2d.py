@@ -46,16 +46,22 @@ class Line(object):
     def contains(self, v):
         """Returns True if the vector `v' lies on the line.
         """
+
+        if abs(v.y + 24.492980) < epsilon:
+            print v
+            print self.v1
+            print self.v2
+
         try:
             tx = (v.x - self.v1.x)/(self.v2.x - self.v1.x)
         except ZeroDivisionError:
-            if v.x != self.v1.x: # vertical line, but x coordinate doesn't match
+            if abs(v.x - self.v1.x) > epsilon: # vertical line, but x coordinate doesn't match
                 return False
             tx = None
         try:
             ty = (v.y - self.v1.y)/(self.v2.y - self.v1.y)
         except ZeroDivisionError:
-            if v.y != self.v1.y: # horizontal line, but y coordinate doesn't match
+            if abs(v.y - self.v1.y) > epsilon: # horizontal line, but y coordinate doesn't match
                 return False
             ty = None
 
@@ -67,6 +73,9 @@ class Line(object):
             return False
         else:
             t = tx
+
+        if t is None:
+            raise ValueError
 
         if t <= 0 or t >= 1: # outside the line segment
             return False

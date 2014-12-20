@@ -32,8 +32,16 @@ from settings import *
 
 from mesh import Vector
 
+from roi_display import RoiCollectionDisplay
+
+
 class Range3d(object):
+
     def __init__(self, minX, maxX, minY, maxY, minZ, maxZ):
+        self.setrange(minX, maxX, minY, maxY, minZ, maxZ)
+
+
+    def setrange(self, minX, maxX, minY, maxY, minZ, maxZ):
         self.min_X = minX
         self.max_X = maxX
         self.min_Y = minY
@@ -41,23 +49,30 @@ class Range3d(object):
         self.min_Z = minZ
         self.max_Z = maxZ
 
+
     def rangex(self):
         return self.max_X - self.min_X
+
 
     def rangey(self):
         return self.max_Y - self.min_Y
 
+
     def rangez(self):
         return self.max_Z - self.min_Z
+
 
     def meanx(self):
         return (self.min_X + self.max_X) / 2
 
+
     def meany(self):
         return (self.min_Y + self.max_Y) / 2
 
+
     def meanz(self):
         return (self.min_Z + self.max_Z) / 2
+
 
     def range_max(self):
         return (self.rangex() ** 2 + self.rangey() ** 2 + self.rangez() ** 2) ** 0.5
@@ -69,23 +84,40 @@ class MeshCollection(Range3d):
 
     It also computes their extent.
     '''
+
     def __init__(self, d={}):
         self.meshes = d
 
-        min_X = min([m.minX for m in self.meshes.values()])
-        max_X = max([m.maxX for m in self.meshes.values()])
-        min_Y = min([m.minY for m in self.meshes.values()])
-        max_Y = max([m.maxY for m in self.meshes.values()])
-        min_Z = min([m.minZ for m in self.meshes.values()])
-        max_Z = max([m.maxZ for m in self.meshes.values()])
+        if d:
+            min_X = min([m.minX for m in self.meshes.values()])
+            max_X = max([m.maxX for m in self.meshes.values()])
+            min_Y = min([m.minY for m in self.meshes.values()])
+            max_Y = max([m.maxY for m in self.meshes.values()])
+            min_Z = min([m.minZ for m in self.meshes.values()])
+            max_Z = max([m.maxZ for m in self.meshes.values()])
+        else:
+            min_X = min_Y = min_Z = float('inf')
+            max_X = max_Y = max_Z = float('-inf')
 
         super(MeshCollection, self).__init__(min_X, max_X, min_Y, max_Y, min_Z, max_Z)
 
+
+    def clear(self):
+        self.meshes = {}
+
+        min_X = min_Y = min_Z = float('inf')
+        max_X = max_Y = max_Z = float('-inf')
+
+        super(MeshCollection, self).setrange(min_X, max_X, min_Y, max_Y, min_Z, max_Z)
+
+
     def items(self):
         return self.meshes.items()
+
     
     def keys(self):
         return self.meshes.keys()
+
 
     def add_mesh(self, m, name):
         self.meshes[name] = m
@@ -96,6 +128,7 @@ class MeshCollection(Range3d):
         self.max_Z = max(self.max_Z, m.maxZ)
         self.min_Z = min(self.min_Z, m.minZ)
 
+
     def __getitem__(self, it):
         return self.meshes[it]
 
@@ -104,8 +137,19 @@ class MeshCollectionDisplay(MeshCollection):
     '''
     A class to extend mesh collections to add OpenGL display.
     '''
+
     def __init__(self, d={}):
+        self.clear()
+
         super(MeshCollectionDisplay, self).__init__(d)
+
+        for name, m in d.items():
+            self.add_mesh(m, name)
+
+
+    def clear(self):
+        super(MeshCollectionDisplay, self).clear()
+
         self.displayObjects = None
 
         # OpenGL display lists
@@ -119,54 +163,77 @@ class MeshCollectionDisplay(MeshCollection):
         self.style = {}
         self.visible = {}
         self.vertices = {}
-        for name in d.keys():
-            self.style[name] = "Red"
-            self.visible[name] = True
-            self.vertices[name] = False
+
+        # ROIs
+        self.rois = {}
+
 
     def add_mesh(self, m, name):
         super(MeshCollectionDisplay, self).add_mesh(m, name)
         self.style[name] = "Red"
         self.visible[name] = True
         self.vertices[name] = False
+        # clear display object cache
+        self.displayObjects = None
+
+        # rois
+        self.rois[name] = RoiCollectionDisplay()
+
 
     def get_display_objects(self):
         if self.displayObjects is None:
             self._build_display_objects()
-        return self.displayObjects
+
+        roiObjects = []
+        for name, mesh in self.meshes.items():
+            # collect ROI display objects
+            roi = self.rois[name]
+            roiObjects.extend(roi.get_display_objects())
+
+        return self.displayObjects + roiObjects
+
 
     def _build_display_objects(self):
         '''Build a list of display objects based on the meshes in the collection.
         '''
-        for key, mesh in self.meshes.items():
+
+        # collect vertex display objects
+        for name, mesh in self.meshes.items():
             #if not key in self.mainList:
             #    self.mainList[key] = self.faceListInit(mesh)
-            if not key in self.vertexList:
-                self.vertexList[key] = self.vertexListInit(mesh)
+            if not name in self.vertexList:
+                self.vertexList[name] = self.vertexListInit(mesh)
 
-        for key, mesh in self.meshes.items():
-            if not key in self.vbos:
-                self.vbos[key] = self.faceVboInit(mesh)
+            # collect face display objects
+            if not name in self.vbos:
+                self.vbos[name] = self.faceVboInit(mesh)
             #if not key in self.vertexList:
             #    self.vertexList[key] = self.vertexListInit(mesh)
 
-        objs = {}
+        objs = []
         for key, mesh in self.meshes.items():
-            objs[key] = {}
-            objs[key]["matrix_mode"] = GL_PROJECTION
-            objs[key]["style"] = self.style[key]
-            objs[key]["visible"] = self.visible[key]
+            obj = {}
+            obj["matrix_mode"] = GL_PROJECTION
+            obj["style"] = self.style[key]
+            obj["visible"] = self.visible[key]
+            obj["vbo"] = self.vbos[key][1]
+            obj["vbo_len"] = self.vbos[key][0]
+            obj["highlight_index"] = 21
             #objs[key]["list"] = self.mainList[key]
-            objs[key+"_vertices"] = {}
-            objs[key+"_vertices"]["matrix_mode"] = GL_PROJECTION
-            objs[key+"_vertices"]["style"] = "Red"
-            objs[key+"_vertices"]["visible"] = self.vertices[key]
-            objs[key+"_vertices"]["list"] = self.vertexList[key]
-            objs[key]["vbo"] = self.vbos[key][1]
-            objs[key]["vbo_len"] = self.vbos[key][0]
-            objs[key]["highlight_index"] = 21
+            objs.append(obj)
+
+            obj = {}
+            obj["matrix_mode"] = GL_PROJECTION
+            obj["style"] = "Red"
+            obj["visible"] = self.vertices[key]
+            obj["list"] = self.vertexList[key]
+            objs.append(obj)
+
+
+        #for roi in rois:
 
         self.displayObjects = objs
+
 
     def faceVboInit(self, mesh):
         # XXX: this is still slightly legacy, and should move to indexed arrays
@@ -194,6 +261,7 @@ class MeshCollectionDisplay(MeshCollection):
 
         return (num_faces*3, vbo_face)
 
+
     def faceListInit(self, mesh):
         faceList = glGenLists(1)
         glNewList(faceList, GL_COMPILE)
@@ -212,6 +280,7 @@ class MeshCollectionDisplay(MeshCollection):
         glEndList()
         self.mainNumNames = len(blocks)
         return faceList
+
 
     def vertexListInit(self, mesh):
         vertexList = glGenLists(1)
@@ -239,15 +308,24 @@ class MeshCollectionDisplay(MeshCollection):
 
         return vertexList
 
+
     def setStyle(self, name, style):
         self.style[name] = style
         self.displayObjects = None
+
 
     def setVisible(self, name, visible):
         self.visible[name] = visible
         self.displayObjects = None
 
+        self.rois[name].setVisible(visible)
+
+        #for roi in self.rois[name]:
+        #    roi.setVisible(visible)
+
+
     def setVerticesVisible(self, name, vertices):
         self.vertices[name] = vertices
         self.displayObjects = None
+
 

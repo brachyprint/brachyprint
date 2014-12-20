@@ -45,7 +45,7 @@ class MainWindow(wx.Frame):
 
         # create the mesh view widget and controller
         self.meshCanvas = MeshCanvas(self)
-        self.meshController = MeshController(self.meshCanvas, meshes)
+        self.meshController = MeshController(self, self.meshCanvas, meshes)
         self.meshCanvas.setController(self.meshController)
 
         # add the GUI tools to the controller

@@ -112,7 +112,7 @@ class DebugTool(GuiTool):
         for mesh in self.controller.meshes.keys():
             if not self.controller.meshes.visible[mesh]:
                 continue
-            face_hit = self.controller.hit_location(mesh)
+            face_hit = self.controller.hit_mesh(mesh)
             if face_hit:
                 x,y,z,name = face_hit
                 self.controller.view.highlight = True

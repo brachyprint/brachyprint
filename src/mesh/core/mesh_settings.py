@@ -18,5 +18,5 @@
 
 # settings for the mesh
 
-epsilon = 0.000000000001
+epsilon = 0.0000000001
 

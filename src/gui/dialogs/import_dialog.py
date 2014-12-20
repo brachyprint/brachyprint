@@ -18,6 +18,7 @@
 
 
 from __future__ import division
+
 from settings import *
 
 import wx
@@ -26,11 +27,36 @@ import os
 import dicom
 
 import numpy
+from math import floor
 
 import PIL.Image
+import PIL.ImageChops
 
+
+class AutoSizeListCtrl(wx.ListCtrl):
+    """A single column ListCtrl that automatically resizes the column to fill its width.
+    """
+
+    def __init__(self, parent, id, style=wx.LC_SINGLE_SEL|wx.LC_REPORT|wx.LC_NO_HEADER):
+
+        super(AutoSizeListCtrl, self).__init__(parent, id, style=style)
+
+        self.Bind(wx.EVT_SIZE, self.OnSize)
+        self.Bind(wx.EVT_LIST_INSERT_ITEM, self.OnSize)
+
+
+    def OnSize(self, event):
+        size = self.GetClientSize()
+        listWidth = size.x-2
+        if self.GetItemCount() > self.GetCountPerPage():
+            scrollWidth = wx.SystemSettings_GetMetric(wx.SYS_VSCROLL_X)
+            listWidth = listWidth - scrollWidth
+        self.SetColumnWidth(0, listWidth)
+        event.Skip()
+        
 
 class BorderFrameCtrl(wx.Panel):
+
     def __init__(self, parent, id, title, style=wx.NO_BORDER):
         wx.Panel.__init__(self, parent, id=-1,)
 
@@ -41,8 +67,10 @@ class BorderFrameCtrl(wx.Panel):
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_SIZE,self.OnSize)
 
+
     def SetChild(self, ctrl):
         self.ctrl = ctrl
+
 
     def OnSize(self, event):
         if self.ctrl:
@@ -51,11 +79,9 @@ class BorderFrameCtrl(wx.Panel):
             h = title_size.y + 4 + 4 + 2
             self.ctrl.SetPosition((1,1+h))
             self.ctrl.SetSize((size.x-2,size.y-2-h))
-            try:
-                self.ctrl.SetColumnWidth(0, size.x-2)
-            except AttributeError: # child does not have the SetColumnWidth method
-                pass
+
         event.Skip()
+
 
     def OnPaint(self, evt):
         dc = wx.BufferedPaintDC(self)
@@ -76,6 +102,7 @@ class BorderFrameCtrl(wx.Panel):
 
 
 class DicomPreviewPanel(wx.Panel):
+
     def __init__(self,parent, id, style=wx.NO_BORDER):
         wx.Panel.__init__(self, parent, id=-1,)
         self.filename = None
@@ -89,22 +116,26 @@ class DicomPreviewPanel(wx.Panel):
         self.window = 400
         self.level = 1000
 
+
     def setFilename(self, filename):
         self.filename = filename
         self.loadBitmap()
         self.Refresh()
 
+
     def loadBitmap(self):
         if self.filename is not None:
+            # read the DICOM file
             d = dicom.read_file(self.filename)
 
+            # try and extract the pixel data
             try:
                 data = d.pixel_array
             except TypeError: # no pixel data
                 # XXX: display a checker board pattern or something?
                 self.bitmap = None
                 return
-            except NotImplementedError: # DICOM doesn't support the pixel data
+            except NotImplementedError: # DICOM doesn't support the pixel data format
                 self.bitmap = None
                 return
 
@@ -121,8 +152,18 @@ class DicomPreviewPanel(wx.Panel):
             # get the display size
             (w, h) = self.GetSize()
 
+            # calculate the resized size, maintaining the aspect ratio
+            (w_i, h_i) = windowed_data.shape
+            ratio = min(w/w_i, h/h_i)
+            w_r, h_r = int(floor(w_i*ratio+0.5)), int(floor(h_i*ratio+0.5))
+
             # resize the scan data
-            img = PIL.Image.fromarray(numpy.uint8(windowed_data)).resize((w, h), PIL.Image.ANTIALIAS)
+            img = PIL.Image.fromarray(numpy.uint8(windowed_data)).resize((w_r, h_r), PIL.Image.ANTIALIAS).crop( (0,0,w,h) )
+
+            # recentre
+            offset_x = int(max((w - w_r)/2, 0 ))
+            offset_y = int(max((h - h_r)/2, 0 ))
+            img = PIL.ImageChops.offset(img, offset_x, offset_y)
 
             # create a blank image and blat the scan data onto it
             image = wx.EmptyImage(w, h)
@@ -130,6 +171,7 @@ class DicomPreviewPanel(wx.Panel):
             self.bitmap = image.ConvertToBitmap()
         else:
             self.bitmap = None
+
 
     def OnPaint(self, evt):
         dc = wx.BufferedPaintDC(self)
@@ -139,12 +181,14 @@ class DicomPreviewPanel(wx.Panel):
         if self.bitmap:
             dc.DrawBitmap(self.bitmap, 0, 0)
 
+
 class ImportDialog(wx.Dialog):
     """A wx dialog to import CT scan data.
     """
-    def __init__(self, *args, **kw):
 
-        super(ImportDialog, self).__init__(None, -1, "Import CT data", wx.DefaultPosition, wx.Size(640, 500))
+    def __init__(self, parent, *args, **kw):
+
+        super(ImportDialog, self).__init__(parent, -1, "Import CT data", wx.DefaultPosition, wx.Size(680, 500))
 
         default_dir = os.path.normpath(os.path.join(os.getcwd(), DEFAULT_INPUT_DIR))
         dirs_panel = BorderFrameCtrl(self, -1, "Directory")
@@ -153,7 +197,7 @@ class ImportDialog(wx.Dialog):
 
         series_panel = BorderFrameCtrl(self, -1, "Series")
 
-        self.series_list = wx.ListCtrl(series_panel, -1, style=wx.LC_SINGLE_SEL|wx.LC_REPORT|wx.LC_NO_HEADER)
+        self.series_list = AutoSizeListCtrl(series_panel, -1, style=wx.LC_SINGLE_SEL|wx.LC_REPORT|wx.LC_NO_HEADER)
 
         series_panel.SetChild(self.series_list)
 
@@ -170,7 +214,17 @@ class ImportDialog(wx.Dialog):
 
         box = wx.BoxSizer(wx.VERTICAL)
         box.Add(series_panel, 1, wx.EXPAND)
-        box.Add(preview_panel, 2, wx.EXPAND | wx.TOP, border=10)
+
+        box_preview = wx.BoxSizer(wx.HORIZONTAL)
+
+        info_panel = BorderFrameCtrl(self, -1, "Info")
+        self.info = DicomPreviewPanel(info_panel, -1)
+        info_panel.SetChild(self.info)
+
+        box_preview.Add(preview_panel, 2, wx.EXPAND | wx.RIGHT, border=10)
+        box_preview.Add(info_panel, 1, wx.EXPAND)
+
+        box.Add(box_preview, 2, wx.EXPAND | wx.TOP, border=10)
 
         self.box.Add(box, 2, wx.EXPAND)
 
@@ -193,6 +247,8 @@ class ImportDialog(wx.Dialog):
         self.btn_import.SetDefault()
         self.btn_import.Disable()
 
+        self.btn_import.Bind(wx.EVT_BUTTON, self.OnImport)
+
         hbox_buttons.Add(self.btn_import, 0, wx.LEFT | wx.BOTTOM, 5)
         self.vbox.Add(hbox_buttons, 0, wx.ALIGN_RIGHT | wx.RIGHT | wx.BOTTOM, 10)
 
@@ -202,7 +258,14 @@ class ImportDialog(wx.Dialog):
 
 
     def OnCancel(self, evt):
+        self.EndModal(wx.ID_CANCEL)
         self.Destroy()
+
+
+    def OnImport(self, evt):
+        self.EndModal(wx.ID_OPEN)
+        self.Destroy()
+
 
     def DirChanged(self, evt):
         '''Selected directory has changed, so update the series list.
