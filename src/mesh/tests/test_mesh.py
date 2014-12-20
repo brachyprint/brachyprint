@@ -186,8 +186,8 @@ class ContainmentTests(TestCase):
         for (x,y,z) in [(1,2,3), (4,5,6), (7,8,9)]:
             self.assertTrue(m.contains_point(Vector(x,y,z)), "Cube should contain (%d,%d,%d)"%(x,y,z))
         for a in [-1,11]:
-            for b in [1,9]:
-                for c in [1,9]:
+            for b in [-1,0,1,9,10,11]:
+                for c in [-1,0,1,9,10,11]:
                     for (x,y,z) in [(a,b,c),(a,c,b),(b,a,c),(b,c,a),(c,a,b),(c,b,a)]:
                         self.assertFalse(m.contains_point(Vector(x,y,z)), "Cube should not contain (%d,%d,%d)"%(x,y,z))
 
@@ -198,17 +198,10 @@ class ContainmentTests(TestCase):
         for x in coords:
             for y in coords:
                 for z in coords:
-                    print "Testing (%f,%f,%f)"%(x,y,z)
                     if x*x + y*y + z*z < 100:
                         self.assertTrue(m.contains_point(Vector(x,y,z)), "Sphere should contain point (%f,%f,%f)"%(x,y,z))
                     else:
                         self.assertFalse(m.contains_point(Vector(x,y,z)), "Sphere should not contain point (%f,%f,%f)"%(x,y,z))
-                        
-                                
-    def test_cuboid_contains(self):
-        m = Mesh()
-        primitives.add_cuboid(m, corner = Vector(2, 0, 0), lx = 1, ly = 1, lz = 1)
-        self.assertFalse(m.contains_point(Vector(0.3, 0.3, 0)))
 
 
 class EquivalenceTests(TestCase):

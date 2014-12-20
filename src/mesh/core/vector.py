@@ -24,6 +24,7 @@ A 3D vector class for the ``mesh'' package.
 from __future__ import division
 from math import sqrt
 from numbers import Number
+from random import random
 
 from vector2d import Vector2d
 
@@ -212,3 +213,15 @@ class Vector(object):
 basisVectors = [Vector(0,0,1), Vector(0,1,0), Vector(1,0,0)]
 nullVector = Vector(0, 0, 0)
 
+
+def random_unit_vector():
+    """A random vector of unit length, uniformly distributed around the
+    sphere.
+    """
+    while True:
+        x = random() - 0.5
+        y = random() - 0.5
+        z = random() - 0.5
+        v = Vector(x, y, z)
+        if v.magnitude() > 0.01:
+            return v.normalise()
