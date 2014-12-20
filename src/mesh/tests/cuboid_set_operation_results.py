@@ -36,6 +36,8 @@ def intersection_volume(((ax1, ax2), (ay1, ay2), (az1, az2)),
     else:
         return dx * dy * dz
 
+
+
 def difference_volume(((ax1, ax2), (ay1, ay2), (az1, az2)), 
                       ((bx1, bx2), (by1, by2), (bz1, bz2))):
     if ax1 > ax2: ax1, ax2 = ax2, ax1    
