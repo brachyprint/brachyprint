@@ -201,14 +201,15 @@ class MeshController(object):
 
         # use octrees to get a list of faces with possible intersections
         for f in self.meshes[meshname].get_face_octree().intersect_with_line((x,y,z),(x2-x,y2-y,z2-z)):
-            f = self.meshes[meshname].faces[f[2]]
+            # extract the Face object
+            face = f[2]
 
             # attempt to intersect the ray and the face
             ret = mesh.triangle_segment_intersect(p, face.vertices, 2)
 
             # add intersections to the list
             if isinstance(ret, mesh.Vector):
-                intersections.append(((ret-Vector(x,y,z)).magnitude(), f, ret))
+                intersections.append(((ret-Vector(x,y,z)).magnitude(), face, ret))
 
         if intersections:
             # sort the intersections in order of distance
