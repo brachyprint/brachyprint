@@ -1,11 +1,15 @@
-To get the latest verison:
+Using git
+=========
 
-git pull
-git submodule update src/octrees
+To get the latest changes::
 
-To send your changes to the server
+    git pull
+    git submodule update src/octrees # must be run from the toplevel directory
 
-git add filenames
-git commit filenames
-git pull
-git push 
+To send your changes to the server::
+
+    git add <filenames>
+    git commit <filenames>
+    git pull
+    git push
+
