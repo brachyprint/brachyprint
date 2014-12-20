@@ -24,10 +24,12 @@ A mesh class for the ``mesh'' package.
 from __future__ import division
 from heapq import heappush, heappop
 import triangle
+import matplotlib
+matplotlib.use('GTK')
 import matplotlib.pyplot as plt
 import triangle.plot as plot
 from numpy import array
-from vector import Vector, nullVector
+from vector import Vector, nullVector, random_unit_vector
 from vector2d import Vector2d
 from vertex import Vertex
 from face import Face
@@ -244,7 +246,7 @@ class Mesh(object):
             if edge.lface is None and edge.rface is None:
                 self.edges.pop((edge.v1,edge.v2))
         self.faces.remove(f)
-        
+
     def get_planar_path(self,p1,f1,p2,f2,p3):
         """Consider points p1 on face f1, p2 on face f2, and a third point
         p3. We consider paths from p1 to p2 obtained by intersecting
@@ -542,6 +544,11 @@ class Mesh(object):
             return None
 
 
+    def get_face_octree(self):
+        self.ensure_fresh_octrees()
+
+        return self.face_octree
+
     def ensure_fresh_octrees(self):
         if not(self.has_fresh_octrees):
             self.has_fresh_octrees = True
@@ -566,33 +573,48 @@ class Mesh(object):
     def contains_point(self, p):
         """Does this mesh contain the point p?
 
-        We count the triangles that intersect the line segment
-        p+lambda*(1,0,0) to find out.
+        We choose a random direction n, and take the triangles that
+        intersect the line segment p+lambda*n to find out. If we skim
+        through a face by doing so, we restart.
         """
-        containment = False
         self.ensure_fresh_octrees()
-        for (_,((xmin,_),(_,_),(_,_)),f) in self.face_octree.intersect_with_line(p,Vector(1,0,0),positive=True):
-            (v1,v2,v3) = f.vertices
-            
-            # projections to 2D to find if line segment really does
-            # pass through face
-            q = Vector2d(p.y,p.z)
-            (u1,u2,u3) = (Vector2d(v1.y,v1.z), Vector2d(v2.y,v2.z), Vector2d(v3.y,v3.z))
 
-            (r1,r2,r3) = ((u2-q).cross(u3-q), (u3-q).cross(u1-q), (u1-q).cross(u2-q))
+        while True:
+            n = random_unit_vector()
+            a,b = n.get_orthogonal_vectors()
             
-            # Find if the face is above the line segment. If all
-            # vertices are above, it's easy, otherwise we do a volume
-            # check.
-            if (r1>0)==(r2>0)==(r3>0):
-                if xmin > p.x:
+            containment=False
+        
+            for (_,_,f) in self.face_octree.intersect_with_line(p,n,positive=True):
+                (v1,v2,v3) = f.vertices
+
+                # if we're skimming through the face, then try another
+                # direction
+                if abs((v1-p-n).cross(v2-p-n).dot(v3-p-n)) < 0.000001:
+                    break
+
+                # projections to 2D to find if line segment really does
+                # pass through face
+                q = p.project2dvector(a, b)
+                u1 = v1.project2dvector(a, b)
+                u2 = v2.project2dvector(a, b)
+                u3 = v3.project2dvector(a, b)
+
+                (r1,r2,r3) = ((u2-q).cross(u3-q), (u3-q).cross(u1-q), (u1-q).cross(u2-q))
+            
+                # Find if the face is above the line segment, by a
+                # volume check involving a point certain to be behind it.
+                if not (r1>0)==(r2>0)==(r3>0):
+                    continue
+
+                m = (v1-p).magnitude() + (v2-p).magnitude() + (v3-p).magnitude() + 10
+                p1 = p - n*m                
+                if ((v1-p).cross(v2-p).dot(v3-p) > 0) == ((v1-p1).cross(v2-p1).dot(v3-p1) > 0):
                     containment = not containment
-                else:
-                    p1 = Vector(xmin, p.y, p.z)
-                    if ((v1-p).cross(v2-p).dot(v3-p) > 0) == ((v1-p1).cross(v2-p1).dot(v3-p1) > 0):
-                        containment = not containment
-        return containment
 
+            else:
+                return containment
+        
     def equivalent(self, other, epsilon=0.0001):
         """Does this mesh describe the same region of space as the other?
 
@@ -605,17 +627,14 @@ class Mesh(object):
         if not (self.closed() and other.closed()):
             raise ValueError("Can only check equivalence on closed meshes.")
 
-        ### replace "UnexpectedError" and remove this
-        raise UnexpectedError("I don't know what exception to raise below.")
-
         for (a,b) in [(self,other),(other,self)]:
             for v in a.vertices:
                 p = v + v.normal()*epsilon
                 q = v - v.normal()*epsilon
                 if a.contains_point(p):
-                    raise UnexpectedError("Mesh shouldn't contain point just outside itself")
+                    raise ValueError("Mesh shouldn't contain point just outside itself")
                 if not a.contains_point(q):
-                    raise UnexpectedError("Mesh should contain point just inside itself")
+                    raise ValueError("Mesh should contain point just inside itself")
                 if b.contains_point(p):
                     return False
                 if not b.contains_point(q):
@@ -659,5 +678,4 @@ class Mesh(object):
         for v in self.vertices:
             if v not in points_not_to_remove:
                 self.vertices.remove(v)
-
 

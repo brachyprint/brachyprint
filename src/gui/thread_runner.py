@@ -15,6 +15,24 @@
 #    with this program; if not, write to the Free Software Foundation, Inc.,
 #    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+#    Brachyprint -- 3D printing brachytherapy moulds
+#    Copyright (C) 2013-14  Martin Green and Oliver Madge
+#
+#    This program is free software; you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation; either version 2 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License along
+#    with this program; if not, write to the Free Software Foundation, Inc.,
+#    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+
 import wx
 import wx.lib.newevent
 
@@ -24,7 +42,7 @@ import time
 
 
 class ThreadRunner(wx.EvtHandler):
-    '''
+    """
     A thread runner.
 
     Example usage:
@@ -46,7 +64,7 @@ class ThreadRunner(wx.EvtHandler):
 
             self.thread_button.Bind(wx.EVT_BUTTON, lambda x: self.thread.start())
 
-    '''
+    """
 
     def OnThreadedResultEvent(self, event):
         '''Receive events from threads.
@@ -97,20 +115,21 @@ class ThreadRunner(wx.EvtHandler):
 
 
 class ThreadProgressDialog(ThreadRunner):
-    '''
+    """
     Example usage:
 
     wx.Window()...
         self.thread = ThreadProgressDialog(self, work)
         self.thread.start()
-    '''
+    """
 
-    def __init__(self, parent, generator):
+    def __init__(self, parent, generator, title="Please wait...", done_callback=None):
         super(ThreadProgressDialog, self).__init__(generator, self.destroy_dialog, self.display_progress)
 
+        self.title = title
         self.dlg = None
         self.parent = parent
-
+        self.done_callback = done_callback
 
     def display_progress(self, ret):
         if self.dlg:
@@ -121,9 +140,10 @@ class ThreadProgressDialog(ThreadRunner):
     def destroy_dialog(self):
         self.dlg.Destroy()
         self.dlg = None
+        self.done_callback()
 
     def start(self, *args, **kwargs):
-        self.dlg = wx.ProgressDialog("Please wait...",
+        self.dlg = wx.ProgressDialog(self.title,
                                "",
                                maximum = 10,
                                parent=self.parent,

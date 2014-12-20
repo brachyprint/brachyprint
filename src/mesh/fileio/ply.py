@@ -34,75 +34,115 @@ reElement = re.compile("^element\s+(\S+)\s+(\d+)$")
 reProperty = re.compile("^property\s+(.+)\s+(\S+)$")
 reEndHeader = re.compile("^end_header$")
 
-def read_ply(filename):
+class PlyReader(object):
     '''
-    Create a mesh from a ply file.
+    PlyReader
+
+    Class to read PLY files.
+
+    Example:
+        import mesh
+        m = mesh.Mesh()
+        reader = mesh.fileio.PlyReader()
+        for i in reader.read_part(m, filename):
+            pass
     '''
 
-    with open(filename) as fp:
-        ply = _read_ply(fp)
+    def __init__(self):
+        pass
 
-    mesh = Mesh()
-    for v in ply["vertex"]: 
-        mesh.add_vertex(v['x'], v['y'], v['z'])
-    for face in ply["face"]:
-        mesh.add_face(*[mesh.vertices[i] for i in face['vertex']])
-    #mesh.allocate_volumes()
-    return mesh
-    
+    def read(self, m, filename):
+        for i in self.read_part(m, filename):
+            pass
 
-def _read_ply(inputfile):
-    first_line = inputfile.readline()
-    assert reStartHeader.match(first_line), "File does not begin with the string 'ply'"
-    secound_line = inputfile.readline()
-    formatMatch = reFormat.match(secound_line)
-    assert formatMatch, "2nd line does not specify format."
-    file_format = (formatMatch.group(1), formatMatch.group(2))
-    assert file_format in [('binary_little_endian', '1.0')], "Format not supported"
-    header = []
-    line = inputfile.readline()
-    while True:
-        reElementMatch = reElement.match(line)
-        if reElementMatch: 
-            elementName, elementCount = reElementMatch.group(1), int(reElementMatch.group(2))
-            properties = []
-            while True:
-                line = inputfile.readline()
-                rePropertyMatch = reProperty.match(line)
-                if rePropertyMatch: 
-                    type_, name = rePropertyMatch.group(1), rePropertyMatch.group(2)
-                    properties.append((type_, name))
-                elif reComment.match(line): pass
-                else: break
-            header.append((elementName, elementCount, properties))
-            continue
-        if reEndHeader.match(line): break
-        elif reComment.match(line): pass
-        else: assert False, "Header format not recognised: %s" % line
+    def read_part(self, m, filename):
+        """Read a ply file in parts.
+        """
+
+        with open(filename) as fp:
+            ply = self._read_ply(fp)
+
+        l = len(ply["vertex"])
+
+        def chunk(l, n):
+            """Yield n successive chunks from l.
+            """
+            newn = int(len(l) / n)
+            for i in xrange(0, n-1):
+                yield l[i*newn:i*newn+newn]
+            yield l[n*newn-newn:]
+
+        # Estimate the time split between vertex and face creation, with
+        # 5 time steps in each part.
+
+        v_ranges = chunk(ply["vertex"], 5)
+
+        i = 0
+        for vs in v_ranges:
+            for v in vs:
+                m.add_vertex(v['x'], v['y'], v['z'])
+            yield i
+            i += 1
+
+        f_ranges = chunk(ply["face"], 5)
+        for fs in f_ranges:
+            for face in fs:
+                m.add_face(*[m.vertices[index] for index in face['vertex']])
+            yield i
+            i += 1
+
+    def _read_ply(self, inputfile):
+        first_line = inputfile.readline()
+        assert reStartHeader.match(first_line), "File does not begin with the string 'ply'"
+        secound_line = inputfile.readline()
+        formatMatch = reFormat.match(secound_line)
+        assert formatMatch, "2nd line does not specify format."
+        file_format = (formatMatch.group(1), formatMatch.group(2))
+        assert file_format in [('binary_little_endian', '1.0')], "Format not supported"
+        header = []
         line = inputfile.readline()
-    result = {}
-    for elementName, elementCount, properties in header:
-        items = []
-        for n in range(elementCount):
-            element = {}
-            for propertyType, propertyName in properties:
-                # XXX: these seem to be synonyms?
-                propertyName = re.sub("_index$", "", propertyName)
-                propertyName = re.sub("_indices$", "", propertyName)
-                if file_format == ('binary_little_endian', '1.0'):
-                    if propertyType == "float" or propertyType == "float32":
-                        element[propertyName] = struct.unpack("<f", inputfile.read(4))[0]
-                    elif propertyType == "list uchar int":
-                        l = []
-                        for m in range(struct.unpack("<B", inputfile.read(1))[0]):
-                            l.append(struct.unpack("<i", inputfile.read(4))[0])
-                        element[propertyName] = l
-                    else:
-                        assert False, "Property Type unknown: %s" % propertyType
-            items.append(element)
-        result[elementName] = items
-    assert inputfile.read() == "", "Finished reading data however the file contains more information!"
-    return result
+        while True:
+            reElementMatch = reElement.match(line)
+            if reElementMatch:
+                elementName, elementCount = reElementMatch.group(1), int(reElementMatch.group(2))
+                properties = []
+                while True:
+                    line = inputfile.readline()
+                    rePropertyMatch = reProperty.match(line)
+                    if rePropertyMatch: 
+                        type_, name = rePropertyMatch.group(1), rePropertyMatch.group(2)
+                        properties.append((type_, name))
+                    elif reComment.match(line): pass
+                    else: break
+                header.append((elementName, elementCount, properties))
+                continue
+            if reEndHeader.match(line): break
+            elif reComment.match(line): pass
+            else: assert False, "Header format not recognised: %s" % line
+            line = inputfile.readline()
+        result = {}
+        for elementName, elementCount, properties in header:
+            items = []
+            for n in range(elementCount):
+                element = {}
+                for propertyType, propertyName in properties:
+                    # XXX: these seem to be synonyms?
+                    propertyName = re.sub("_index$", "", propertyName)
+                    propertyName = re.sub("_indices$", "", propertyName)
+                    if file_format == ('binary_little_endian', '1.0'):
+                        if propertyType == "float" or propertyType == "float32":
+                            element[propertyName] = struct.unpack("<f", inputfile.read(4))[0]
+                        elif propertyType == "list uchar int":
+                            l = []
+                            for m in range(struct.unpack("<B", inputfile.read(1))[0]):
+                                l.append(struct.unpack("<i", inputfile.read(4))[0])
+                            element[propertyName] = l
+                        else:
+                            assert False, "Property Type unknown: %s" % propertyType
+                items.append(element)
+            result[elementName] = items
+        assert inputfile.read() == "", "Finished reading data however the file contains more information!"
+        return result
 
 
 def write_ply(m, filename):
@@ -133,4 +173,15 @@ end_header
     with open(filename, "w") as fp:
         fp.write(r)
 
+
+def read_ply(m, filename):
+    '''
+    Read a PLY file and add it to a Mesh object.
+
+    Example:
+        import mesh
+        m = mesh.Mesh()
+        mesh.fileio.read_ply(m, "cylinder.ply")
+    '''
+    return PlyReader().read(m, filename)
 

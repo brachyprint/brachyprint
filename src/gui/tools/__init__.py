@@ -21,10 +21,11 @@
 A library of GUI tools (e.g. rotation, zoom, ROI manipulation).
 '''
 
-__all__ = ['rotate_tool', 'zoom_tool', 'roi_tool', 'debug_tool']
+__all__ = ['rotate_tool', 'zoom_tool', 'roi_tool', 'select_tool', 'debug_tool']
 
 from rotate_tool import RotateTool
 from zoom_tool import ZoomTool
 from roi_tool import RoiTool
+from select_tool import SelectTool
 from debug_tool import DebugTool
 

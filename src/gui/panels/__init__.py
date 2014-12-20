@@ -21,8 +21,9 @@
 A library of GUI panels (e.g. tool selection, mesh options).
 '''
 
-__all__ = ['mode_panel', 'mesh_panel']
+__all__ = ['mode_panel', 'mesh_panel', 'wizard_panel']
 
 from mode_panel import ModePanel
 from mesh_panel import MeshPanel
+from wizard_panel import WizardPanel
 

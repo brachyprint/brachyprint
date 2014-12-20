@@ -27,6 +27,7 @@ from OpenGL.GLUT import *
 
 import mesh
 from mesh import Vector
+from mesh import plane
 
 from gui import RoiGUI
 from settings import *
@@ -34,34 +35,13 @@ from settings import *
 from mesh_display import MeshCollectionDisplay
 
 
-class opengl_list(object):
-    def __init__(self, list_):
-        self.list = list_
-    def __call__(self):
-        glCallList(self.list)
-
-
-class renderOneBlock(object):
-    """A volume is split into multiple blocks, each containing BLOCKSIZE triangles"""
-    def __init__(self, block_name, mesh):
-        self.block_name = block_name
-        self.mesh = mesh
-    def __call__(self):
-        for f in self.mesh.faces[self.block_name * BLOCKSIZE: (self.block_name+1) * BLOCKSIZE]:
-            glPushName(f.name)
-            glBegin(GL_TRIANGLES)
-            assert len(f.vertices) == 3
-            for v in f.vertices:
-                n = v.normal()
-                glNormal3f(n.x, n.y, n.z)
-                glVertex(v.x, v.y, v.z)
-            glEnd()
-            glPopName()
-
-
 class ViewPort(object):
+    """Representation of a viewport onto a display.
+    """
+
     def __init__(self):
         self.scale = 0.5
+
         self.theta = 180
         self.phi = 0
 
@@ -74,15 +54,18 @@ class ViewPort(object):
 
         self.range_max = 0
 
+
     def setSize(self, size):
         self.width = size.width
         self.height = size.height
+
 
     def xscale(self):
         if self.width > self.height:
             return self.scale * self.width / self.height
         else:
             return self.scale
+
 
     def yscale(self):
         if self.width > self.height:
@@ -93,7 +76,10 @@ class ViewPort(object):
 
 class MeshController(object):
 
-    def __init__(self, view, meshes):
+    def __init__(self, parent, view, meshes):
+
+        # the parent application
+        self.parent = parent
 
         # the associated MeshCanvas widget (`view')
         self.view = view
@@ -106,19 +92,53 @@ class MeshController(object):
 
         self.band = []
 
+        # grid off
+        self.showgrid = False
+
         # initial mouse position
         self.lastx = self.x = 0
         self.lasty = self.y = 0
 
+        self.resetViewPort()
+        #self.viewport = ViewPort()
+        #self.view.viewport = self.viewport
+        #self.viewport.range_max = self.meshes.range_max()
+
+
+    def addMesh(self, m, name, clear=False, reset=False):
+        if clear:
+            self.meshes.clear()
+
+        self.meshes.add_mesh(m, name)
+
+        if reset:
+            self.resetViewPort()
+
+
+    def resetViewPort(self):
         self.viewport = ViewPort()
+        size = self.view.GetClientSize()
+        self.viewport.setSize(size)
         self.view.viewport = self.viewport
         self.viewport.range_max = self.meshes.range_max()
+        self.viewport.tx, self.viewport.ty, self.viewport.tz = -self.meshes.meanx(), -self.meshes.meany(), -self.meshes.meanz()
 
-    def addMesh(self, mesh, name):
-        self.meshes.add_mesh(mesh)
-        self.viewport.range_max = self.meshes.range_max()
+
+    def updateView(self):
+        self.view.updateViewPort()
+
+
+    def Refresh(self):
+        self.parent.UpdateMode()
+        self.draw()
+        #self.view.OnDraw()
+        self.updateView()
+        self.view.Refresh(False)
+
 
     def InitGL(self):
+        """Initialise the OpenGL display.
+        """
 
         for tool in self.tools.values():
             tool.initDisplay()
@@ -127,70 +147,125 @@ class MeshController(object):
 
         self.Refresh()
 
+
     def draw(self):
+        """Collect display objects from all relevant GUI components (e.g. meshes, tools).
+        """
 
         objs = self.meshes.get_display_objects()
 
         for tool in self.tools.values():
             obj = tool.getDisplayObjects()
-            objs.update(obj)
+            objs.extend(obj)
 
         self.objs = objs
 
         self.view.displayObjects = objs
 
-    def hit_location(self, meshname):
+
+    def hit_vector(self):
+        """Return a list of Vectors representing the intersection of the current mouse position
+        with the front and back of the viewing frustum.
+        """
         winX = self.x
         winY = self.viewport.height - self.y
 
+        # fetch the OpenGL transformation matrices
         projection = glGetDoublev(GL_PROJECTION_MATRIX)
         modelview = glGetDoublev(GL_MODELVIEW_MATRIX)
         viewport = glGetIntegerv(GL_VIEWPORT)
+
+        # XXX: gluUnProject is apparently deprecated, so this should be replaced with an
+        #      explicit function
 
         # find the projection of the mouse point at the front of the viewport...
         x, y, z = gluUnProject(winX, winY, 0.0, modelview, projection, viewport)
         # ...and the back of the viewport
         x2, y2, z2 = gluUnProject(winX, winY, 1.0, modelview, projection, viewport)
 
-        p = [Vector(x,y,z), Vector(x2,y2,z2)]
+        # construct the line between the front and back of the viewport
+        return [Vector(x,y,z), Vector(x2,y2,z2)]
 
-        intersects = []
-        
 
-        self.meshes[meshname].ensure_fresh_octrees() #Nb. Octrees should be fresh already
-        for (ref_point, extends, face) in self.meshes[meshname].face_octree.intersect_with_line(p[0],p[1] - p[0], positive=False):
+    def hit_mesh(self, meshname):
+        """Determine coordinates of the intersection between the current
+        mouse coordinates and a mesh.
+        """
+
+        # get the frustum intersection vector, and deconstruct it
+        p = self.hit_vector()
+        x,y,z = p[0].x, p[0].y, p[0].z
+        x2,y2,z2 = p[1].x, p[1].y, p[1].z
+
+        intersections = []
+
+        # use octrees to get a list of faces with possible intersections
+        for f in self.meshes[meshname].get_face_octree().intersect_with_line((x,y,z),(x2-x,y2-y,z2-z)):
+            # extract the Face object
+            face = f[2]
+
             # attempt to intersect the ray and the face
             ret = mesh.triangle_segment_intersect(p, face.vertices, 2)
 
+            # add intersections to the list
             if isinstance(ret, mesh.Vector):
-                intersects.append(((ret-Vector(x,y,z)).magnitude(), face, ret))
+                intersections.append(((ret-Vector(x,y,z)).magnitude(), face, ret))
 
-        if intersects:
+        if intersections:
             # sort the intersections in order of distance
-            intersects = sorted(intersects, key=lambda x: x[0])
-            ret = intersects[0][2]
-            return (ret.x, ret.y, ret.z, intersects[0][1].name)
+            intersections = sorted(intersections, key=lambda x: x[0])
 
+            # return the one closest to the front of the viewport
+            ret = intersections[0][2]
+            return (ret.x, ret.y, ret.z, intersections[0][1].name)
+
+        # no intersection
         return None
+
+
+    def hit_roi(self, roi):
+        """Determine coordinates of the intersection between the current
+        mouse coordinates and an ROI.
+        """
+
+        # get the frustum intersection vector, and deconstruct it
+        v = self.hit_vector()
+        l = [v[0], (v[1]-v[0]).normalise()]
+
+        # test for the intersection of each point with the vector
+        for i, p in enumerate(roi.points):
+            (x, y, z, face_name) = p
+            
+            if plane.sphere_segment_intersect(Vector(x,y,z), 5*roi.thickness, l):
+                # FIXME: will return the first found intersection, not necessarily
+                #        the closest to the front of the viewport
+                return (i, p)
+
+        # no intersection
+        return None
+
+
+    def showGrid(self, show):
+        self.showgrid = show
 
 
     def setVisible(self, name, value):
         self.meshes.setVisible(name, value)
 
+
     def setVerticesVisible(self, name, value):
         self.meshes.setVerticesVisible(name, value)
+
 
     def setStyle(self, name, value):
         self.meshes.setStyle(name, value)
 
-    def Refresh(self):
-        self.draw()
-        self.view.Refresh()
 
     def addTool(self, tool):
         name = tool.name
         self.tools[name] = tool
         tool.setController(self)
+
 
     def selectTool(self, name, subtool=0):
         if self.currentTool:
@@ -198,17 +273,10 @@ class MeshController(object):
         self.currentTool = self.tools[name]
         self.currentTool.select(subtool)
 
+
     def getToolList(self):
         return self.tools.keys()
 
-    def OnKeyPress(self, event):
-        """Receive keypress events from the view.
-        """
-        keycode = event.GetKeyCode()
-
-        if self.currentTool:
-            if hasattr(self.currentTool, "OnKeyPress"):
-                return self.currentTool.OnKeyPress(keycode, event)
 
     def OnSize(self, event):
         size = self.view.GetClientSize()
@@ -216,35 +284,72 @@ class MeshController(object):
 
         self.view.updateViewPort()
 
-    def updateView(self):
-        self.view.updateViewPort()
+        return True
+
+
+    #########################################################################
+    #                                                                       #
+    # Event processing code                                                 #
+    # =====================                                                 #
+    #                                                                       #
+    #  Standard pattern is to decode the event in the most useful fashion,  #
+    #  then pass the decoded data and the event to the current tool.        #
+    #                                                                       #
+    #  Certain events, e.g. MouseWheel, and intercepted by the controller   #
+    #  and handled directly here.                                           #
+    #                                                                       #
+    #########################################################################
+
+    def OnKeyPress(self, event):
+        """Receive keypress events from the view.
+        """
+
+        keycode = event.GetKeyCode()
+
+        if self.currentTool:
+            try:
+                return self.currentTool.OnKeyPress(keycode, event)
+            except NotImplementedError:
+                pass
+
 
     def OnMouseWheel(self, event):
         """Receive mousewheel events from the view.
         """
+
         if event.GetWheelRotation() < 0:
             self.viewport.scale *= 1.1 # = self.scale * 1.1 # ** (self.y - self.lasty)
         else:
             self.viewport.scale /= 1.1 # = self.scale * 0.9 # ** (self.y - self.lasty)
         self.updateView()
+
         return True
 
+
     def OnMouseDown(self, event):
+        """Receive mousedown events from the view.
+        """
 
         self.x, self.y = self.lastx, self.lasty = event.GetPosition()
 
         if self.currentTool:
-            if hasattr(self.currentTool, "OnMouseDown"):
+            try:
                 return self.currentTool.OnMouseDown(self.x, self.y, self.lastx, self.lasty, event)
+            except NotImplementedError:
+                pass
 
 
     def OnMouseUp(self, event):
+        """Receive mouseup events from the view.
+        """
 
         if self.currentTool:
-            if hasattr(self.currentTool, "OnMouseUp"):
+            try:
                 return self.currentTool.OnMouseUp(event)
+            except NotImplementedError:
+                pass
 
-        # TODO:
+        # TODO: ask Martin what this is supposed to do
         mode = ("", "")
         if mode == "Rubber Band" and self.sphere_selection is not None:
             self.placeSphere(int(self.sphere_selection))
@@ -252,16 +357,21 @@ class MeshController(object):
             self.sphere_selection = None
             return True
 
+
     def OnMouseMotion(self, event):
+        """Receive mousemotion events from the view.
+        """
+
         self.lastx, self.lasty = self.x, self.y
         self.x, self.y = event.GetPosition()
 
         if self.currentTool:
-            if hasattr(self.currentTool, "OnMouseMotion"):
+            try:
                 return self.currentTool.OnMouseMotion(self.x, self.y, self.lastx, self.lasty, event)
+            except NotImplementedError:
+                pass
 
-        
-
+        # TODO: ask Martin what this is supposed to do
         if event.Dragging() and event.LeftIsDown():
             # TODO
             mode = ("", "")

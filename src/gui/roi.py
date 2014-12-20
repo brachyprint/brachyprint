@@ -16,51 +16,92 @@
 #    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-from OpenGL.GL import *
-from OpenGL.GLUT import *
-from math import pi, acos
+
+'''
+A class representing a region of interest (ROI) defined on the surface of a
+mesh.
+'''
+
 
 from copy import copy
 
 
-class ROI(object):
-    """
-    A region of interest.
-    """
+COLOURS = {"red": (1,0.2,0.2), "green": (0.2, 1,0.2), "blue":(0.2,0.2,1),}
 
-    def __init__(self):
+
+class Roi:
+    def __init__(self, meshname, mesh, closed, colour="green", thickness = 1):
         self.paths = []
         self.points = []
 
-    def new_point(self, x, y, z, face_name, end, index):
+        self.meshname = meshname
+        self.mesh = mesh
+
+        self.closed = closed
+
+        self.colour = colour
+        self.thickness = thickness
+
+
+    def new_point(self, x, y, z, face_name, end, index=None):
+        # if index is supplied, insert a point at index
         if index is not None:
-            print self.points
             self.points = self.points[:index + 1] + [(x, y, z, face_name)] + self.points[index+1:]
             temp = copy(self.paths)
             self.paths = temp[:index] + [None, None] + temp[index+1:]
-            print self.points
-            return index + 1
+            ret_index = index + 1
         elif end:
             self.points.append((x, y, z, face_name))
             if len(self.points) > 1:
                 self.paths.append(None)
-            return len(self.points) - 1
+            ret_index = len(self.points) - 1
         else:
             self.points = [(x, y, z, face_name)] + self.points
             if len(self.points) > 1:
                 self.paths = [None] + self.paths
-            return 0
+            ret_index = 0
+
+        # update any affected paths
+        self._update()
+
+        # return the index of the new point
+        return ret_index
+
+
+    def complete(self):
+        """Complete the ROI (i.e. join the last point to the first)
+        """
+
+        assert self.being_drawn() == True
+        if self.closed == True:
+            self.paths.append(None)
+            self._update()
+
 
     def being_drawn(self):
         return len(self.points) == 0 or len(self.paths) < len(self.points)
 
+
     def is_empty(self):
         return len(self.points) == 0
+
 
     def is_last(self, i):
         return i == len(self.points) - 1
 
+
+    def is_end_point(self, i):
+        return i == len(self.points) - 1 or i == 0
+
+
+    def is_complete(self):
+        return len(self.points) >= 3 and len(self.paths) == len(self.points)
+
+
     def remove_point(self, i):
+        """Remove the point at the specified index. Adjust any affected paths.
+        """
+
         if i > 0:
             if i < len(self.paths):
                 self.paths =  self.paths[:i - 1] + [None] +  self.paths[i + 1:]
@@ -72,38 +113,74 @@ class ROI(object):
             else:
                 self.paths =  self.paths[1:]
         self.points = self.points[:i] + self.points[i + 1:]
+        self._update()
 
-COLOURS = {"red": (1,0.2,0.2), "green": (0.2, 1,0.2), "blue":(0.2,0.2,1),}
 
-class RoiGUI(object):
-    def __init__(self, mesh, meshname, closed, colour="green", thickness = 1, onSelect=None):
-        self.meshname = meshname
-        self.mesh = mesh
+    def move_point(self, i, x, y, z, face_name):
+        """Move the point at the specified index to a new location. Adjust any affected paths.
+        """
+
+        self.points[i] = (x, y, z, face_name)
+        if i > 0:
+            self.paths[i - 1] = None
+        else:
+            if not self.being_drawn():
+                self.paths[-1] = None
+        if i < len(self.paths):
+            self.paths[i] = None
+        else:
+            if not self.being_drawn():
+                self.paths[0] = None
+        self._update()
+
+
+    def _update(self):
+        """Recalculate the paths between points.
+        """
+
+        for index, path in enumerate(self.paths):
+            if path is None:
+                if index + 1 < len(self.points):
+                    self.paths[index] = self.mesh.get_path(self.points[index], self.points[index + 1])
+                else:
+                    self.paths[index] = self.mesh.get_path(self.points[index], self.points[0])
+
+
+
+############# TO REMOVE BELOW THIS LINE ################
+
+#<<<<<<< Updated upstream
+#class RoiGUI(object):
+#    def __init__(self, mesh, meshname, closed, colour="green", thickness = 1, onSelect=None):
+#        self.meshname = meshname
+#        self.mesh = mesh
+#=======
+class RoiGUI:
+    def __init__(self, closed, colour="green", thickness = 1, onSelect=None):
+        #self.meshname = meshname
+        #self.mesh = mesh
+#>>>>>>> Stashed changes
         self.closed = closed
         self.onSelect = onSelect
-        self.rois = []
-        self.current_roi = None
+
         self.current_point_index = None
         self.pointlookup = []
         self.linelookup = []
         self.colour = colour
         self.thickness = thickness
 
-    def InitGL(self):
-        self.line_list = glGenLists(1)
-        self.sphere_list = glGenLists(1)
-        self.compile_sphere_list()
-        self.compile_line_list()
 
-    def new_roi(self):
-        r = ROI()
+    def new_roi(self, meshname):
+        r = ROI(meshname)
         self.rois.append(r)
         return r
 
-    def new_point(self, x, y, z, face_name, end = True, index=None):
+    def new_point(self, x, y, z, face_name, meshname, end = True, index=None):
         print "Start", index
-        if self.current_roi:
-            self.current_point_index = self.current_roi.new_point(x, y, z, face_name, end, index)
+        if not self.current_roi:
+            r = self.new_roi(meshname)
+            self.current_roi = r
+        self.current_point_index = self.current_roi.new_point(x, y, z, face_name, end, index)
 
     def move_point(self, i, x, y, z, face_name):
         if self.current_roi:
@@ -118,82 +195,7 @@ class RoiGUI(object):
             else:
                 if not self.current_roi.being_drawn():
                     self.current_roi.paths[0] = None
-            
-    def complete(self):
-        assert self.current_roi.being_drawn() == True
-        if self.closed == True:
-            self.current_roi.paths.append(None)
 
-    def compile_sphere_list(self):
-        name = 0
-        self.pointlookup = []
-        glNewList(self.sphere_list, GL_COMPILE)
-        glMatrixMode(GL_MODELVIEW)
-        for roi in self.rois:
-            for i, sphere in enumerate(roi.points):
-                glPushMatrix()
-                glPushName(name)
-                self.pointlookup.append((roi, i))
-                name = name + 1
-                glTranslatef(sphere[0], sphere[1], sphere[2])
-                glColor3f(*COLOURS[self.colour])
-                glutSolidSphere(5 * self.thickness, 10, 10)
-                glPopName()
-                glPopMatrix()
-        if self.current_point_index is not None:
-            sphere = self.current_roi.points[self.current_point_index]
-            glPushMatrix()
-            glTranslatef(sphere[0], sphere[1], sphere[2])
-            glColor3f(1,1,1)
-            glutSolidSphere(6 * self.thickness, 11, 11)
-            glPopMatrix()
-        glEndList()    
-
-    def compile_line_list(self):
-        name = 0
-        self.linelookup = []
-        glNewList(self.line_list, GL_COMPILE)
-        glColor3f(*COLOURS[self.colour])
-        for roi in self.rois:
-            for index, path_list in enumerate(roi.paths):
-                glPushName(name)
-                for path in path_list:
-                    self.linelookup.append((roi, index))
-                    name = name + 1
-                    for step in path.trajectory:
-                        start, end = step.start(), step.end()
-                        dx = start[0] - end[0]
-                        dy = start[1] - end[1]
-                        dz = start[2] - end[2]
-                        length_d = (dx ** 2 + dy ** 2 + dz ** 2) ** 0.5
-                        if length_d > 0:
-                            #axis of rotation = (0, 0, 1) cross (dx, dy, dz) = (-dy, dx, 0)
-                            #angle to rotate = 180.0 / pi * acos((0,0,1).(dx, dy, dz) / (dx, dy, dz).(dx, dy, dz))
-                            glPushMatrix()
-                            glTranslatef(start[0], start[1], start[2])
-                            glRotatef(180.0 / pi * acos(dz / length_d), -dy, dx, 0)
-                            glutSolidSphere(2 * self.thickness, 10, 10)
-                            glutSolidCylinder(2 * self.thickness, -length_d, 20 ,20)
-                            glPopMatrix()
-                    glPopName() 
-        glEndList()
-
-    def update(self):
-        for roi in self.rois:
-            for index, path in enumerate(roi.paths):
-                if path is None:
-                    if index + 1 < len(roi.points):
-                        roi.paths[index] = self.mesh.get_path(roi.points[index], roi.points[index + 1])
-                    else:
-                        roi.paths[index] = self.mesh.get_path(roi.points[index], roi.points[0])
-        self.compile_sphere_list()
-        self.compile_line_list()
-
-    def sphere_list_length(self):
-        return len(self.pointlookup)
-
-    def line_list_length(self):
-        return len(self.linelookup)
 
     def get_avoidance_edges(self):
         avoid_edges = []

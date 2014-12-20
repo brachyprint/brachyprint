@@ -47,14 +47,14 @@ class GuiTool(object):
         return {}
 
     def OnKeyPress(self, keycode, event):
-        pass
+        raise NotImplementedError()
 
     def OnMouseDown(self, x, y, lastx, lasty, event):
-        pass
+        raise NotImplementedError()
 
     def OnMouseUp(self, event):
-        pass
+        raise NotImplementedError()
 
     def OnMouseMotion(self, x, y, lastx, lasty, event):
-        pass
+        raise NotImplementedError()
 

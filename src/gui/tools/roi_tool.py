@@ -24,15 +24,10 @@ A GUI tool for editing and selecting regions of interest (ROIs).
 
 from gui_tool import GuiTool
 import wx
-from gui import RoiGUI
+from gui import Roi
 
 from OpenGL.GL import *
-
-class opengl_list(object):
-    def __init__(self, list_):
-        self.list = list_
-    def __call__(self):
-        glCallList(self.list)
+from OpenGL.GLUT import *
 
 
 class RoiTool(GuiTool):
@@ -42,12 +37,11 @@ class RoiTool(GuiTool):
 
         self.roi = roi
 
+
     def initDisplay(self):
-        # create an RoiGUI associated with the tool
-        mesh = self.controller.meshes[self.roi["meshname"]]
-        self.roiGUI = RoiGUI(mesh = mesh, **self.roi)
-        mesh.ensure_fresh_octrees()
-        self.roiGUI.InitGL()
+        self.current_roi = None
+        self.current_point_index = None
+
 
     def getSubTools(self):
         if self.roi.has_key("onSelect"):
@@ -55,101 +49,208 @@ class RoiTool(GuiTool):
         else:
             return ["Edit " + self.name]
 
+
     def select(self, subtool):
         self.mode = subtool
 
-    def getDisplayObjects(self):
 
-        objs = {}
-        key = self.name
-        objs[key+"_spheres"] = {}
-        objs[key+"_spheres"]["matrix_mode"] = GL_MODELVIEW
-        objs[key+"_spheres"]["style"] = "Red"
-        objs[key+"_spheres"]["visible"] = True
-        objs[key+"_spheres"]["list"] = self.roiGUI.sphere_list
-        objs[key+"_lines"] = {}
-        objs[key+"_lines"]["matrix_mode"] = GL_MODELVIEW
-        objs[key+"_lines"]["style"] = "Red"
-        objs[key+"_lines"]["visible"] = True
-        objs[key+"_lines"]["list"] = self.roiGUI.line_list
+    def deselect(self):
+        self.current_roi = None
+        self.current_point_index = None
+        self.controller.Refresh()
+
+
+    def getDisplayObjects(self):
+        objs = []
+
+        # highlight a selected point
+        if self.current_roi is not None and self.current_point_index is not None:
+            roi = self.current_roi
+
+            # build a display list
+            sphere_list = glGenLists(1)
+            glNewList(sphere_list, GL_COMPILE)
+            glMatrixMode(GL_MODELVIEW)
+
+            sphere = roi.points[self.current_point_index]
+            glPushMatrix()
+            glTranslatef(sphere[0], sphere[1], sphere[2])
+            glColor3f(1,1,1)
+            glutSolidSphere(6 * roi.thickness, 11, 11)
+            glPopMatrix()
+            glEndList()
+
+            obj = {}
+            obj["matrix_mode"] = GL_PROJECTION
+            obj["style"] = "Red"
+            obj["visible"] = True
+            obj["list"] = sphere_list
+            objs.append(obj)
 
         return objs
 
+
     def OnKeyPress(self, keycode, event):
         if keycode == wx.WXK_DELETE:
-            roiGUI = self.roiGUI
-            if roiGUI.current_roi is not None and roiGUI.current_point_index is not None:
-                if len(roiGUI.current_roi.points) == 1:
-                    roiGUI.rois.remove(roiGUI.current_roi) 
+            roi = self.current_roi
+            if roi is not None and self.current_point_index is not None:
+                if len(roi.points) == 1: # delete the roi
+                    self.controller.meshes.rois[roi.meshname].remove_roi(roi)
+                    self.current_point_index = None
+                    self.current_roi = None
                 else:
-                    roiGUI.current_roi.remove_point(roiGUI.current_point_index)
-                roiGUI.current_roi = None
-                roiGUI.current_point_index = None
-                roiGUI.update()
+                    roi.remove_point(self.current_point_index)
+                    self.current_point_index = None
+                    self.current_roi = None
+                self.controller.Refresh()
+
                 return True
+
         elif keycode == wx.WXK_ESCAPE:
-            roiGUI = self.roiGUI
-            roiGUI.current_roi = None
-            roiGUI.current_point_index = None
-            roiGUI.update()
+            self.current_point_index = None
+            self.current_roi = None
+            self.controller.Refresh()
+
             return True
+
         return False
+
+
+    def findMesh(self):
+        # find the mesh under the mouse
+        hits = []
+        for name in self.controller.meshes.keys():
+            hit = self.controller.hit_mesh(name)
+            if hit:
+                hits.append((hit[0]**2+hit[1]**2+hit[2]**2, hit[3], hit, name))
+
+        if not hits:
+            return None, None
+
+        hits = sorted(hits, key=lambda x: x[0])
+        
+        hit = hits[0]
+        meshname = hit[3]
+        hit = hit[2]
+
+        return (meshname, hit)
+
 
     def OnMouseDown(self, x, y, lastx, lasty, event):
         if event.LeftIsDown():
-            if self.mode == 0:
-                roiGUI = self.roiGUI
-                sphere_hits = self.controller.view.hit(x, y, opengl_list(roiGUI.sphere_list), roiGUI.sphere_list_length())
-                line_hits = self.controller.view.hit(x, y, opengl_list(roiGUI.line_list), roiGUI.line_list_length())
-                if sphere_hits:
-                    sphereindex = None
-                    for sphere_hit in sphere_hits:
-                        if sphere_hit[2] != []:
-                            sphere_index = sphere_hit[2][0]
-                    roi, index =  roiGUI.pointlookup[sphere_index]
-                    if roi == roiGUI.current_roi and \
-                       roiGUI.current_roi.being_drawn() and \
-                       ((roiGUI.current_point_index == 0 and roiGUI.current_roi.is_last(index)) or \
-                        (roiGUI.current_roi.is_last(roiGUI.current_point_index) and index == 0)):
-                        roiGUI.complete()
-                    if roiGUI.current_roi == roi and roiGUI.current_point_index == index:
-                        roiGUI.current_roi, roiGUI.current_point_index = None, None
+            if self.mode == 0: # subtool "lasso"
+
+                if self.current_roi: # currently working on an ROI
+
+                    print "roi"
+                    roi = self.current_roi
+                    meshname = roi.meshname
+
+                    sphere_hits = self.controller.hit_roi(self.current_roi)
+                    line_hits = None # XXX:
+
+                    # clicked on a sphere
+                    if sphere_hits:
+                        # if not the first point
+                        (index, p) = sphere_hits
+                        if roi.being_drawn() and \
+                            ((self.current_point_index == 0 and roi.is_last(index)) or \
+                             (index == 0 and roi.is_last(self.current_point_index))):
+                            roi.complete()
+
+                        # select the point
+                        if self.current_point_index == index: # clicked on this point; deselect
+                            self.current_point_index = None
+                            self.current_roi = None
+                        else:
+                            self.current_point_index = index
+
+                    # XXX: clicked on a line
+                    elif line_hits and roiGUI.current_point_index is None:
+                        roi, index =  roiGUI.linelookup[line_hits[0][2][0]]
+                        face_hit = self.controller.hit_mesh(meshname)
+                        if face_hit:
+                            x, y, z, triangle_name = face_hit
+                            roiGUI.current_roi = roi
+                            roiGUI.new_point(x, y, z, triangle_name, index = index)
+
                     else:
-                        roiGUI.current_roi, roiGUI.current_point_index = roi, index
-                    roiGUI.update()
-                elif line_hits and roiGUI.current_point_index is None:
-                    roi, index =  roiGUI.linelookup[line_hits[0][2][0]]
-                    face_hit = self.controller.hit_location(roiGUI.meshname)
-                    if face_hit:
-                        x, y, z, triangle_name = face_hit
-                        roiGUI.current_roi = roi
-                        roiGUI.new_point(x, y, z, triangle_name, index = index)
-                        roiGUI.update()
+                        face_hit = self.controller.hit_mesh(meshname)
+
+                        if not face_hit:
+                            # user clicked outside the mesh, so deselect the ROI
+                            self.current_roi = None
+                        else:
+                            x, y, z, triangle_name = face_hit
+                            if roi.being_drawn() and self.current_point_index == 0: # add a new point to the ROI
+                                self.current_point_index = self.current_roi.new_point(x, y, z, triangle_name, False)
+                            #elif roi.being_drawn() and roi.is_last(self.current_point_index): # add a new point to the ROI
+                            #    self.current_point_index = self.current_roi.new_point(x, y, z, triangle_name, False, self.current_point_index)
+                            else: # must be a currently selected point, so move it
+                                roi.move_point(self.current_point_index, x, y, z, triangle_name)
+
+                    # tell the controller that there have been changes so it can update the display
+                    self.controller.Refresh()
+
                 else:
-                    face_hit = self.controller.hit_location(roiGUI.meshname)
-                    if face_hit:
-                        x, y, z, triangle_name = face_hit
-                        if roiGUI.current_roi is None:
-                            roiGUI.current_roi = roiGUI.new_roi()
-                        if roiGUI.current_roi.being_drawn() and \
-                           (roiGUI.current_roi.is_last(roiGUI.current_point_index) or roiGUI.current_roi.is_empty()):
-                            roiGUI.new_point(x, y, z, triangle_name)
-                        elif roiGUI.current_roi.being_drawn() and \
-                             roiGUI.current_point_index == 0:
-                            roiGUI.new_point(x, y, z, triangle_name, end = False)
-                        elif roiGUI.current_point_index is not None:
-                            roiGUI.move_point(roiGUI.current_point_index, x, y, z, triangle_name)
+                    # no roi currently selected
+                    meshname, face_hit = self.findMesh()
+
+                    if not meshname: # click did not fall on a mesh
+                        return False
+                    
+                    x, y, z, triangle_name = face_hit
+
+                    sphere_hits = []
+                    for roi in self.controller.meshes.rois[meshname]:
+                        sphere_hit = self.controller.hit_roi(roi)
+                        if sphere_hit:
+                            sphere_hits.append((sphere_hit, roi))
+
+                    # click falls on existing point
+                    if sphere_hits:
+                        # select the point
+                        self.current_point_index = sphere_hits[0][0][0]
+                        self.current_roi = sphere_hits[0][1]
+                    # click falls on existing line
+                    #elif line_hit:
+
                     else:
-                        roiGUI.current_point_index = None
-                        roiGUI.current_roi = None
-                    roiGUI.update()
+                        # create a new ROI
+
+                        mesh = self.controller.meshes[meshname]
+                        self.current_roi = Roi(meshname, mesh, True, colour=self.roi["colour"], thickness=self.roi["thickness"])
+                        roi_index = self.controller.meshes.rois[meshname].add_roi(self.current_roi)
+                        self.current_point_index = self.current_roi.new_point(x, y, z, triangle_name, False)
+
+                        # XXX: messy
+                        self.controller.parent.meshPanel.addRoi(meshname, "ROI%d" % (roi_index+1))
+
+                    #face_hit = self.controller.hit_mesh(meshname)
+                    #if face_hit:
+                    #    x, y, z, triangle_name = face_hit
+                        #if roiGUI.current_roi is None:
+                        #    roiGUI.current_roi = roiGUI.new_roi(meshname)
+                    #    if roiGUI.current_roi.being_drawn() and \
+                    #       (roiGUI.current_roi.is_last(roiGUI.current_point_index) or roiGUI.current_roi.is_empty()):
+                    #        roiGUI.new_point(x, y, z, triangle_name)
+                    #    elif roiGUI.current_roi.being_drawn() and \
+                    #         roiGUI.current_point_index == 0:
+                    #        roiGUI.new_point(x, y, z, triangle_name, end = False)
+                    #    elif roiGUI.current_point_index is not None:
+                    #        roiGUI.move_point(roiGUI.current_point_index, x, y, z, triangle_name)
+                    #else:
+                    #    roiGUI.current_point_index = None
+                    #    roiGUI.current_roi = None
+                    self.controller.Refresh()
                 return True
-            elif self.mode == 1:
+
+            elif self.mode == 1: # subtool "select"
                 roiGUI = self.roiGUI
-                face_hit = self.controller.hit_location(roiGUI.meshname)
+                face_hit = self.controller.hit_mesh(meshname)
                 if face_hit:
                     x, y, z, triangle_name = face_hit
-                    triangle = self.controller.meshes[roiGUI.meshname].faces[triangle_name]
+                    triangle = self.controller.meshes[meshname].faces[triangle_name]
                     roiGUI.onSelect(roiGUI, triangle)
         return False
 

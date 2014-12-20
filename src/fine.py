@@ -126,7 +126,8 @@ if __name__ == '__main__':
 
     meshes = {}
     for name, filename in ply_files.items():
-        meshes[name] = mesh.fileio.read_ply(filename)
+        meshes[name] = mesh.Mesh()
+        mesh.fileio.read_ply(meshes[name], filename)
 
     frame = MainWindow(meshes=meshes, 
                        rois = {"Catheters": {"meshname": "Rough Outer", 

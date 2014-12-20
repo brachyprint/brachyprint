@@ -52,6 +52,7 @@ class pickPixel(object):
 
 
 class MeshCanvas(glcanvas.GLCanvas):
+
     def __init__(self, parent):
         self.parent = parent
         self.controller = None
@@ -97,10 +98,12 @@ class MeshCanvas(glcanvas.GLCanvas):
         # FIXME: this is a hack to enable highlighting of triangles
         self.highlight = None
 
+
     def setController(self, controller):
         '''Set the controller class for the view (MVC pattern).
         '''
         self.controller = controller
+
 
     def OnKeyPress(self, event):
         '''Propagate KeyPress events to the controller.
@@ -109,8 +112,10 @@ class MeshCanvas(glcanvas.GLCanvas):
             if self.controller.OnKeyPress(event):
                 self.Refresh(False)
 
+
     def OnEraseBackground(self, event):
         pass # Do nothing, to avoid flashing on MSW.
+
 
     def OnSize(self, event):
         '''Propagate Size events to the controller.
@@ -124,15 +129,20 @@ class MeshCanvas(glcanvas.GLCanvas):
         # propagate the event
         event.Skip()
 
+
     def OnPaint(self, event):
         '''Repaint the widget.
         '''
-        dc = wx.PaintDC(self)
+        # XXX: this guarantees we have the focus for keypress events,
+        #      but is a bit of a hack.
+        self.SetFocus()
+
         self.SetCurrent()
         if not self.init:
             self.InitGL()
             self.init = True
         self.OnDraw()
+
 
     def OnMouseWheel(self, event):
         '''Propagate MouseWheel events to the controller.
@@ -141,6 +151,7 @@ class MeshCanvas(glcanvas.GLCanvas):
         if self.controller:
             if self.controller.OnMouseWheel(event):
                 self.Refresh(False)
+
 
     def OnMouseDown(self, event):
         '''Propagate MouseDown events to the controller.
@@ -255,6 +266,7 @@ class MeshCanvas(glcanvas.GLCanvas):
         glDepthFunc(GL_LEQUAL)
         glDepthRange(0.0, 1.0)
 
+
     def OnDraw(self):
         '''Redraw the widget.
         '''
@@ -302,6 +314,7 @@ class MeshCanvas(glcanvas.GLCanvas):
                     continue
 
                 vbo = obj["vbo"]
+                #vao = obj["vao"]
                 num_triangles = obj["vbo_len"]
 
                 if not self.highlight:
@@ -311,6 +324,10 @@ class MeshCanvas(glcanvas.GLCanvas):
                     highlight_index = self.highlight_index
 
                 vbo.bind()
+
+                ###
+                #glBindVertexArray(vao)
+
                 try:
                     style = obj["style"]
                     if style == "Grey":
@@ -331,6 +348,8 @@ class MeshCanvas(glcanvas.GLCanvas):
 
                     if not highlight:
                         glDrawArrays(GL_TRIANGLES, 0, num_triangles)
+                        ###
+                        #glDrawElements(GL_TRIANGLES, num_triangles, GL_UNSIGNED_INT, None)
                     else:
                         if highlight_index == 0:
                             glUniform4f(self.Base_colour_loc, 0.2, 0.2, 0.2, 0.5)
@@ -358,6 +377,7 @@ class MeshCanvas(glcanvas.GLCanvas):
 
         self.SwapBuffers()
 
+
     def updateViewPort(self, selector = lambda: None):
         '''Update the view port.
         '''
@@ -377,6 +397,7 @@ class MeshCanvas(glcanvas.GLCanvas):
                       yscale * range_max, 1.0 * range_max, 3.0 * range_max)
             glTranslatef(0, 0, - 2 * range_max)
 
+
     def setupScene(self):
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
@@ -384,17 +405,6 @@ class MeshCanvas(glcanvas.GLCanvas):
         glRotatef(self.viewport.phi, 0.0, 1.0, 0.0)
         glTranslatef(self.viewport.tx, self.viewport.ty, self.viewport.tz)
 
-    def hit(self, x, y, opengl, maxhits):
-        glSelectBuffer(4 * maxhits)
-        glRenderMode(GL_SELECT)
-        self.updateViewPort(pickPixel(x, self.GetClientSize().height - y)) #Set projection to single pixel
-        self.setupScene()
-        opengl()
-        hits = glRenderMode(GL_RENDER)
-        self.updateViewPort() #Return projection to normal
-        #hits.sort(zerocmp)
-        hits.sort(lambda x,y: cmp(x[0], y[0]))
-        return hits
 
     def drawXAxisGrid(self, d=10):
         rangex = []
@@ -402,17 +412,20 @@ class MeshCanvas(glcanvas.GLCanvas):
         rangez = [self.controller.meshes.min_Z, self.controller.meshes.max_Z]
         self.drawGrid(rangex, rangey, rangez, d)
 
+
     def drawYAxisGrid(self, d=10):
         rangex = [self.controller.meshes.min_X, self.controller.meshes.max_X]
         rangey = []
         rangez = [self.controller.meshes.min_Z, self.controller.meshes.max_Z]
         self.drawGrid(rangex, rangey, rangez, d)
 
+
     def drawZAxisGrid(self, d=10):
         rangex = [self.controller.meshes.min_X, self.controller.meshes.max_X]
         rangey = [self.controller.meshes.min_Y, self.controller.meshes.max_Y]
         rangez = []
         self.drawGrid(rangex, rangey, rangez, d)
+
 
     def calcGridSize(self, numLines=10):
         rangex = [self.controller.meshes.min_X, self.controller.meshes.max_X]
@@ -429,6 +442,7 @@ class MeshCanvas(glcanvas.GLCanvas):
 
         d = min(d)
         return d
+
 
     def drawGrid(self, rangex, rangey, rangez, d):
         '''
@@ -483,6 +497,8 @@ class MeshCanvas(glcanvas.GLCanvas):
 
 
     def Screenshot(self, filename="screenshot.jpg", fileformat=wx.BITMAP_TYPE_JPEG):
+        """Save a screenshot.
+        """
         # get the size of the canvas
         width, height = self.GetSize()
 
