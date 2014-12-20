@@ -30,6 +30,7 @@ import matplotlib.pyplot as plt
 import triangle.plot as plot
 from numpy import array
 from vector import Vector, nullVector
+from vector2d import Vector2d
 from vertex import Vertex
 from face import Face
 from edge import Edge
@@ -568,6 +569,66 @@ class Mesh(object):
                 for f in self.faces:
                     p = f.centroid()
                     self.face_octree.insert((p.x,p.y,p.z),f.bounding_box(),f)
+
+    def contains_point(self, p):
+        """Does this mesh contain the point p?
+
+        We count the triangles that intersect the line segment
+        p+lambda*(1,0,0) to find out.
+        """
+        containment = False
+        self.ensure_fresh_octrees()
+        for (_,((xmin,_),(_,_),(_,_)),f) in self.face_octree.intersect_with_line(p,Vector(1,0,0),positive=True):
+            (v1,v2,v3) = f.vertices
+            
+            # projections to 2D to find if line segment really does
+            # pass through face
+            q = Vector2d(p.y,p.z)
+            (u1,u2,u3) = (Vector2d(v1.y,v1.z), Vector2d(v2.y,v2.z), Vector2d(v3.y,v3.z))
+
+            (r1,r2,r3) = ((u2-q).cross(u3-q), (u3-q).cross(u1-q), (u1-q).cross(u2-q))
+            
+            # Find if the face is above the line segment. If all
+            # vertices are above, it's easy, otherwise we do a volume
+            # check.
+            if (r1>0)==(r2>0)==(r3>0):
+                if xmin > p.x:
+                    containment = not containment
+                else:
+                    p1 = Vector(xmin, p.y, p.z)
+                    if ((v1-p).cross(v2-p).dot(v3-p) > 0) == ((v1-p1).cross(v2-p1).dot(v3-p1) > 0):
+                        containment = not containment
+        return containment
+
+    def equivalent(self, other, epsilon=0.0001):
+        """Does this mesh describe the same region of space as the other?
+
+        For each mesh, we look a little bit (epsilon) inside and
+        outside each vertex, and check that the resulting points are
+        respectively inside and outside the other mesh.
+
+        This method is limited to closed meshes only.
+        """
+        if not (self.closed() and other.closed()):
+            raise ValueError("Can only check equivalence on closed meshes.")
+
+        ### replace "UnexpectedError" and remove this
+        raise UnexpectedError("I don't know what exception to raise below.")
+
+        for (a,b) in [(self,other),(other,self)]:
+            for v in a.vertices:
+                p = v + v.normal()*epsilon
+                q = v - v.normal()*epsilon
+                if a.contains_point(p):
+                    raise UnexpectedError("Mesh shouldn't contain point just outside itself")
+                if not a.contains_point(q):
+                    raise UnexpectedError("Mesh should contain point just inside itself")
+                if b.contains_point(p):
+                    return False
+                if not b.contains_point(q):
+                    return False
+
+        return True
 
     def split_edge(self, vertex, edge):
         """Add the vertex along the edge and retriangulate"""

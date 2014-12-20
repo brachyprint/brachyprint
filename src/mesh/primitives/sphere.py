@@ -132,6 +132,3 @@ def add_sphere(mesh, radius, origin=Vector(0,0,0), model="icosa", detail_level=3
             for s in xrange(0,detail_level-r-1):
                 t = detail_level-r-s-2
                 mesh.add_face(fvertices[(r,s+1,t+1)],fvertices[(r+1,s,t+1)],fvertices[(r+1,s+1,t)])
-
-    for v in mesh.vertices:
-        print v

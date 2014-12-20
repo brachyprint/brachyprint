@@ -84,3 +84,25 @@ class Face(object):
             for e in self.edges:
                 print e.v1, e.v2
             raise Exception("No Opposite Edge ?!?")
+
+    def neighbouring_faces(self):
+        """Generates the faces which are adjacent to this one.
+        """
+        for e in self.edges:
+            f = e.face_on_other_side(self)
+            if f is not None:
+                yield f
+
+    def parallel_plate(self, epsilon=0.00001):
+        """Returns the set of all contiguous faces, starting with this one,
+        that lie in the same plane.
+        """
+        old = set()
+        new = set([self])
+        while new:
+            f = new.pop()
+            old.add(f)
+            for g in f.neighbouring_faces():
+                if g not in old and g not in new and f.normal.cross(g.normal).magnitude() < epsilon:
+                    new.add(g)
+        return old

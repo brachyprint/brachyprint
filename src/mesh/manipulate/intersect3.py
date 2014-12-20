@@ -30,7 +30,7 @@ def split(mesh1, mesh2):
     return meshcopy1, meshcopy2
     
 def subdivide_meshes(mesh1, mesh2):
-    #To Do: Deal with common vertices
+    #To Do: Merge common vertices
     mesh2.ensure_fresh_octrees()
     for face1 in mesh1.faces:
         for edge1 in face1.edges:

@@ -59,9 +59,9 @@ class BasicMeshTests(TestCase):
         # check that vertices are all present in the mesh
         print "left: %s"%(m.get_vertex(v1),)
         print "right: %s"%(v1,)
-        self.assertEqual(m.get_vertex(v1), v1.name)
-        self.assertEqual(m.get_vertex(v2), v2.name)
-        self.assertEqual(m.get_vertex(v3), v3.name)
+        self.assertEqual(m.get_vertex(v1), v1)
+        self.assertEqual(m.get_vertex(v2), v2)
+        self.assertEqual(m.get_vertex(v3), v3)
         v4 = Vector(-17,3,-3)
         self.assertIsNone(m.get_vertex(v4))
 
@@ -150,7 +150,7 @@ class MergeMeshTests(TestCase):
         self.assertTrue(m1.faces[1].vertices[1] == v23)
         self.assertTrue(m1.faces[1].vertices[2] == v22)
 
-        # check verticies have been cloned
+        # check vertices have been cloned
         self.assertTrue(m1.faces[1].vertices[0] is not v21)
         self.assertTrue(m1.faces[1].vertices[1] is not v23)
         self.assertTrue(m1.faces[1].vertices[2] is not v22)
@@ -175,6 +175,45 @@ class MergeMeshTests(TestCase):
         self.assertTrue(m1.maxY==177)
         self.assertTrue(m1.minZ==-60)
         self.assertTrue(m1.maxZ==100)
+
+
+
+class ContainmentTests(TestCase):
+    
+    def test_cube_contains(self):
+        m = Mesh()
+        primitives.add_cube(m, 10)
+        for (x,y,z) in [(1,2,3), (4,5,6), (7,8,9)]:
+            self.assertTrue(m.contains_point(Vector(x,y,z)), "Cube should contain (%d,%d,%d)"%(x,y,z))
+        for a in [-1,11]:
+            for b in [1,9]:
+                for c in [1,9]:
+                    for (x,y,z) in [(a,b,c),(a,c,b),(b,a,c),(b,c,a),(c,a,b),(c,b,a)]:
+                        self.assertFalse(m.contains_point(Vector(x,y,z)), "Cube should not contain (%d,%d,%d)"%(x,y,z))
+
+    def test_sphere_contains(self):
+        m = Mesh()
+        primitives.add_sphere(m, 10)
+        coords = [-12,-8,-6,-4,-2,2,4,6,8,12]
+        for x in coords:
+            for y in coords:
+                for z in coords:
+                    print "Testing (%f,%f,%f)"%(x,y,z)
+                    if x*x + y*y + z*z < 100:
+                        self.assertTrue(m.contains_point(Vector(x,y,z)), "Sphere should contain point (%f,%f,%f)"%(x,y,z))
+                    else:
+                        self.assertFalse(m.contains_point(Vector(x,y,z)), "Sphere should not contain point (%f,%f,%f)"%(x,y,z))
+                        
+                                
+    def test_cuboid_contains(self):
+        m = Mesh()
+        primitives.add_cuboid(m, corner = Vector(2, 0, 0), lx = 1, ly = 1, lz = 1)
+        self.assertFalse(m.contains_point(Vector(0.3, 0.3, 0)))
+
+
+class EquivalenceTests(TestCase):
+    pass
+
 
 if __name__ == '__main__':
     main()
