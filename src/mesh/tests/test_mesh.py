@@ -209,7 +209,33 @@ class ContainmentTests(TestCase):
         m = Mesh()
         primitives.add_cuboid(m, corner = Vector(2, 0, 0), lx = 1, ly = 1, lz = 1)
         self.assertFalse(m.contains_point(Vector(0.3, 0.3, 0)))
+        
+class CleanMeshTests(TestCase):
+    def test_clean_empty_mesh(self):
+        m = Mesh()
+        m.clean()
+        self.assertEquals(len(m.vertices), 0)
+        self.assertEquals(len(m.faces), 0)
+        self.assertEquals(len(m.edges), 0)
 
+    def test_single_point_mesh(self):
+        m = Mesh()
+        m.add_vertex(0,0,0)
+        m.clean()
+        self.assertEquals(len(m.vertices), 0)
+        self.assertEquals(len(m.faces), 0)
+        self.assertEquals(len(m.edges), 0)
+
+    def test_cube_point_mesh(self):
+        m = Mesh()
+        primitives.add_cuboid(m, corner = Vector(2, 0, 0), lx = 1, ly = 1, lz = 1)
+        m.add_vertex(0,0,0)
+        n = m.copy()
+        m.clean()
+        self.assertEquals(len(m.vertices), 8)
+        self.assertEquals(len(n.vertices), 9)
+        self.assertEquals(len(m.faces), len(n.faces))
+        self.assertEquals(len(m.edges), len(n.edges))
 
 class EquivalenceTests(TestCase):
     pass

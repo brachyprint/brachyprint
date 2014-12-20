@@ -36,7 +36,7 @@ from routes import *
 from routes2 import *
 from octrees import *
 from scipy.optimize import leastsq
-
+import copy
 
 
 class Mesh(object):
@@ -649,5 +649,15 @@ class Mesh(object):
         return [self.add_triangle_face(face.vertices[0], face.vertices[1], vertex),
                 self.add_triangle_face(face.vertices[1], face.vertices[2], vertex),
                 self.add_triangle_face(face.vertices[2], face.vertices[0], vertex)]
+                
+    def clean(self):
+        points_not_to_remove = set()
+        for edge in self.edges.values():
+            points_not_to_remove.add(edge.v1)
+            points_not_to_remove.add(edge.v2)
+
+        for v in self.vertices:
+            if v not in points_not_to_remove:
+                self.vertices.remove(v)
 
 
