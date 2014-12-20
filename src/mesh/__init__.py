@@ -41,7 +41,6 @@ tests
 
 from core import Mesh, Vector, nullVector, Vertex, Face, Edge
 from core import Polygon, Vector2d, nullVector2d, Vertex2d, Line
-from astar import *
 from plane import *
 
 # subpackages
