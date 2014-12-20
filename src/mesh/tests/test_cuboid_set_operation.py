@@ -23,31 +23,29 @@ Unit testing for intersection of two cuboids
 from unittest import TestCase, skip
 from mesh.primitives import add_cuboid
 from mesh import Vector, Mesh
-from mesh.manipulate.intersect4 import intersect
-from cuboid_set_operation_results import intersection_volume
+from mesh.manipulate.intersect4 import intersect, union
+from cuboid_set_operation_results import intersection_volume, union_volume
 
 class IntersectionTests(TestCase):
     def test_intersection_no_intersect(self):
         self.check_intersection(((0, 1), (0, 1), (0, 1)), 
-                                ((2, 3), (0, 1), (0, 1)))
-                                
-    def test_vertex_count(self):
-        i = self.intersection(((0, 1), (0, 1), (0, 1)), 
-                              ((2, 3), (0, 1), (0, 1)))
-        self.assertEqual(len(i.vertices), 16)
-        self.assertTrue(i.closed())
-        i = self.intersection(((0, 1), (0, 1), (0, 1)), 
-                              ((1, 2), (1, 2), (1, 2)))
-        self.assertEqual(len(i.vertices), 15)
-        self.assertTrue(i.closed())
-        i = self.intersection(((0, 1), (0, 1), (0, 1)), 
-                              ((1, 2), (0, 1), (1, 2)))
-        self.assertEqual(len(i.vertices), 14)
-        self.assertTrue(i.closed())
-        i = self.intersection(((0, 1), (0, 1), (0, 1)), 
-                              ((1, 2), (0, 1), (0, 1)))
-        self.assertEqual(len(i.vertices), 12)
-        self.assertTrue(i.closed())
+                                ((2, 3), (0, 1), (0, 1)), 0)
+        self.check_intersection(((0, 1), (0, 1), (0, 1)), 
+                                ((1, 2), (1, 2), (1, 2)), 0)
+        self.check_intersection(((0, 1), (0, 1), (0, 1)), 
+                                ((1, 2), (0, 1), (1, 2)), 0)
+        self.check_intersection(((0, 1), (0, 1), (0, 1)), 
+                                ((1, 2), (0, 1), (0, 1)), 0)
+        
+    def test_union_no_intersect(self):
+        self.check_union(((0, 1), (0, 1), (0, 1)), 
+                         ((2, 3), (0, 1), (0, 1)), 16)
+        self.check_union(((0, 1), (0, 1), (0, 1)), 
+                         ((1, 2), (1, 2), (1, 2)), 15)
+        self.check_union(((0, 1), (0, 1), (0, 1)), 
+                         ((1, 2), (0, 1), (1, 2)), 14)
+        self.check_union(((0, 1), (0, 1), (0, 1)), 
+                         ((1, 2), (0, 1), (0, 1)), 12)
         
     def intersection(self, 
                      ((ax1, ax2), (ay1, ay2), (az1, az2)), 
@@ -59,11 +57,36 @@ class IntersectionTests(TestCase):
         mi = intersect(ma, mb)
         return mi
         
+       
+    def union(self, 
+              ((ax1, ax2), (ay1, ay2), (az1, az2)), 
+              ((bx1, bx2), (by1, by2), (bz1, bz2))):
+        ma = Mesh()
+        add_cuboid(ma, corner = Vector(ax1, ay1, az1), lx = ax2 - ax1, ly = ay2 - ay1, lz = az2 - az1)
+        mb = Mesh()
+        add_cuboid(mb, corner = Vector(bx1, by1, bz1), lx = bx2 - bx1, ly = by2 - by1, lz = bz2 - bz1)
+        mi = union(ma, mb)
+        return mi
+        
     def check_intersection(self, 
                            ((ax1, ax2), (ay1, ay2), (az1, az2)), 
-                           ((bx1, bx2), (by1, by2), (bz1, bz2))):
+                           ((bx1, bx2), (by1, by2), (bz1, bz2)),
+                           excepted_number_of_verticies):
         mi = self.intersection(((ax1, ax2), (ay1, ay2), (az1, az2)), 
                                ((bx1, bx2), (by1, by2), (bz1, bz2)))
         self.assertAlmostEqual(mi.volume(), 
                                intersection_volume(((ax1, ax2), (ay1, ay2), (az1, az2)), 
                                                    ((bx1, bx2), (by1, by2), (bz1, bz2))))
+        self.assertEqual(len(mi.vertices), excepted_number_of_verticies)
+        
+    def check_union(self, 
+                    ((ax1, ax2), (ay1, ay2), (az1, az2)), 
+                    ((bx1, bx2), (by1, by2), (bz1, bz2)),
+                    excepted_number_of_verticies):
+        mi = self.union(((ax1, ax2), (ay1, ay2), (az1, az2)), 
+                        ((bx1, bx2), (by1, by2), (bz1, bz2)))
+        self.assertAlmostEqual(mi.volume(), 
+                               union_volume(((ax1, ax2), (ay1, ay2), (az1, az2)), 
+                                            ((bx1, bx2), (by1, by2), (bz1, bz2))))
+        print mi.volume()
+        self.assertEqual(len(mi.vertices), excepted_number_of_verticies)
