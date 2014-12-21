@@ -368,17 +368,23 @@ def compute_line_intersection(points, clipEdge):
     return ip
 
 def compute_line_intersection3d(points, clipEdge):
+    ip, s = line_intersection_and_proportion(points, clipEdge)
+    return ip
+    
+def line_intersection_and_proportion(points1, points2):
 
-    da = points[1] - points[0]
-    db = clipEdge[1] - clipEdge[0]
-    dc = clipEdge[0] - points[0]
+    da = points1[1] - points1[0]
+    db = points2[1] - points2[0]
+    dc = points2[0] - points1[0]
 
     n = da.cross(db).dot(da.cross(db))
+    if n == 0:
+        raise ValueError("Line Segments are parallel")
     s = dc.cross(db).dot(da.cross(db))/n
 
-    ip = points[0] + da * s
+    ip = points1[0] + da * s
 
-    return ip
+    return ip, s
 
 
 def polygon_clip(vertices, clip):
