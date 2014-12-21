@@ -676,7 +676,7 @@ class Mesh(object):
 
     def faces_with_normal(self, n, tolerance=0.000001):
         for f in self.faces:
-            if f.normal.parallel(n, tolerance):
+            if f.normal.parallel(n, tolerance) and n.dot(f.normal) > 0:
                 yield f
 
     def total_area_with_normal(self, n, tolerance=0.000001):

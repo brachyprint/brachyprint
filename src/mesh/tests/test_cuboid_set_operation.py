@@ -24,7 +24,7 @@ from unittest import TestCase, skip
 from mesh.primitives import add_cuboid
 from mesh import Vector, Mesh
 from mesh.manipulate.intersect4 import intersect, union
-from cuboid_set_operation_results import intersection_volume, union_volume
+from cuboid_set_operation_results import intersection_volume, union_volume, intersection_area, union_area
 
 class IntersectionTests(TestCase):
     def test_intersection_no_intersect(self):
@@ -98,6 +98,9 @@ class IntersectionTests(TestCase):
                                intersection_volume(((ax1, ax2), (ay1, ay2), (az1, az2)), 
                                                    ((bx1, bx2), (by1, by2), (bz1, bz2))))
         self.assertEqual(len(mi.vertices), excepted_number_of_verticies)
+        self.check_areas_by_normal(mi, 
+                                   intersection_area(((ax1, ax2), (ay1, ay2), (az1, az2)), 
+                                                     ((bx1, bx2), (by1, by2), (bz1, bz2))))
         
     def check_union(self, 
                     ((ax1, ax2), (ay1, ay2), (az1, az2)), 
@@ -109,3 +112,10 @@ class IntersectionTests(TestCase):
                                union_volume(((ax1, ax2), (ay1, ay2), (az1, az2)), 
                                             ((bx1, bx2), (by1, by2), (bz1, bz2))))
         self.assertEqual(len(mi.vertices), excepted_number_of_verticies)
+        self.check_areas_by_normal(mi, 
+                                   union_area(((ax1, ax2), (ay1, ay2), (az1, az2)), 
+                                              ((bx1, bx2), (by1, by2), (bz1, bz2))))
+        
+    def check_areas_by_normal(self, mesh, normals, tolerance_normal = 0.0000001):
+        for normal, area in normals.items():
+            self.assertAlmostEqual(area, mesh.total_area_with_normal(normal, tolerance=tolerance_normal))

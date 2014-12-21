@@ -54,7 +54,7 @@ def combine(mesh1, inverted1, mesh2, inverted2, tolerance = 0.0000001):
     
 def add_splits_and_face(m, v0, v1, v2, edge_splits):
     for candidate_face in v0.faces:
-        print candidate_face.vertices, (v0, v1, v2), candidate_face.vertices == (v0, v1, v2), candidate_face.vertices == (v1, v2, v0), candidate_face.vertices == (v2, v0, v1), candidate_face.vertices == (v0, v2, v1), candidate_face.vertices == (v1, v0, v2), candidate_face.vertices == (v2, v1, v0)
+        #print candidate_face.vertices, (v0, v1, v2), candidate_face.vertices == (v0, v1, v2), candidate_face.vertices == (v1, v2, v0), candidate_face.vertices == (v2, v0, v1), candidate_face.vertices == (v0, v2, v1), candidate_face.vertices == (v1, v0, v2), candidate_face.vertices == (v2, v1, v0)
         if candidate_face.vertices == (v0, v1, v2) or candidate_face.vertices == (v1, v2, v0) or candidate_face.vertices == (v2, v0, v1): #Duplicate face
             return
         if candidate_face.vertices == (v0, v2, v1) or candidate_face.vertices == (v1, v0, v2) or candidate_face.vertices == (v2, v1, v0): #Duplicate face inverted
