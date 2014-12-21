@@ -20,6 +20,8 @@ Unit testing for determining paramters of the intersections of two cuboids
 (C) Martin Green 2014
 """
 
+from mesh import Vector, Mesh
+
 def intersection_volume(((ax1, ax2), (ay1, ay2), (az1, az2)), 
                         ((bx1, bx2), (by1, by2), (bz1, bz2))):
     if ax1 > ax2: ax1, ax2 = ax2, ax1    
@@ -36,7 +38,33 @@ def intersection_volume(((ax1, ax2), (ay1, ay2), (az1, az2)),
     else:
         return dx * dy * dz
 
-
+def intersection_area(((ax1, ax2), (ay1, ay2), (az1, az2)), 
+                      ((bx1, bx2), (by1, by2), (bz1, bz2))):
+    if ax1 > ax2: ax1, ax2 = ax2, ax1    
+    if ay1 > ay2: ay1, ay2 = ay2, ay1
+    if az1 > az2: az1, az2 = az2, az1
+    if bx1 > bx2: bx1, bx2 = bx2, bx1    
+    if by1 > by2: by1, by2 = by2, by1
+    if bz1 > bz2: bz1, bz2 = bz2, bz1 
+    dx = min(ax2, bx2) - max(ax1, bx1)   
+    dy = min(ay2, by2) - max(ay1, by1)   
+    dz = min(az2, bz2) - max(az1, bz1)
+    normals = {}   
+    if dx <= 0 or dy <= 0 or dz <= 0:
+        normals[Vector(0, 0, 1)]= 0
+        normals[Vector(0, 0, -1)]= 0
+        normals[Vector(0, 1, 0)]= 0
+        normals[Vector(0, -1, 0)]= 0
+        normals[Vector(1, 0, 0)]= 0
+        normals[Vector(-1, 0, 0)]= 0
+    else:
+        normals[Vector(0, 0, 1)]= dx * dy
+        normals[Vector(0, 0, -1)]= dx * dy
+        normals[Vector(0, 1, 0)]= dx * dz
+        normals[Vector(0, -1, 0)]= dx * dz
+        normals[Vector(1, 0, 0)]= dy * dz
+        normals[Vector(-1, 0, 0)]= dy * dz
+    return normals
 
 def difference_volume(((ax1, ax2), (ay1, ay2), (az1, az2)), 
                       ((bx1, bx2), (by1, by2), (bz1, bz2))):
@@ -59,4 +87,32 @@ def union_volume(((ax1, ax2), (ay1, ay2), (az1, az2)),
            (bx2 - bx1) * (by2 - by1) * (bz2 - bz1)- \
            intersection_volume(((ax1, ax2), (ay1, ay2), (az1, az2)), 
                                ((bx1, bx2), (by1, by2), (bz1, bz2)))
-    
+                               
+def union_area(((ax1, ax2), (ay1, ay2), (az1, az2)), 
+               ((bx1, bx2), (by1, by2), (bz1, bz2))):
+    if ax1 > ax2: ax1, ax2 = ax2, ax1    
+    if ay1 > ay2: ay1, ay2 = ay2, ay1
+    if az1 > az2: az1, az2 = az2, az1
+    if bx1 > bx2: bx1, bx2 = bx2, bx1    
+    if by1 > by2: by1, by2 = by2, by1
+    if bz1 > bz2: bz1, bz2 = bz2, bz1
+    normals = intersection_area(((ax1, ax2), (ay1, ay2), (az1, az2)), 
+                                ((bx1, bx2), (by1, by2), (bz1, bz2)))
+    dx = min(ax2, bx2) - max(ax1, bx1)   
+    dy = min(ay2, by2) - max(ay1, by1)   
+    dz = min(az2, bz2) - max(az1, bz1)
+    if dx < 0 or dy < 0 or dz < 0:
+        normals[Vector(0, 0, 1)]= (ax2 - ax1) * (ay2 - ay1) + (bx2 - bx1) * (by2 - by1)
+        normals[Vector(0, 0, -1)]= (ax2 - ax1) * (ay2 - ay1) + (bx2 - bx1) * (by2 - by1)
+        normals[Vector(0, 1, 0)]= (ax2 - ax1) * (az2 - az1) + (bx2 - bx1) * (bz2 - bz1)
+        normals[Vector(0, -1, 0)]= (ax2 - ax1) * (az2 - az1) + (bx2 - bx1) * (bz2 - bz1)
+        normals[Vector(1, 0, 0)]= (ay2 - ay1) * (az2 - az1) + (by2 - by1) * (bz2 - bz1)
+        normals[Vector(-1, 0, 0)]= (ay2 - ay1) * (az2 - az1) + (by2 - by1) * (bz2 - bz1)
+    else:
+        normals[Vector(0, 0, 1)] = (ax2 - ax1) * (ay2 - ay1) + (bx2 - bx1) * (by2 - by1) - dx * dy
+        normals[Vector(0, 0, -1)] = (ax2 - ax1) * (ay2 - ay1) + (bx2 - bx1) * (by2 - by1) - dx * dy
+        normals[Vector(0, 1, 0)] = (ax2 - ax1) * (az2 - az1) + (bx2 - bx1) * (bz2 - bz1) - dx * dz
+        normals[Vector(0, -1, 0)] = (ax2 - ax1) * (az2 - az1) + (bx2 - bx1) * (bz2 - bz1) - dx * dz
+        normals[Vector(1, 0, 0)] = (ay2 - ay1) * (az2 - az1) + (by2 - by1) * (bz2 - bz1) - dy * dz
+        normals[Vector(-1, 0, 0)] = (ay2 - ay1) * (az2 - az1) + (by2 - by1) * (bz2 - bz1) - dy * dz
+    return normals
