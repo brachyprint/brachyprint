@@ -18,7 +18,7 @@ Requirements
   (Debian package
 
 Under Debian Jessie, one author has had some success running the
-following (as a superuser):
+following (as a superuser)::
 
   aptitude install python-dicom python-pip python-dev cython python-wxtools python-matplotlib python-opengl
   pip install triangle
