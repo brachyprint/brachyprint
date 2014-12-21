@@ -30,15 +30,23 @@ class IntersectionTests(TestCase):
     def test_intersection_no_intersect(self):
         self.check_intersection(((0, 1), (0, 1), (0, 1)), 
                                 ((2, 3), (0, 1), (0, 1)), 0)
+                                
     def test_intersection_vertex_intersect(self):
         self.check_intersection(((0, 1), (0, 1), (0, 1)), 
                                 ((1, 2), (1, 2), (1, 2)), 0)
+                                
     def test_intersection_edge_intersect(self):
         self.check_intersection(((0, 1), (0, 1), (0, 1)), 
                                 ((1, 2), (0, 1), (1, 2)), 0)
+                                
     def test_intersection_face_intersect(self):
         self.check_intersection(((0, 1), (0, 1), (0, 1)), 
                                 ((1, 2), (0, 1), (0, 1)), 0)
+                                
+    def test_intersection_volume_intersect(self):
+        self.check_intersection(((0, 1), (0, 1), (0, 1)), 
+                                ((0, 1), (0, 1), (0, 1)), 8)
+                                
     def test_union_no_intersect(self):
         self.check_union(((0, 1), (0, 1), (0, 1)), 
                          ((2, 3), (0, 1), (0, 1)), 16)
@@ -53,7 +61,11 @@ class IntersectionTests(TestCase):
                          
     def test_union_face_intersection(self):
         self.check_union(((0, 1), (0, 1), (0, 1)), 
-                         ((1, 2), (0, 1), (0, 1)), 17) #Edges will be split and hence extra 5 verticies
+                         ((1, 2), (0, 1), (0, 1)), 12)
+                                
+    def test_union_volume_intersect(self):
+        self.check_union(((0, 1), (0, 1), (0, 1)), 
+                         ((0, 1), (0, 1), (0, 1)), 8)
         
     def intersection(self, 
                      ((ax1, ax2), (ay1, ay2), (az1, az2)), 

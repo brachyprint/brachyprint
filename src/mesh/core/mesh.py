@@ -685,3 +685,10 @@ class Mesh(object):
 
     def total_area_with_normal(self, n, tolerance=0.000001):
         return sum(f.area() for f in self.faces_with_normal(n, tolerance))
+
+    def overlapping_coplanar_faces(self, face, tolerance=0.000001):
+        self.ensure_fresh_octrees()
+        for _,_,candidate_face in self.face_octree.intersect_with_box(face.bounding_box(tolerance = 0.000001)):
+            if candidate_face.normal.parallel(face.normal, tolerance) and \
+               abs(face.normal.dot(face.vertices[0]) - face.normal.dot(candidate_face.vertices[0])) < tolerance:
+                yield candidate_face

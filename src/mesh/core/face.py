@@ -49,13 +49,13 @@ class Face(object):
     def centroid(self):
         return reduce((lambda x,y:x+y), self.vertices) / 3
 
-    def bounding_box(self):
-        return ((min(v.x for v in self.vertices),
-                 max(v.x for v in self.vertices)),
-                (min(v.y for v in self.vertices),
-                 max(v.y for v in self.vertices)),
-                (min(v.z for v in self.vertices),
-                 max(v.z for v in self.vertices)))
+    def bounding_box(self, tolerance = 0):
+        return ((min(v.x for v in self.vertices) - tolerance,
+                 max(v.x for v in self.vertices) + tolerance),
+                (min(v.y for v in self.vertices) - tolerance,
+                 max(v.y for v in self.vertices) + tolerance),
+                (min(v.z for v in self.vertices) - tolerance,
+                 max(v.z for v in self.vertices) + tolerance))
 
     def nearest_vertex(self, x, y, z):
         return min([((v.x - x) ** 2 + (v.y - y) ** 2 + (v.z - z) ** 2, v) for v in self.vertices])[1]
