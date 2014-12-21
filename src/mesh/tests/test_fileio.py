@@ -51,6 +51,16 @@ class StlFormatTests(TestCase):
         self.assertAlmostEqual(m.surface_area(), 60000.0)
         self.assertTrue(m.closed())
 
+        filename = path + "/sphere.stl"
+
+        m = Mesh()
+        fileio.read_stl(m, filename)
+
+        m2 = Mesh()
+        primitives.add_sphere(m2, 101)
+
+        self.assertTrue(m.equivalent(m2))
+
 
     def test_write_ascii(self):
         path = os.path.dirname(__file__) 
