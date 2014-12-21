@@ -57,7 +57,7 @@ class StlFormatTests(TestCase):
         fileio.read_stl(m, filename)
 
         m2 = Mesh()
-        primitives.add_sphere(m2, 101)
+        primitives.add_sphere(m2, 100)
 
         self.assertTrue(m.equivalent(m2))
 
