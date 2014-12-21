@@ -31,7 +31,7 @@ class Face(object):
     def __init__(self, name, v1, v2, v3):
         self.name = name
         self.vertices = v1, v2, v3
-        self.normal = (v1 - v2).cross(v1 - v3)
+        self.normal = (v1 - v2).cross(v1 - v3).normalise()
         self.volume = None
         self.edges = []
 

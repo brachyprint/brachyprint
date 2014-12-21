@@ -159,6 +159,9 @@ class Vector(object):
     def __str__(self):
         return "Vector(%f, %f, %f)"%(self.x, self.y, self.z)
 
+    def parallel(self, other, tolerance=0.000001):
+        return self.cross(other).magnitude() < tolerance
+
     def cross(self, v):
         try:
             return Vector(self.y * v.z - self.z * v.y,

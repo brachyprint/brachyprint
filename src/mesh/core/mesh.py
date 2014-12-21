@@ -678,3 +678,10 @@ class Mesh(object):
             if v not in points_not_to_remove:
                 self.vertices.remove(v)
 
+    def faces_with_normal(self, n, tolerance=0.000001):
+        for f in self.faces:
+            if f.normal.parallel(n, tolerance):
+                yield f
+
+    def total_area_with_normal(self, n, tolerance=0.000001):
+        return sum(f.area() for f in self.faces_with_normal(n, tolerance))
