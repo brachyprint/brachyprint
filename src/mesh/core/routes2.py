@@ -26,34 +26,38 @@ from mesh import Vertex
 
 
 
-class MeshPoint(object):
+class MeshPoint(Vertex):
     """A point in a mesh. Has an field "point"."""
 
 class VertexPoint(MeshPoint):
     """A point in a mesh which happens to be a vertex."""
     def __init__(self,v):
-        self.point = v
+        super(Vertex, self).__init__(v.x, v.y, v.z)
+
     def splitmesh(self, mesh):
-        return self.point
+        v = Vertex(self.x, self.y, self.z)
+        return v
 
 class EdgePoint(MeshPoint):
     """A point in a mesh which happens to be on an edge."""
     def __init__(self,e,p):
-        self.edge = e
-        self.point = p
+        super(Vertex, self).__init__(p.x, p.y, p.z)
+        self.edges = [e]
+
     def splitmesh(self, mesh):
-        v = Vertex(self.point.x, self.point.y, self.point.z)
-        mesh.split_edge(v, self.edge)
+        v = Vertex(self.x, self.y, self.z)
+        mesh.split_edge(v, self.edges[0])
         return v
 
 class FacePoint(MeshPoint):
     """A point in a mesh which is just on some face."""
     def __init__(self,f,p):
-        self.face = f
-        self.point = p
+        super(Vertex, self).__init__(p.x, p.y, p.z)
+        self.faces = [f]
+
     def splitmesh(self, mesh):
-        v = Vertex(self.point.x, self.point.y, self.point.z)
-        mesh.split_face(v, self.face)
+        v = Vertex(self.x, self.y, self.z)
+        mesh.split_face(v, self.faces[0])
         return v
 
 
@@ -67,10 +71,10 @@ class Step(object):
         self.p2 = p2
 
     def start(self):
-	return self.p1.point
+	return self.p1
 
     def end(self):
-        return self.p2.point
+        return self.p2
 
     def dist(self):
         return self.start().distance(self.end())
@@ -109,17 +113,17 @@ class Route(object):
             yield s.p2
 
     def faces_covered(self):
-        return list(s.face for s in self.trajectory)
+        return list(s.faces[0] for s in self.trajectory)
 
     def edges_crossed(self):
         for p in self.points():
             if isinstance(p,EdgePoint):
-                yield p.edge
+                yield p.edges[0]
 
     def vertices_hit(self):
         for s in self.points():
             if isinstance(p,VertexPoint):
-                yield p.point
+                yield p
 
     def start(self):
         return self.trajectory[0].start()

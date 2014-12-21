@@ -36,8 +36,8 @@ from gui.panels import MeshPanel, WizardPanel
 from gui.dialogs import ImportDialog
 
 
-class MaskMakerApp(wx.App):
-    """Maskmaker application class.
+class MouldMakerApp(wx.App):
+    """MouldMaker application class.
     """
  
     def OnInit(self):
@@ -48,7 +48,7 @@ class MaskMakerApp(wx.App):
     def init_frame(self):
         # initialise the menu bar
         self.menubar = self.res.LoadMenuBar("menu_bar")
-        self.frame = MainWindow(title="MaskMaker", menubar=self.menubar)
+        self.frame = MainWindow(title="MouldMaker", menubar=self.menubar)
 
         self.frame.Bind(wx.EVT_MENU, self.frame.OnOpen, id=xrc.XRCID("wxID_OPEN"))
         self.frame.Bind(wx.EVT_MENU, self.frame.OnSave, id=xrc.XRCID("wxID_SAVE"))
@@ -75,7 +75,7 @@ class Mode(object):
 
 class MainWindow(wx.Frame):
 
-    def __init__(self, parent = None, id = -1, title = "MaskMaker", rois = {}, meshes={}, menubar=None, tools=[RotateTool("Rotate"), ZoomTool("Zoom"), SelectTool("Select")]):
+    def __init__(self, parent = None, id = -1, title = "MouldMaker", rois = {}, meshes={}, menubar=None, tools=[RotateTool("Rotate"), ZoomTool("Zoom"), SelectTool("Select")]):
         # Init
         super(MainWindow, self).__init__(
                 parent, id, title, size = (1024,768),
@@ -248,7 +248,7 @@ class MainWindow(wx.Frame):
 
 
     def warn(self, msg):
-        dlg = wx.MessageDialog(self, msg, "Maskmaker", wx.YES_NO | wx.ICON_QUESTION)
+        dlg = wx.MessageDialog(self, msg, "Mouldmaker", wx.YES_NO | wx.ICON_QUESTION)
         ret = dlg.ShowModal() == wx.ID_YES
         dlg.Destroy()
         return ret
@@ -354,13 +354,13 @@ class MainWindow(wx.Frame):
 
     def OnAbout(self, event):
         message = "Brachyprint mould editor"
-        caption = "MaskMaker"
+        caption = "MouldMaker"
         wx.MessageBox(message, caption, wx.OK)
 
 
 if __name__ == '__main__':
-    # create a maskmaker wx application
-    app = MaskMakerApp(False)
+    # create a mouldmaker wx application
+    app = MouldMakerApp(False)
 
     # run the main loop
     app.MainLoop()

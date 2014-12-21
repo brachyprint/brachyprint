@@ -380,4 +380,3 @@ class MeshController(object):
                 self.compile_band()
             return True
 
-

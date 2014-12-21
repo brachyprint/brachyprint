@@ -185,7 +185,9 @@ class RoiCollectionDisplay(RoiCollection):
             for path in path_list:
                 self.linelookup.append((roi, index))
                 name = name + 1
-                for start, end in path.points():
+                p = list(path.points())
+                ps = zip(p, p[1:])
+                for start, end in ps:
                     dx = start[0] - end[0]
                     dy = start[1] - end[1]
                     dz = start[2] - end[2]
@@ -203,6 +205,5 @@ class RoiCollectionDisplay(RoiCollection):
         glEndList()
 
         return line_list
-
 
 
