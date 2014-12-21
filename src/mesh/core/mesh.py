@@ -556,7 +556,7 @@ class Mesh(object):
                 self.vertex_octree = None
                 self.face_octree = None
             else:
-                epsilon = 0.1
+                epsilon = 0.001
                 b = ((self.minX-epsilon,self.maxX+epsilon),
                      (self.minY-epsilon,self.maxY+epsilon),
                      (self.minZ-epsilon,self.maxZ+epsilon))
@@ -568,7 +568,7 @@ class Mesh(object):
                 self.face_octree = BlobOctree(b)
                 for f in self.faces:
                     p = f.centroid()
-                    self.face_octree.insert((p.x,p.y,p.z),f.bounding_box(),f)
+                    self.face_octree.insert((p.x,p.y,p.z),f.bounding_box(epsilon),f)
 
     def contains_point(self, p):
         """Does this mesh contain the point p?
@@ -688,3 +688,9 @@ class Mesh(object):
             if candidate_face.normal.parallel(face.normal, tolerance) and \
                abs(face.normal.dot(face.vertices[0]) - face.normal.dot(candidate_face.vertices[0])) < tolerance:
                 yield candidate_face
+
+    def possible_face_collisions(self, other):
+        self.ensure_fresh_octrees()
+        other.ensure_fresh_octrees()
+        for ((_,_,f1),(_,_,f2)) in self.face_octree.possible_overlaps(other.face_octree):
+            yield (f1,f2)
