@@ -100,3 +100,6 @@ class Edge(object):
         a1 = fn(self.v1)
         a2 = fn(self.v2)
         return (a2*self.v1 - a1*self.v2)/(a2-a1)
+        
+    def has_two_faces(self):
+        return self.lface is not None and self.rface is not None

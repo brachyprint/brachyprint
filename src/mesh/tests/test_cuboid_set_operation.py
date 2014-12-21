@@ -30,22 +30,30 @@ class IntersectionTests(TestCase):
     def test_intersection_no_intersect(self):
         self.check_intersection(((0, 1), (0, 1), (0, 1)), 
                                 ((2, 3), (0, 1), (0, 1)), 0)
+    def test_intersection_vertex_intersect(self):
         self.check_intersection(((0, 1), (0, 1), (0, 1)), 
                                 ((1, 2), (1, 2), (1, 2)), 0)
+    def test_intersection_edge_intersect(self):
         self.check_intersection(((0, 1), (0, 1), (0, 1)), 
                                 ((1, 2), (0, 1), (1, 2)), 0)
+    def test_intersection_face_intersect(self):
         self.check_intersection(((0, 1), (0, 1), (0, 1)), 
                                 ((1, 2), (0, 1), (0, 1)), 0)
-        
     def test_union_no_intersect(self):
         self.check_union(((0, 1), (0, 1), (0, 1)), 
                          ((2, 3), (0, 1), (0, 1)), 16)
+                         
+    def test_union_vertex_intersection(self):
         self.check_union(((0, 1), (0, 1), (0, 1)), 
                          ((1, 2), (1, 2), (1, 2)), 15)
+                         
+    def test_union_edge_intersection(self):
         self.check_union(((0, 1), (0, 1), (0, 1)), 
-                         ((1, 2), (0, 1), (1, 2)), 14)
+                         ((1, 2), (0, 1), (1, 2)), 15) #Edge will be split and hence extra vertex
+                         
+    def test_union_face_intersection(self):
         self.check_union(((0, 1), (0, 1), (0, 1)), 
-                         ((1, 2), (0, 1), (0, 1)), 12)
+                         ((1, 2), (0, 1), (0, 1)), 17) #Edges will be split and hence extra 5 verticies
         
     def intersection(self, 
                      ((ax1, ax2), (ay1, ay2), (az1, az2)), 
@@ -88,5 +96,4 @@ class IntersectionTests(TestCase):
         self.assertAlmostEqual(mi.volume(), 
                                union_volume(((ax1, ax2), (ay1, ay2), (az1, az2)), 
                                             ((bx1, bx2), (by1, by2), (bz1, bz2))))
-        print mi.volume()
         self.assertEqual(len(mi.vertices), excepted_number_of_verticies)

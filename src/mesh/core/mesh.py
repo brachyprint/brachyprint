@@ -674,8 +674,7 @@ class Mesh(object):
         for edge in self.edges.values():
             points_not_to_remove.add(edge.v1)
             points_not_to_remove.add(edge.v2)
-
-        for v in self.vertices:
+        for v in copy.copy(self.vertices):
             if v not in points_not_to_remove:
                 self.vertices.remove(v)
 
