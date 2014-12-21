@@ -142,7 +142,6 @@ class RoiTool(GuiTool):
 
                 if self.current_roi: # currently working on an ROI
 
-                    print "roi"
                     roi = self.current_roi
                     meshname = roi.meshname
 
