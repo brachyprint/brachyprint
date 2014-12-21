@@ -119,3 +119,6 @@ class MainWindow(wx.Frame):
     def OnExit(self, event):
         self.Close(True) # Close the frame.
 
+    def UpdateMode(self):
+        pass
+

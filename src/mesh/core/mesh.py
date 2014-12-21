@@ -631,13 +631,9 @@ class Mesh(object):
             for v in a.vertices:
                 p = v + v.normal()*epsilon
                 q = v - v.normal()*epsilon
-                if a.contains_point(p):
-                    raise ValueError("Mesh shouldn't contain point just outside itself")
-                if not a.contains_point(q):
-                    raise ValueError("Mesh should contain point just inside itself")
-                if b.contains_point(p):
+                if a.contains_point(p) ^ b.contains_point(p):
                     return False
-                if not b.contains_point(q):
+                if a.contains_point(q) ^ b.contains_point(q):
                     return False
 
         return True
