@@ -235,8 +235,40 @@ class CleanMeshTests(TestCase):
         self.assertEquals(len(m.faces), len(n.faces))
         self.assertEquals(len(m.edges), len(n.edges))
 
+
 class EquivalenceTests(TestCase):
-    pass
+
+    def test_equivalent_spheres(self):
+        m1 = Mesh()
+        primitives.add_sphere(m1, 1.0, detail_level=4)
+        
+        m2 = Mesh()
+        primitives.add_sphere(m2, 1.0, detail_level=5)
+        
+        m3 = Mesh()
+        primitives.add_sphere(m3, 1.0, detail_level=5, model="octa")
+
+        for a in [m1, m2, m3]:
+            for b in [m1, m2, m3]:
+                self.assertTrue(m1.equivalent(m2, epsilon=0.1))
+
+    def test_nonequivalent_spheres(self):
+        m1 = Mesh()
+        primitives.add_sphere(m1, 1.0)
+
+        m2 = Mesh()
+        primitives.add_sphere(m2, 1.5)
+
+        m3 = Mesh()
+        primitives.add_sphere(m3, 1.0, origin=Vector(0.5, 0.0, 0.0))
+        
+        m4 = Mesh()
+        primitives.add_sphere(m4, 1.5, origin=Vector(0.5, 0.0, 0.0))
+
+        for a in [m1, m2, m3, m4]:
+            for b in [m1, m2, m3, m4]:
+                if a is not b:
+                    self.assertFalse(m1.equivalent(m2))
 
 
 if __name__ == '__main__':
