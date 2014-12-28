@@ -34,6 +34,29 @@ class Face(object):
         self.normal = (v1 - v2).cross(v1 - v3).normalise()
         self.volume = None
         self.edges = []
+        
+    def validate(self):
+        assert self.normal == (self.vertices[0] - self.vertices[1]).cross(self.vertices[0] - self.vertices[2]).normalise()
+        e1found = False
+        e2found = False
+        e3found = False
+        (u1,u2,u3) = self.vertices
+        for edge in self.edges:
+            v = (edge.v1, edge.v2)
+            assert edge.v1 in self.vertices
+            assert edge.v2 in self.vertices
+            if (v == (u1,u2)) or (v == (u2,u3)) or (v == (u3,u1)):
+                assert edge.lface is self
+            else:
+                assert edge.rface is self
+            assert edge.lface != edge.rface
+            
+            e1found = e1found or (edge.v1 == self.vertices[0] and edge.v2 == self.vertices[1]) or (edge.v2 == self.vertices[0] and edge.v1 == self.vertices[1])
+            e2found = e2found or (edge.v1 == self.vertices[1] and edge.v2 == self.vertices[2]) or (edge.v2 == self.vertices[1] and edge.v1 == self.vertices[2])
+            e3found = e3found or (edge.v1 == self.vertices[2] and edge.v2 == self.vertices[0]) or (edge.v2 == self.vertices[2] and edge.v1 == self.vertices[0])
+        assert e1found and e2found and e3found
+        print "VALIDATED"
+        
 
     def add_edge(self, edge):
         self.edges.append(edge)
