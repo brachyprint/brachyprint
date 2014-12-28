@@ -66,6 +66,7 @@ class MeshPanel(HyperTreeList):
         super(MeshPanel, self).__init__(parent, id, pos, size, 0, agwstyle)
 
         self.controller = controller
+        
 
         # create some columns
         self.AddColumn("Name")
@@ -85,7 +86,7 @@ class MeshPanel(HyperTreeList):
         self.clear()
 
         # add the initial meshes
-        for meshname in self.meshnames:
+        for meshname in meshnames:
             self.addMesh(meshname)
 
         self.SetMinSize(wx.Size(270, 150))
@@ -97,7 +98,6 @@ class MeshPanel(HyperTreeList):
 
     def addMesh(self, meshname):
         styles = ["Grey", "Red", "Blue"]
-
         item = self.AppendItem(self.root, meshname)
         self.meshes[meshname] = item
 
@@ -144,7 +144,7 @@ class MeshPanel(HyperTreeList):
         self.cbs = {}
         self.visible = {}
         self.vertices = {}
-        self.meshnames = {}
+        #self.meshnames = {}
 
         self.meshes = {}
 
