@@ -148,7 +148,7 @@ def triangle_triangle_intersect(f1, f2):
         return 0
 
     if len(s1) > 2 or len(s2) > 2:
-        print "overlapping plane"
+        #print "overlapping plane"
         return polygon_clip(f2, f1)
 
     # given the two intersection lines, determine their overlap
@@ -368,23 +368,36 @@ def compute_line_intersection(points, clipEdge):
     return ip
 
 def compute_line_intersection3d(points, clipEdge):
-    ip, s = line_intersection_and_proportion(points, clipEdge)
+    ip, s1, s2 = line_intersection_and_proportion(points, clipEdge)
     return ip
     
-def line_intersection_and_proportion(points1, points2):
+def line_intersection_and_proportion(points1, points2, tolerance = 0.000001):
 
     da = points1[1] - points1[0]
     db = points2[1] - points2[0]
     dc = points2[0] - points1[0]
 
     n = da.cross(db).dot(da.cross(db))
-    if n == 0:
-        raise ValueError("Line Segments are parallel")
-    s = dc.cross(db).dot(da.cross(db))/n
+    if abs(n) < tolerance:
+        raise ParallelLinesException
+    if abs(da.cross(db).dot(dc)) > tolerance:
+        raise LinesDoNotCrossException
+    s1 = dc.cross(db).dot(da.cross(db))/n
+    s2 = -dc.cross(da).dot(db.cross(da))/n
 
-    ip = points1[0] + da * s
+    ip = points1[0] + da * s1
+    
+    #print points1, points2, da, db, dc, n, s1, s2
+    assert (ip - (points2[0] + s2 * db)).magnitude() < tolerance
+    assert (ip - (points1[0] + s1 * da)).magnitude() < tolerance
 
-    return ip, s
+    return ip, s1, s2
+    
+class ParallelLinesException(Exception):
+    pass    
+    
+class LinesDoNotCrossException(Exception):
+    pass
 
 
 def polygon_clip(vertices, clip):
