@@ -40,6 +40,8 @@ from octrees import *
 from scipy.optimize import leastsq
 import copy
 
+ALWAYS_REFRESH = False
+DEBUG = False
 
 class Mesh(object):
     '''
@@ -82,6 +84,7 @@ class Mesh(object):
         """Add a vertex to the mesh."""
         self.vertices.append(v)
         self.update_bounds(v.x, v.y, v.z)
+        self.has_fresh_octrees = False
 
     def add_vertex(self, x, y=None, z=None):
         """Add a vertex to the mesh.
@@ -90,12 +93,14 @@ class Mesh(object):
         :keyword y: y coordinate of the vertex.
         :keyword z: z coordinate of the vertex.
         """
-        self.has_fresh_octrees = False
         
         if isinstance(x, Vector):
             y = x.y
             z = x.z
             x = x.x
+        if DEBUG:
+            assert self.get_vertex(x, y, z) is None
+        self.has_fresh_octrees = False
         self.sumX = self.sumX + x
         self.sumY = self.sumY + y
         self.sumZ = self.sumZ + z
@@ -216,6 +221,10 @@ class Mesh(object):
         :param v2: vertex 2 of the face
         :param v3: vertex 3 of the face
         """
+        if DEBUG:
+            assert v1 in self.vertices
+            assert v2 in self.vertices
+            assert v3 in self.vertices
         f = Face(len(self.faces), v1, v2, v3)
         self.faces.append(f)
         for vs, ve in [(v1, v2), (v2, v3), (v3, v1)]:
@@ -246,6 +255,7 @@ class Mesh(object):
             if edge.lface is None and edge.rface is None:
                 self.edges.pop((edge.v1,edge.v2))
         self.faces.remove(f)
+        self.boundary.symmetric_difference_update(f.edges)
 
     def get_planar_path(self,p1,f1,p2,f2,p3):
         """Consider points p1 on face f1, p2 on face f2, and a third point
@@ -533,7 +543,7 @@ class Mesh(object):
         :keyword y: y coordinate of the vertex.
         :keyword z: z coordinate of the vertex.
         """
-
+        
         if isinstance(x, Vector):
             x,y,z = x.x,x.y,x.z
 
@@ -550,7 +560,7 @@ class Mesh(object):
         return self.face_octree
 
     def ensure_fresh_octrees(self):
-        if not(self.has_fresh_octrees):
+        if ALWAYS_REFRESH or not(self.has_fresh_octrees):
             self.has_fresh_octrees = True
             if self.vertices is None:
                 self.vertex_octree = None
@@ -640,7 +650,8 @@ class Mesh(object):
 
     def split_edge(self, vertex, edge):
         """Add the vertex along the edge and retriangulate"""
-        assert vertex not in [edge.v1, edge.v2]
+        if DEBUG:
+            assert vertex not in [edge.v1, edge.v2]
         new_faces = []
         for face in [edge.lface, edge.rface]:
             if face is not None:
@@ -649,7 +660,9 @@ class Mesh(object):
         
     def split_edge_one_face(self, vertex, edge, face): 
         """Remove the face, and make two new triangles split along the edge at vertex"""
-        assert vertex not in face.vertices
+        if DEBUG:
+            assert vertex not in face.vertices
+            assert len(set(face.vertices)) == 3
         self.remove_face(face)
         third_vertex = next(v for v in face.vertices if v not in (edge.v1, edge.v2))
         third_vertex_index = face.vertices.index(third_vertex)
@@ -660,6 +673,8 @@ class Mesh(object):
 
     def split_face(self, vertex, face):
         """Add the vertex within the face and retriangulate"""
+        if DEBUG:
+            face.validate()
         self.remove_face(face)
         return [self.add_triangle_face(face.vertices[0], face.vertices[1], vertex),
                 self.add_triangle_face(face.vertices[1], face.vertices[2], vertex),
