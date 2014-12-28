@@ -139,8 +139,9 @@ class MeshCollectionDisplay(MeshCollection):
     A class to extend mesh collections to add OpenGL display.
     '''
 
-    def __init__(self, d={}):
+    def __init__(self, d={}, vertex_size = 3):
         self.clear()
+        self.vertex_size = vertex_size
 
         super(MeshCollectionDisplay, self).__init__(d)
 
@@ -292,7 +293,7 @@ class MeshCollectionDisplay(MeshCollection):
             glPushName(i)
             glTranslatef(v[0], v[1], v[2])
             glColor3f(0.2,1,0.2)
-            glutSolidSphere(3, 10, 10)
+            glutSolidSphere(self.vertex_size, 10, 10)
             glPopName()
             glPopMatrix()
         glEndList()

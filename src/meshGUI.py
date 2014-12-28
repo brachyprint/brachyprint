@@ -31,7 +31,7 @@ from gui.panels import ModePanel, MeshPanel
 
 
 class MainWindow(wx.Frame):
-    def __init__(self, parent = None, id = -1, title = "Brachyprint mould viewer", rois = [], meshes={}, tools=[RotateTool("Rotate"), ZoomTool("Zoom"), DebugTool("Debug")]):
+    def __init__(self, parent = None, id = -1, title = "Brachyprint mould viewer", rois = [], meshes={}, tools=[RotateTool("Rotate"), ZoomTool("Zoom"), DebugTool("Debug")], vertex_size = 3):
         # Init
         wx.Frame.__init__(
                 self, parent, id, title, size = (400,300),
@@ -45,7 +45,7 @@ class MainWindow(wx.Frame):
 
         # create the mesh view widget and controller
         self.meshCanvas = MeshCanvas(self)
-        self.meshController = MeshController(self, self.meshCanvas, meshes)
+        self.meshController = MeshController(self, self.meshCanvas, meshes, vertex_size = vertex_size)
         self.meshCanvas.setController(self.meshController)
 
         # add the GUI tools to the controller

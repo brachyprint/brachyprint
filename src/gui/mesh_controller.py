@@ -76,7 +76,7 @@ class ViewPort(object):
 
 class MeshController(object):
 
-    def __init__(self, parent, view, meshes):
+    def __init__(self, parent, view, meshes, vertex_size = 3):
 
         # the parent application
         self.parent = parent
@@ -85,7 +85,7 @@ class MeshController(object):
         self.view = view
 
         # the associated mesh objects (`model')
-        self.meshes = MeshCollectionDisplay(meshes)
+        self.meshes = MeshCollectionDisplay(meshes, vertex_size = vertex_size)
 
         self.tools = {}
         self.currentTool = None
