@@ -26,6 +26,7 @@ from mesh import Vector, Mesh
 from mesh.manipulate.intersect4 import intersect, union
 from cuboid_set_operation_results import intersection_volume, union_volume, intersection_area, union_area
 
+
 class IntersectionTests(TestCase):
     def test_intersection_no_intersect(self):
         self.check_intersection(((0, 1), (0, 1), (0, 1)), 
@@ -42,8 +43,12 @@ class IntersectionTests(TestCase):
     def test_intersection_face_intersect(self):
         self.check_intersection(((0, 1), (0, 1), (0, 1)), 
                                 ((1, 2), (0, 1), (0, 1)), 0)
+               
+    def test_intersection_partial_face_intersect(self):
+        self.check_intersection(((0, 1), (0, 1), (0, 1)), 
+                                ((1, 2), (0.5, 1.5), (0.5, 1.5)), 0)
                                 
-    def test_intersection_volume_intersect(self):
+    def test_intersection_total_volume_intersect(self):
         self.check_intersection(((0, 1), (0, 1), (0, 1)), 
                                 ((0, 1), (0, 1), (0, 1)), 8)
                                 
@@ -62,8 +67,12 @@ class IntersectionTests(TestCase):
     def test_union_face_intersection(self):
         self.check_union(((0, 1), (0, 1), (0, 1)), 
                          ((1, 2), (0, 1), (0, 1)), 12)
+               
+    def test_union_partial_face_intersect(self):
+        self.check_union(((0, 1), (0, 1), (0, 1)), 
+                         ((1, 3), (0.55, 2.5), (0.5, 2.5)), 16)
                                 
-    def test_union_volume_intersect(self):
+    def test_union_total_volume_intersect(self):
         self.check_union(((0, 1), (0, 1), (0, 1)), 
                          ((0, 1), (0, 1), (0, 1)), 8)
         
@@ -74,6 +83,8 @@ class IntersectionTests(TestCase):
         add_cuboid(ma, corner = Vector(ax1, ay1, az1), lx = ax2 - ax1, ly = ay2 - ay1, lz = az2 - az1)
         mb = Mesh()
         add_cuboid(mb, corner = Vector(bx1, by1, bz1), lx = bx2 - bx1, ly = by2 - by1, lz = bz2 - bz1)
+        ma.ensure_fresh_octrees()
+        mb.ensure_fresh_octrees()
         mi = intersect(ma, mb)
         return mi
         
@@ -85,6 +96,8 @@ class IntersectionTests(TestCase):
         add_cuboid(ma, corner = Vector(ax1, ay1, az1), lx = ax2 - ax1, ly = ay2 - ay1, lz = az2 - az1)
         mb = Mesh()
         add_cuboid(mb, corner = Vector(bx1, by1, bz1), lx = bx2 - bx1, ly = by2 - by1, lz = bz2 - bz1)
+        ma.ensure_fresh_octrees()
+        mb.ensure_fresh_octrees()
         mi = union(ma, mb)
         return mi
         
@@ -101,6 +114,7 @@ class IntersectionTests(TestCase):
         self.check_areas_by_normal(mi, 
                                    intersection_area(((ax1, ax2), (ay1, ay2), (az1, az2)), 
                                                      ((bx1, bx2), (by1, by2), (bz1, bz2))))
+        mi.ensure_fresh_octrees()
         
     def check_union(self, 
                     ((ax1, ax2), (ay1, ay2), (az1, az2)), 
@@ -115,6 +129,7 @@ class IntersectionTests(TestCase):
         self.check_areas_by_normal(mi, 
                                    union_area(((ax1, ax2), (ay1, ay2), (az1, az2)), 
                                               ((bx1, bx2), (by1, by2), (bz1, bz2))))
+        mi.ensure_fresh_octrees()
         
     def check_areas_by_normal(self, mesh, normals, tolerance_normal = 0.0000001):
         for normal, area in normals.items():

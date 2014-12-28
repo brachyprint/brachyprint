@@ -269,7 +269,34 @@ class EquivalenceTests(TestCase):
             for b in [m1, m2, m3, m4]:
                 if a is not b:
                     self.assertFalse(m1.equivalent(m2))
+                    
+class RemoveFaceTest(TestCase):
+    def test_foo(self):
+        m = Mesh()
+        primitives.add_cuboid(m, corner = Vector(2, 0, 0), lx = 1, ly = 1, lz = 1)
+        for face in m.faces:
+            m.remove_face(face)
+            m.add_triangle_face(face.vertices[0], face.vertices[1], face.vertices[2])
 
+class PossibleOverlapsTest(TestCase):
+    def test_two_cubes_corners_touching(self):
+        m1 = Mesh()
+        primitives.add_cuboid(m1, corner = Vector(0, 0, 0), lx = 1, ly = 1, lz = 1)
+        m2 = Mesh()
+        primitives.add_cuboid(m2, corner = Vector(1, 1, 1), lx = 1, ly = 1, lz = 1)
+        self.assertEquals(len(list(m1.possible_face_collisions(m2))), 6 ** 2)
+    def test_two_cubes_edge_touching(self):
+        m1 = Mesh()
+        primitives.add_cuboid(m1, corner = Vector(0, 0, 0), lx = 1, ly = 1, lz = 1)
+        m2 = Mesh()
+        primitives.add_cuboid(m2, corner = Vector(1, 1, 0.5), lx = 1, ly = 1, lz = 1)
+        self.assertEquals(len(list(m1.possible_face_collisions(m2))), 6 ** 2 - 4)
+    def test_two_cubes_face_touching(self):
+        m1 = Mesh()
+        primitives.add_cuboid(m1, corner = Vector(0, 0, 0), lx = 1, ly = 1, lz = 1)
+        m2 = Mesh()
+        primitives.add_cuboid(m2, corner = Vector(1, 0.5, 0.5), lx = 1, ly = 1, lz = 1)
+        self.assertEquals(len(list(m1.possible_face_collisions(m2))), 6 ** 2 - 8)
 
 if __name__ == '__main__':
     main()
